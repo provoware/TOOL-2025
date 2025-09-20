@@ -6,5 +6,8 @@
 - [x] JSON-Validierung für Importfunktionen implementieren (Grundchecks & Playlist-Säuberung aktiv, Schema folgt)
 - [x] Logging verbessern (Filter & Hinweise ergänzt, Level-Standardisierung erweitern)
 - [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
+- [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
+- [x] Backup-Import verschärfen (Module/Kategorien deduplizieren & sanitisieren)
 - [ ] Plugin-Tests automatisieren (Unit- und Smoke-Tests für Import/Entfernen)
 - [ ] Backup-Schema formalisieren (JSON-Schema definieren & CI-Prüfung)
+- [ ] Accessibility-Shortcuts erweitern (Playlist per Tastatur sortieren)

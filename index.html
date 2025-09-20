@@ -255,7 +255,7 @@
   const escapeHtml=str=>safeStr(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.1.2',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:'1.1.3',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
   function toast(msg){if(!$('#toastsChk').checked)return;const t=document.createElement('div');t.textContent=msg;t.setAttribute('role','status');Object.assign(t.style,{position:'fixed',right:'14px',bottom:'14px',background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'12px',boxShadow:'var(--shadow)',zIndex:99});document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
   function addLog(type,msg){const lvl=['ok','warn','error'].includes(type)?type:'info';const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type:lvl,msg});if(state.log.length>300)state.log.shift();renderLog()}
   function renderLog(){loglist.innerHTML='';
@@ -290,13 +290,23 @@
     if(!Array.isArray(state.log)){state.log=[];fixes++;}
     if(!['all','ok','warn','error'].includes(state.logFilter)){state.logFilter='all';fixes++;}
     const seen=new Set();
-    state.modules=state.modules.filter(Boolean).map(m=>{
+    const modules=[];
+    state.modules.filter(Boolean).forEach((m,idx)=>{
       const name=safeStr(m&&m.name).trim();
+      const fallback=`Modul ${idx+1}`;
+      const finalName=name||fallback;
       let id=safeStr(m&&m.id).trim();
-      const finalName=name||(id?id.replace(/-/g,' '):'Unbenanntes Modul');
-      id=id||slugify(finalName);
-      return{id,name:finalName};
-    }).filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true;});
+      if(id) id=slugify(id);
+      if(!id) id=slugify(finalName);
+      if(!id) id=slugify(fallback);
+      if(!id) id=`modul-${uuid().slice(-6)}`;
+      while(!id||seen.has(id)){
+        id=slugify(`${finalName}-${uuid().slice(-6)}`)||`modul-${uuid().slice(-6)}`;
+      }
+      seen.add(id);
+      modules.push({id,name:finalName});
+    });
+    state.modules=modules;
     state.genres=[...new Set(state.genres.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     state.moods=[...new Set(state.moods.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
     for(const c in state.categories){
@@ -316,6 +326,7 @@
       const version=safeStr(p&&p.version).trim();
       const author=safeStr(p&&p.author).trim();
       let moduleId=safeStr(p&&p.moduleId).trim();
+      if(moduleId) moduleId=slugify(moduleId);
       let moduleName=safeStr(p&&p.moduleName).trim()||`Plugin – ${name}`;
       const sections=Array.isArray(p&&p.sections)?p.sections.map(sec=>{
         const title=safeStr(sec&&sec.title).trim();
@@ -351,6 +362,20 @@
   function renderPlaylist(){const list=$('#playlist');list.innerHTML='';const frag=document.createDocumentFragment();state.playlist.forEach((t,idx)=>{const row=document.createElement('div');row.className='item';row.setAttribute('draggable','true');row.dataset.index=idx;row.innerHTML=`<div class=\"meta\"><strong>${safeStr(t.title)||'Unbenannt'}</strong><span class=\"muted\">${safeStr(t.artist)||'–'}</span></div><div class=\"row\"><button class=\"btn inline\" data-act=\"play\">▶</button><button class=\"btn inline warn\" data-act=\"del\">✖</button></div>`;frag.appendChild(row)});list.appendChild(frag)}
   function tick(){const now=new Date();$('#clock').textContent=now.toLocaleTimeString('de-DE',{hour12:false});$('#today').textContent=now.toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'2-digit'})}
   const moduleRegistry=new Map();
+  const moduleIdTaken=id=>!!id&&(state.modules.some(m=>m&&m.id===id)||moduleRegistry.has(id));
+  function nextModuleId(name,preferred){
+    const baseName=safeStr(name).trim()||'modul';
+    let candidate=safeStr(preferred).trim();
+    if(candidate) candidate=slugify(candidate);
+    if(!candidate) candidate=slugify(baseName);
+    if(!candidate) candidate=slugify(`modul-${Date.now()}`);
+    if(!candidate) candidate=`modul-${uuid().slice(-6)}`;
+    let suffix=2;
+    while(moduleIdTaken(candidate)){
+      candidate=slugify(`${baseName}-${suffix++}`)||`modul-${uuid().slice(-6)}`;
+    }
+    return candidate;
+  }
   function renderPluginModuleContent(el,pluginId){
     const plugin=state.plugins.find(p=>p.id===pluginId);
     if(!plugin){
@@ -415,11 +440,24 @@
   }
   function ensurePluginModule(plugin){
     if(!plugin)return;
-    const moduleName=plugin.moduleName||`Plugin – ${plugin.name}`;
-    let moduleId=plugin.moduleId||slugify(`${plugin.name}-${plugin.id.slice(-6)}`);
+    const moduleName=safeStr(plugin.moduleName).trim()||`Plugin – ${plugin.name}`;
+    let moduleId=safeStr(plugin.moduleId).trim();
+    moduleId=slugify(moduleId||`${plugin.name}-${plugin.id.slice(-6)}`);
+    if(!moduleId) moduleId=slugify(`plugin-${plugin.id.slice(-6)}`)||`plugin-${uuid().slice(-6)}`;
     plugin.moduleName=moduleName;
     plugin.moduleId=moduleId;
-    const existing=state.modules.find(m=>m.id===moduleId);
+    let existing=state.modules.find(m=>m.id===moduleId);
+    const occupiedByOtherPlugin=state.plugins.some(p=>p&&p!==plugin&&p.moduleId===moduleId);
+    if(existing&&occupiedByOtherPlugin){
+      moduleId=nextModuleId(moduleName,`${moduleId}-${plugin.id.slice(-4)}`);
+      plugin.moduleId=moduleId;
+      existing=null;
+    }
+    if(existing&&safeLower(existing.name)!==safeLower(moduleName)){
+      moduleId=nextModuleId(moduleName,moduleId);
+      plugin.moduleId=moduleId;
+      existing=null;
+    }
     if(!existing){
       state.modules.push({id:moduleId,name:moduleName});
       renderModules();
@@ -427,7 +465,9 @@
     }else if(existing.name!==moduleName){
       existing.name=moduleName;
     }
-    moduleRegistry.set(moduleId,el=>renderPluginModuleContent(el,plugin.id));
+    const renderPluginView=el=>renderPluginModuleContent(el,plugin.id);
+    renderPluginView.pluginId=plugin.id;
+    moduleRegistry.set(moduleId,renderPluginView);
   }
   function ensureAllPlugins(){state.plugins.forEach(ensurePluginModule);}
   function validatePluginData(data){
@@ -437,6 +477,8 @@
     const description=safeStr(data.description).trim();
     const version=safeStr(data.version).trim();
     const author=safeStr(data.author).trim();
+    const moduleName=safeStr(data.moduleName).trim();
+    const moduleId=safeStr(data.moduleId).trim();
     const sections=Array.isArray(data.sections)?data.sections.map(sec=>{
       const title=safeStr(sec&&sec.title).trim();
       const content=safeStr(sec&&sec.content).trim();
@@ -451,14 +493,14 @@
       if(!url||!/^https?:/i.test(url))return null;
       return{label:label||url,url};
     }).filter(Boolean):[];
-    return{name,description,version,author,sections,links};
+    return{name,description,version,author,moduleName,moduleId,sections,links};
   }
   function pluginExists(candidate){return state.plugins.some(p=>safeLower(p.name)===safeLower(candidate.name)&&safeLower(p.version||'')===safeLower(candidate.version||''));}
   function registerPlugin(candidate){
     if(pluginExists(candidate))throw new Error('Plugin mit gleicher Version bereits vorhanden');
     const plugin=Object.assign({id:uuid()},candidate);
-    plugin.moduleName=`Plugin – ${plugin.name}`;
-    plugin.moduleId=slugify(`${plugin.name}-${plugin.id.slice(-6)}`);
+    plugin.moduleName=safeStr(plugin.moduleName).trim()||`Plugin – ${plugin.name}`;
+    plugin.moduleId=safeStr(plugin.moduleId).trim();
     state.plugins.push(plugin);
     ensurePluginModule(plugin);
     renderModules();
@@ -550,11 +592,16 @@
         openBtn.className='btn inline';
         openBtn.textContent='Anzeigen';
         openBtn.addEventListener('click',()=>openModule(plugin.moduleId));
+        const exportBtn=document.createElement('button');
+        exportBtn.className='btn inline';
+        exportBtn.textContent='Exportieren';
+        exportBtn.addEventListener('click',()=>exportPlugin(plugin));
         const removeBtn=document.createElement('button');
         removeBtn.className='btn inline warn';
         removeBtn.textContent='Entfernen';
         removeBtn.addEventListener('click',()=>{if(confirm('Plugin wirklich entfernen?'))removePlugin(plugin.id);});
         actions.appendChild(openBtn);
+        actions.appendChild(exportBtn);
         actions.appendChild(removeBtn);
         card.appendChild(actions);
         list.appendChild(card);
@@ -582,7 +629,23 @@
       reader.readAsText(f);
     });
   }
-  function registerModule(name,renderFn){const safeName=safeStr(name).trim()||'Unbenanntes Modul';const id=slugify(safeName);if(!state.modules.find(m=>m&&m.id===id)){state.modules.push({id,name:safeName});addLog('ok','Modul registriert: '+safeName);renderModules();renderStats();persist()}moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});return id}
+  function registerModule(name,renderFn){
+    const safeName=safeStr(name).trim()||'Unbenanntes Modul';
+    let id=slugify(safeName);
+    const existing=state.modules.find(m=>m&&m.id===id);
+    if(existing){
+      existing.name=safeName;
+    }else{
+      id=nextModuleId(safeName,id);
+      state.modules.push({id,name:safeName});
+      addLog('ok','Modul registriert: '+safeName);
+      renderModules();
+      renderStats();
+      persist();
+    }
+    moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});
+    return id;
+  }
   function openModule(id){const renderFn=moduleRegistry.get(id);if(!renderFn){addLog('error','Modul nicht vorhanden: '+id);return}state.activeModule=id;const el=$('#canvas');el.innerHTML='';renderFn(el);addLog('ok','Modul geöffnet: '+id)}
   const startId=registerModule('Start – Hinweise',(el)=>{el.innerHTML=`<h2>Start – Hinweise</h2><p>Dieses Modul erklärt die Bedienung. Links: Module, Rechts: Audio, Unten: Archiv & Zufall. Alles persistiert automatisch.</p><ul><li>Drag&Drop Audio in die rechte Dropzone.</li><li>Genres/Moods eingeben und per Enter übernehmen.</li><li>Kategorien anlegen und oben im Zufallsbereich auswählen.</li></ul>`});
   const pluginOverviewId=registerModule('Plugin-Manager',renderPluginOverview);
@@ -645,21 +708,67 @@
     if(!obj||typeof obj!=='object')throw new Error('Backup hat kein Objekt');
     const statePart=obj.state;
     if(!statePart||typeof statePart!=='object')throw new Error('State fehlt');
+    const sanitizeStringArray=arr=>Array.isArray(arr)?[...new Set(arr.map(x=>safeStr(x).trim()).filter(Boolean))]:[];
+    const sanitizeModules=arr=>Array.isArray(arr)?arr.filter(Boolean).map((m,idx)=>{
+      const name=safeStr(m&&m.name).trim();
+      const fallback=`Import Modul ${idx+1}`;
+      const finalName=name||fallback;
+      let id=safeStr(m&&m.id).trim();
+      if(id) id=slugify(id);
+      if(!id) id=slugify(finalName);
+      if(!id) id=`import-${uuid().slice(-6)}`;
+      return{id,name:finalName};
+    }):[];
+    const sanitizeCategories=catObj=>{
+      if(!catObj||typeof catObj!=='object')return{};
+      const out={};
+      Object.keys(catObj).forEach(key=>{
+        const cleanKey=safeStr(key).trim();
+        if(!cleanKey)return;
+        const entry=catObj[key]&&typeof catObj[key]==='object'?catObj[key]:{};
+        const genres=sanitizeStringArray(entry.genres).sort((a,b)=>a.localeCompare(b));
+        const moods=sanitizeStringArray(entry.moods).sort((a,b)=>a.localeCompare(b));
+        out[cleanKey]={genres,moods};
+      });
+      return out;
+    };
     return{
       theme:safeStr(statePart.theme).trim()||'neo',
       autosave:!!statePart.autosave,
       selfrepair:!!statePart.selfrepair,
       toasts:statePart.toasts!==false,
-      modules:Array.isArray(statePart.modules)?statePart.modules:[],
-      categories:statePart.categories&&typeof statePart.categories==='object'?statePart.categories:{},
-      genres:Array.isArray(statePart.genres)?statePart.genres:[],
-      moods:Array.isArray(statePart.moods)?statePart.moods:[],
+      modules:sanitizeModules(statePart.modules),
+      categories:sanitizeCategories(statePart.categories),
+      genres:sanitizeStringArray(statePart.genres).sort((a,b)=>a.localeCompare(b)),
+      moods:sanitizeStringArray(statePart.moods).sort((a,b)=>a.localeCompare(b)),
       playlist:Array.isArray(statePart.playlist)?statePart.playlist.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:safeStr(x.src)})):[],
       plugins:Array.isArray(statePart.plugins)?statePart.plugins:[],
       activeModule:statePart.activeModule||null,
       log:Array.isArray(statePart.log)?statePart.log:[],
       logFilter:['all','ok','warn','error'].includes(statePart.logFilter)?statePart.logFilter:'all'
     };
+  }
+  function pluginToSerializable(plugin){
+    if(!plugin)return{};
+    const sections=Array.isArray(plugin.sections)?plugin.sections.map(sec=>({title:safeStr(sec&&sec.title).trim(),content:safeStr(sec&&sec.content).trim()})):[];
+    const links=Array.isArray(plugin.links)?plugin.links.map(link=>({label:safeStr(link&&link.label).trim()||safeStr(link&&link.title).trim(),url:safeStr(link&&link.url).trim()})).filter(l=>l.url&&/^https?:/i.test(l.url)):[];
+    return{
+      name:safeStr(plugin.name).trim(),
+      description:safeStr(plugin.description).trim(),
+      version:safeStr(plugin.version).trim(),
+      author:safeStr(plugin.author).trim(),
+      moduleName:safeStr(plugin.moduleName).trim(),
+      moduleId:safeStr(plugin.moduleId).trim(),
+      sections:sections.filter(sec=>sec.title||sec.content),
+      links
+    };
+  }
+  function exportPlugin(plugin){
+    const data=pluginToSerializable(plugin);
+    if(!data.name){toast('Plugin hat keinen Namen.');return;}
+    const fileName=`${slugify(data.name)||'plugin'}-${safeStr(plugin.id).slice(-6)||'export'}.json`;
+    download(fileName,JSON.stringify(data,null,2));
+    addLog('ok','Plugin exportiert: '+data.name);
   }
   function importAll(file){
     const r=new FileReader();

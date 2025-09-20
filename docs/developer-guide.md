@@ -43,12 +43,13 @@ TOOL-2025/
 - **Styling:** Tailwind CSS oder CSS-Variablen beibehalten, aber modulare Struktur.
 - **CI/CD:** GitHub Actions mit Linting, Tests, Build, Accessibility-Checks (Pa11y, axe-core).
 
-## Plugin-Schnittstelle (Stand nach Optimierung)
-- **Importformat:** JSON-Datei mit Mindestfeldern `name`, optional `description`, `version`, `author`, `sections`, `links`.
-- **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool HTML-escaped und Zeilenumbrüche in `<br>` umgewandelt.
-- **Links:** Nur `http`/`https`-URLs werden akzeptiert. Label wird automatisch aus `label` oder `title` gezogen.
-- **Registrierung:** Importierte Plugins erhalten eine eindeutige ID, werden als eigenständiges Modul (`Plugin – <Name>`) registriert und im Plugin-Manager gelistet.
-- **Entfernung:** Über den Plugin-Manager kann ein Plugin inklusive Modul gelöscht werden; Self-Repair räumt verwaiste Einträge auf.
+- **Plugin-Schnittstelle (Stand nach Optimierung)**
+  - **Importformat:** JSON-Datei mit Mindestfeldern `name`, optional `description`, `version`, `author`, `moduleName`, `moduleId`, `sections`, `links`.
+  - **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool HTML-escaped und Zeilenumbrüche in `<br>` umgewandelt.
+  - **Links:** Nur `http`/`https`-URLs werden akzeptiert. Label wird automatisch aus `label` oder `title` gezogen.
+  - **Registrierung:** Importierte Plugins erhalten eine eindeutige ID, werden als eigenständiges Modul (`Plugin – <Name>`) registriert und im Plugin-Manager gelistet. Kollisionen mit vorhandenen Modul-IDs werden automatisch durch neue Slugs (`plugin-name-2`, `plugin-name-3`, …) gelöst.
+  - **Export:** Im Plugin-Manager steht pro Plugin ein Button „Exportieren“. Er erzeugt ein bereinigtes JSON inklusive `moduleName`/`moduleId`, sodass Plugins auf anderen Installationen erneut eingespielt werden können.
+  - **Entfernung:** Über den Plugin-Manager kann ein Plugin inklusive Modul gelöscht werden; Self-Repair räumt verwaiste Einträge auf.
 
 ## Datenexport & Manifest
 - **Manifest-Button:** Exportiert eine schlanke Übersicht (Version, Theme, Modul-/Plugin-Anzahl, Archivgrößen, Einstellungen).
@@ -56,12 +57,13 @@ TOOL-2025/
 - **Importprüfung:** Backups werden validiert (Arraytypen, Pflichtfelder, URL-Check). Playlisteinträge werden beim Import normalisiert (`id`, `title`, `artist`, `src`).
 - **Log-Filter:** Nutzer können im Header zwischen `Alles`, `Erfolge`, `Hinweise`, `Fehler` wechseln. Einstellung wird im Backup gespeichert und beim Import wiederhergestellt.
 
-## Datenmodelle (Ist-Zustand)
-- `state.modules`: Array von `{id, name, category, tags, content}`.
-- `state.categories`: Array von Strings (Kategorie-Namen).
-- `state.genres`/`state.moods`: Arrays von Strings.
-- `state.playlist`: Array von `{id, title, artist, src, _blob}`.
-- `state.settings`: Abgedeckt durch `state.theme`, `state.autosave`, `state.selfrepair`, `state.toasts`.
+- **Datenmodelle (Ist-Zustand)**
+  - `state.modules`: Array von Objekten `{id, name}`. IDs werden slugifiziert und bei Duplikaten automatisch erweitert.
+  - `state.categories`: Objekt `{[kategorieName]: {genres: string[], moods: string[]}}`.
+  - `state.genres`/`state.moods`: Sortierte Arrays eindeutiger Strings.
+  - `state.playlist`: Array von `{id, title, artist, src, _blob?}`.
+  - `state.settings`: Abgedeckt durch `state.theme`, `state.autosave`, `state.selfrepair`, `state.toasts`.
+  - `state.plugins`: Array sanierter Plugin-Definitionen `{id, name, description, version, author, moduleId, moduleName, sections, links}`.
 
 ## Erweiterungsschritte
 1. Bestehenden Code analysieren (`index.html`).
