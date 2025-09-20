@@ -45,6 +45,13 @@ TOOL-2025/
 - **Styling:** Tailwind CSS oder CSS-Variablen beibehalten, aber modulare Struktur.
 - **CI/CD:** GitHub Actions mit Linting, Tests, Build, Accessibility-Checks (Pa11y, axe-core).
 
+## Automatische Tests & Validierung (Stand)
+- **Node-Testlauf (`node --test`)** prüft seit dieser Iteration die wichtigsten Playlist-Aktionen. Dazu wird das Tool in einer Kopf-los-Umgebung (ohne echten Browser) mit `jsdom` (Browser-Simulation in Node) geladen und folgende Abläufe werden überprüft:
+  - `Alt` + `Pfeil` (Sortierkürzel) verschiebt Einträge korrekt und aktualisiert den aktuellen Index.
+  - `Entf` (Löschtaste) entfernt den gewählten Track und setzt den Fokusindex zurück.
+- **JSON-Schema (`schemas/backup-schema.json`)** beschreibt jetzt das komplette Backup-Format. Die Tests validieren automatisch, ob `buildBackup()` dieses Schema erfüllt. Nutze `npm test`, um die Prüfungen lokal auszuführen.
+- **Vorbereitung für weitere Checks:** Das Testsetup kann um zusätzliche Szenarien (z. B. Import-Fehler, Modul-Registry) erweitert werden. Dabei hilft die exponierte Test-API `window.ModulToolTestAPI`, die zentrale Funktionen (z. B. `renderPlaylist`, `reorderPlaylist`, `validateBackup`) bereitstellt.
+
 - **Plugin-Schnittstelle (Stand nach Optimierung)**
   - **Importformat:** JSON-Datei mit Mindestfeldern `name`, optional `description`, `version`, `author`, `moduleName`, `moduleId`, `sections`, `links`.
   - **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool HTML-escaped und Zeilenumbrüche in `<br>` umgewandelt.

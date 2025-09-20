@@ -253,6 +253,7 @@
 <script>
 (function(){
   'use strict';
+  const isTestEnv=typeof window!=='undefined'&&window.__MODUL_TOOL_TEST__===true;
   const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
   const loglist=$('#loglist');
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
@@ -260,6 +261,7 @@
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
   const state={version:'1.1.3',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  let clockTimer=null;
   const moduleRegistry=new Map();
   function ensureModuleRegistryMatchesState(preferredId){
     const validIds=new Set();
@@ -1036,8 +1038,10 @@
   }
   function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
   function renderAll(){ensureAllPlugins();ensureModuleRegistryMatchesState(startId);renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog();const filterSel=$('#logFilterSel');if(filterSel)filterSel.value=state.logFilter||'all';}
-  function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);setInterval(tick,1000);tick();addLog('ok','Bereit.')}
-  init();
+  function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();addLog('ok','Bereit.')}
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
+  if(!isTestEnv){init();}
 })();
 </script>
 </body>

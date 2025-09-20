@@ -53,6 +53,7 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 - **Selbstheilung erweitert:** Die Self-Repair-Funktion normalisiert den Log-Filter und Plugins (IDs, Module, Abschnitte, Links). Fehlende Plug-in-Module werden automatisch erzeugt und im Modulverzeichnis sichtbar gemacht.
 - **Feedback & UX:** Playlist-Export protokolliert Erfolgsmeldungen, Genre-/Mood-Importe melden Duplikate als Hinweis (`warn`). Manifest-Download und Daten-Backup sind über Buttons erreichbar.
 - **Playlist-Zugänglichkeit:** Playlist-Einträge lassen sich per Tastatur steuern (Enter/Space für Play, Alt+Pfeile zum Sortieren, Entf zum Entfernen), inklusive Fokus- und Screenreader-Hinweisen.
+- **Automatisierte Sicherheiten:** Ein Node-basierter Testlauf prüft die Playlist-Kurzbefehle und stellt sicher, dass Backups dem neuen JSON-Schema entsprechen. Dadurch werden Bedienfehler und Datenbrüche früh erkannt.
 
 ## Empfohlene nächste Schritte
 1. **Strukturierung & Dokumentation:** Projektverzeichnisse anlegen, Dokumentation schreiben, Build/Tooling vorbereiten.
