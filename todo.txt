@@ -1,0 +1,8 @@
+# TOOL-2025 ToDo
+
+- [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
+- [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
+- [ ] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen
+- [ ] JSON-Validierung für Importfunktionen implementieren
+- [ ] Logging verbessern (Level, Filter, Export als JSON)
+- [ ] Dokumentation für Anwender und Plugins ergänzen

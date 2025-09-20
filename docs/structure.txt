@@ -1,0 +1,7 @@
+TOOL-2025/
+├─ index.html              # Hauptdatei mit UI, Stil und Logik
+├─ README.md               # Kurzer Projektüberblick (aktuell minimal)
+├─ AGENTS.md               # Projektanweisungen
+└─ docs/
+   ├─ analysis-report.md   # Analysebericht zum aktuellen Stand
+   └─ developer-guide.md   # Leitfaden für Entwickler
