@@ -30,7 +30,7 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 - **Self-Tests unzureichend:** Tests prüfen hauptsächlich Fehlerfälle ohne Assertions. Erfolgsmeldungen können trügerisch sein.
 - **Playlist-Handling:** `URL.revokeObjectURL` wird nur beim Entfernen genutzt; beim Import externer URLs fehlt Validierung.
 - **Self-Repair:** Entfernt dublette IDs, generiert aber ggf. neue IDs ohne Nutzerfeedback. Es gibt keine Möglichkeit, Konfliktberichte einzusehen.
-- **Barrierefreiheit:** Fokusreihenfolge, Tastaturnavigation und Screenreader-Texte sind nicht vollständig optimiert. Drag & Drop hat kein Tastaturoption.
+- **Barrierefreiheit:** Fokusreihenfolge, Tastaturnavigation und Screenreader-Texte sind nicht vollständig optimiert. Drag & Drop besitzt jetzt Alt+Pfeil-Kurzbefehle für die Playlist, weitere Bereiche benötigen jedoch Prüfung.
 - **Sicherheit:** Keine Validierung importierter JSON-Dateien gegen Schema. Möglichkeit schädlicher Skripte innerhalb von Modulinhalten (innerHTML).
 - **Leistung:** Das gesamte UI wird häufig neu gerendert, was bei großen Datenmengen ineffizient sein kann.
 
@@ -52,6 +52,7 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 - **Plugin-Manager:** Eine eigene Modulansicht erlaubt das Importieren, Anzeigen und Entfernen von Erweiterungen. Plugin-Inhalte werden geparst, validiert und mit HTML-Escaping angezeigt; Links sind auf `http(s)` beschränkt.
 - **Selbstheilung erweitert:** Die Self-Repair-Funktion normalisiert den Log-Filter und Plugins (IDs, Module, Abschnitte, Links). Fehlende Plug-in-Module werden automatisch erzeugt und im Modulverzeichnis sichtbar gemacht.
 - **Feedback & UX:** Playlist-Export protokolliert Erfolgsmeldungen, Genre-/Mood-Importe melden Duplikate als Hinweis (`warn`). Manifest-Download und Daten-Backup sind über Buttons erreichbar.
+- **Playlist-Zugänglichkeit:** Playlist-Einträge lassen sich per Tastatur steuern (Enter/Space für Play, Alt+Pfeile zum Sortieren, Entf zum Entfernen), inklusive Fokus- und Screenreader-Hinweisen.
 
 ## Empfohlene nächste Schritte
 1. **Strukturierung & Dokumentation:** Projektverzeichnisse anlegen, Dokumentation schreiben, Build/Tooling vorbereiten.

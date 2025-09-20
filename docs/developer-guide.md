@@ -12,6 +12,7 @@ Dieses Handbuch hilft Entwicklern, das Projekt zu verstehen, lokal zu starten un
 1. Öffne `index.html` direkt im Browser (Doppelklick oder `file://`-Pfad).
 2. Aktiviere bei Bedarf Self-Repair, um inkonsistente Daten zu korrigieren.
 3. Nutze Export-/Import-Buttons, um Sicherungen zu erstellen oder einzuspielen.
+4. Steuere die Playlist wahlweise per Maus (Drag & Drop) oder Tastatur: `Enter`/`Leertaste` startet die Wiedergabe, `Alt` + `Pfeil hoch/runter` sortiert, `Entf` entfernt Einträge.
 
 ## Strukturvorschlag
 Um zukünftige Arbeiten zu erleichtern, sollte das Projekt in folgende Verzeichnisse gegliedert werden:
@@ -33,6 +34,7 @@ TOOL-2025/
 - **Testing:** Jest/Playwright für Unit- und End-to-End-Tests verwenden. Selbsttests im Tool als Smoke-Tests beibehalten.
 - **Internationalisierung:** Strings extrahieren und Übersetzungsdateien nutzen.
 - **Barrierefreiheit:** WCAG 2.2 berücksichtigen, Tastatursteuerung und Screenreader-Unterstützung sicherstellen.
+  - Bestehende Kurzbefehle: Dropzone reagiert auf `Enter`/`Space`, Playlist-Elemente besitzen Fokusrahmen sowie Alt+Pfeiltasten zum Sortieren.
 - **Performance:** Rendering-Strategien überdenken (z. B. Virtual DOM, Web Components, Svelte/React).
 - **Security:** Eingaben escapen, JSON-Imports validieren, CSP definieren, um XSS zu verhindern.
 - **Plugins:** Klar definierte Schnittstellen mit Sandbox (z. B. iframe oder Web Worker) vorsehen.
