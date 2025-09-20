@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="de" data-theme="neo">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>ModulTool – Singlefile Klick&Start</title>
+<style>
+  :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px}
+  [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045}
+  [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb}
+  [data-theme="night"]{--bg:#000;--bg-soft:#0d0d0d;--panel:#111;--panel-2:#161616;--text:#fff;--muted:#d1d1d1;--accent:#00c2ff;--ok:#00ff99;--warn:#ffd000;--err:#ff4d4d;--input:#0a0a0a;--border:#2a2a2a;--link:#66d9ff;--badge:#1a1a1a}
+  [data-theme="forest"]{--bg:#0e1a14;--bg-soft:#13241b;--panel:#162a21;--panel-2:#1d3429;--text:#e9fff5;--muted:#b7d8c9;--accent:#34d399;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--input:#0f1f19;--border:#2c4b3e;--link:#6ee7b7;--badge:#163428}
+  [data-theme="aurora"]{--bg:#0b1020;--bg-soft:#101636;--panel:#121a3f;--panel-2:#192456;--text:#ecf2ff;--muted:#bfc8f2;--accent:#7cdbff;--ok:#6ee7b7;--warn:#ffd166;--err:#ff6b6b;--input:#0d1433;--border:#2a3a78;--link:#9ae6ff;--badge:#1a2160}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font)}
+  a{color:var(--link)}
+  .app{display:grid;grid-template-areas:"header header header" "left   main   right" "footer footer footer";grid-template-columns:280px 1fr 360px;grid-template-rows:auto 1fr auto;min-height:100vh}
+  header{grid-area:header;background:var(--panel);box-shadow:var(--shadow);position:sticky;top:0;z-index:5}
+  aside#left{grid-area:left;background:var(--panel-2);border-right:1px solid var(--border)}
+  main{grid-area:main;background:var(--bg-soft)}
+  aside#right{grid-area:right;background:var(--panel-2);border-left:1px solid var(--border)}
+  footer{grid-area:footer;background:var(--panel);border-top:1px solid var(--border)}
+  .row{display:flex;gap:var(--gap);align-items:center;flex-wrap:wrap}
+  .col{display:flex;flex-direction:column;gap:var(--gap)}
+  .pad{padding:12px 14px}
+  .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .title{font-weight:700;letter-spacing:.3px}
+  .muted{color:var(--muted)}
+  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--badge);border:1px solid var(--border);padding:4px 8px;border-radius:999px;font-size:.85rem}
+  .btn{cursor:pointer;user-select:none;border:1px solid var(--border);background:var(--panel-2);color:var(--text);border-radius:10px;padding:10px 12px;font-weight:600;box-shadow:var(--shadow)}
+  .btn:hover{outline:2px solid var(--accent);outline-offset:1px}
+  .btn.inline{padding:6px 10px;font-weight:600}
+  .btn.warn{border-color:var(--warn)}
+  .btn.ok{border-color:var(--ok)}
+  .btn.err{border-color:var(--err)}
+  .btn.block{width:100%;text-align:left}
+  input[type=text],input[type=number],textarea,select{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:1rem}
+  input::placeholder,textarea::placeholder{color:var(--muted)}
+  label{font-size:.9rem;color:var(--muted)}
+  hr{border:0;height:1px;background:var(--border)}
+  .header-grid{display:grid;gap:var(--gap);grid-template-columns:1fr auto auto auto;align-items:stretch}
+  .header-block{min-height:64px}
+  .clock{font-size:1.25rem;font-variant-numeric:tabular-nums}
+  .loglist{max-height:72px;overflow:auto}
+  .loglist li{list-style:none;font-size:.9rem;border-bottom:1px dashed var(--border);padding:2px 0}
+  .collapsed-left aside#left{display:none}
+  .collapsed-left .app{grid-template-columns:0 1fr 360px}
+  .collapsed-right aside#right{display:none}
+  .collapsed-right .app{grid-template-columns:280px 1fr 0}
+  .modules{display:flex;flex-direction:column;gap:8px}
+  .modules .btn{display:flex;justify-content:space-between;align-items:center}
+  .modules .small{font-size:.8rem;color:var(--muted)}
+  .workspace{height:100%;padding:var(--gap)}
+  .workspace .canvas{min-height:calc(70vh);background:var(--panel);border:1px dashed var(--border);border-radius:var(--radius);padding:16px}
+  .playlist{max-height:38vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--panel)}
+  .playlist .item{display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--border);padding:6px 0}
+  .playlist .meta{display:flex;flex-direction:column}
+  .dropzone{border:2px dashed var(--accent);border-radius:var(--radius);padding:16px;text-align:center}
+  .footer-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(4,1fr)}
+  .listbox{max-height:140px;overflow:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px}
+  .listbox li{list-style:none;border-bottom:1px dashed var(--border);padding:4px 0}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  @media (max-width:1100px){.app{grid-template-columns:230px 1fr 0}aside#right{display:none}}
+  @media (max-width:800px){.app{grid-template-columns:0 1fr 0}aside#left{display:none}.footer-grid{grid-template-columns:1fr}.header-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="pad" role="banner" aria-label="Dashboard Kopfbereich">
+    <div class="header-grid">
+      <div class="panel header-block pad" aria-live="polite">
+        <div class="row" style="justify-content:space-between;align-items:flex-start">
+          <div>
+            <div class="title" aria-label="Toolname">ModulTool – Dashboard</div>
+            <div class="muted">Klick&Start • Offline • Robust</div>
+            <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
+              <span class="chip" title="Anzahl Module"><strong id="stat-modules">0</strong> Module</span>
+              <span class="chip" title="Anzahl Kategorien"><strong id="stat-cats">0</strong> Kategorien</span>
+              <span class="chip" title="Genres im Archiv"><strong id="stat-genres">0</strong> Genres</span>
+              <span class="chip" title="Moods im Archiv"><strong id="stat-moods">0</strong> Moods</span>
+              <span class="chip" title="Playlist-Titel"><strong id="stat-tracks">0</strong> Tracks</span>
+            </div>
+          </div>
+          <div class="col" style="min-width:220px;align-items:flex-end">
+            <div class="clock" id="clock" aria-live="polite">--:--:--</div>
+            <div class="muted" id="today">--.--.----</div>
+            <div class="row" style="gap:6px">
+              <label class="sr-only" for="themeSel">Theme wählen</label>
+              <select id="themeSel" title="Farbschema wählen">
+                <option value="neo">Neo</option>
+                <option value="paper">Paper</option>
+                <option value="night">Night HighContrast</option>
+                <option value="forest">Forest</option>
+                <option value="aurora">Aurora</option>
+              </select>
+              <button class="btn inline" id="toggleLeft" title="Linke Sidebar ein/aus">⟷ Links</button>
+              <button class="btn inline" id="toggleRight" title="Rechte Sidebar ein/aus">⟷ Rechts</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="panel header-block pad" aria-label="Globale Einstellungen">
+        <div class="title">Einstellungen</div>
+        <div class="row">
+          <label><input type="checkbox" id="autosaveChk"> Autospeichern</label>
+          <label><input type="checkbox" id="selfrepairChk"> Self-Repair</label>
+          <label><input type="checkbox" id="toastsChk" checked> Toast-Meldungen</label>
+          <button class="btn inline" id="exportAllBtn" title="Alles als JSON exportieren">Export</button>
+          <input type="file" id="importAllFile" title="JSON importieren" accept="application/json" />
+        </div>
+        <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
+      </div>
+      <div class="panel header-block pad" aria-label="Echtzeit Logging">
+        <div class="title">Log (letzte 10)</div>
+        <ul class="loglist" id="loglist" aria-live="polite"></ul>
+        <div class="row">
+          <button class="btn inline warn" id="clearLogBtn">Log leeren</button>
+          <button class="btn inline" id="downloadLogBtn">Log speichern</button>
+        </div>
+      </div>
+      <div class="panel header-block pad" aria-label="Tastatur & Hilfe">
+        <div class="title">Shortcuts & Hilfe</div>
+        <div class="muted"><span>Strg+K: Suche</span> • <span>Strg+S: Speichern</span> • <span>F1: Hilfe</span></div>
+        <div class="row" style="margin-top:8px">
+          <input id="quickSearch" type="text" placeholder="Module durchsuchen… (Strg+K)" title="Suche in Modulen" />
+          <button class="btn inline" id="aboutBtn">Info</button>
+          <button class="btn inline" id="selfTestBtn" title="Selbsttest ausführen">Selbsttest</button>
+        </div>
+      </div>
+    </div>
+  </header>
+  <aside id="left" class="pad" role="complementary" aria-label="Module">
+    <div class="title" style="margin-bottom:8px">Module</div>
+    <div class="row">
+      <input id="newModuleName" type="text" placeholder="Neues Modul (Enter)" title="Modul hinzufügen"/>
+      <button class="btn inline" id="addModuleBtn">Hinzufügen</button>
+    </div>
+    <hr />
+    <div class="modules" id="modulesList" role="listbox" aria-label="Modulliste"></div>
+  </aside>
+  <main role="main" aria-label="Arbeitsfläche">
+    <div class="workspace">
+      <div class="canvas" id="canvas" tabindex="0" aria-label="Modulfläche">
+        <h2>Willkommen im ModulTool</h2>
+        <p>Wähle links ein Modul oder erstelle ein neues. Rechte Sidebar: Audioplayer & Playlist. Unten: Genres, Moods, Kategorien & Zufall.</p>
+        <p class="muted">Alles ist offline, robust und speichert lokal (localStorage).</p>
+      </div>
+    </div>
+  </main>
+  <aside id="right" class="pad" role="complementary" aria-label="Audio & Playlist">
+    <div class="title" style="margin-bottom:8px">Audio-Player</div>
+    <div class="panel pad" style="display:flex;flex-direction:column;gap:10px">
+      <audio id="player" preload="metadata" controls style="width:100%"></audio>
+      <div class="row" style="justify-content:space-between">
+        <div class="muted" id="nowMeta">–</div>
+        <div class="row" style="gap:6px">
+          <button class="btn inline" id="prevBtn" title="Vorheriger Track">⏮</button>
+          <button class="btn inline" id="playBtn" title="Play/Pause">⏯</button>
+          <button class="btn inline" id="nextBtn" title="Nächster Track">⏭</button>
+        </div>
+      </div>
+      <div class="dropzone" id="dropzone" tabindex="0" title="Audio hierher ziehen oder klicken zum Auswählen">
+        Dateien hier ablegen oder klicken zum Auswählen
+        <input type="file" id="pickAudio" accept="audio/*" multiple style="display:none"/>
+      </div>
+      <div class="row" style="justify-content:space-between">
+        <div>
+          <button class="btn inline" id="impPlBtn" title="Playlist importieren (JSON)">Import</button>
+          <button class="btn inline" id="expPlBtn" title="Playlist exportieren (JSON)">Export</button>
+        </div>
+        <div class="muted">Drag&Drop • Doppelklick: Abspielen</div>
+      </div>
+    </div>
+    <div class="panel pad" style="margin-top:10px">
+      <div class="title">Playlist</div>
+      <div class="playlist" id="playlist" role="listbox" aria-label="Playlist"></div>
+    </div>
+  </aside>
+  <footer class="pad" role="contentinfo" aria-label="Fußbereich">
+    <div class="footer-grid">
+      <div class="panel pad">
+        <div class="title">Genres (Archiv)</div>
+        <label for="genreInput">Kommagetrennte Eingabe (Enter bestätigt)</label>
+        <input id="genreInput" type="text" placeholder="z.B. techno, acid techno, hardgroove" title="Genres eingeben"/>
+        <div class="row" style="justify-content:space-between">
+          <button class="btn inline ok" id="addGenresBtn">Hinzufügen</button>
+          <span class="muted">Anzahl: <strong id="countGenres">0</strong></span>
+        </div>
+        <ul class="listbox" id="genresList"></ul>
+      </div>
+      <div class="panel pad">
+        <div class="title">Moods (Archiv)</div>
+        <label for="moodInput">Kommagetrennte Eingabe (Enter bestätigt)</label>
+        <input id="moodInput" type="text" placeholder="z.B. dark, uplifting, gritty" title="Moods eingeben"/>
+        <div class="row" style="justify-content:space-between">
+          <button class="btn inline ok" id="addMoodsBtn">Hinzufügen</button>
+          <span class="muted">Anzahl: <strong id="countMoods">0</strong></span>
+        </div>
+        <ul class="listbox" id="moodsList"></ul>
+      </div>
+      <div class="panel pad">
+        <div class="title">Kategorien</div>
+        <div class="row">
+          <input id="catName" type="text" placeholder="z.B. Techno, Rap" title="Neue Über-Kategorie"/>
+          <button class="btn inline" id="addCatBtn">Anlegen</button>
+        </div>
+        <label for="catSel">Kategorie wählen</label>
+        <select id="catSel" title="Kategorie auswählen"></select>
+        <div class="row" style="justify-content:space-between;margin-top:6px">
+          <button class="btn inline warn" id="delCatBtn">Kategorie löschen</button>
+          <span class="muted">Kategorien: <strong id="countCats">0</strong></span>
+        </div>
+      </div>
+      <div class="panel pad">
+        <div class="title">Zufall (Genres & Moods)</div>
+        <label for="randCatSel">Kategorie</label>
+        <select id="randCatSel" title="Kategorie für Zufall"></select>
+        <div class="row" style="gap:6px;margin-top:6px;flex-wrap:wrap">
+          <button class="btn inline" data-g="3" data-m="3">3/3</button>
+          <button class="btn inline" data-g="6" data-m="6">6/6</button>
+          <button class="btn inline" data-g="9" data-m="6">9/6</button>
+          <button class="btn inline" data-g="12" data-m="9">12/9</button>
+          <button class="btn inline" data-g="15" data-m="12">15/12</button>
+        </div>
+        <div class="row" style="gap:6px;margin-top:6px">
+          <input id="randG" type="number" min="1" value="4" title="Anzahl Genres"/>
+          <input id="randM" type="number" min="1" value="4" title="Anzahl Moods"/>
+          <button class="btn inline" id="randGo">Los</button>
+          <button class="btn inline" id="copyOut">In Zwischenablage</button>
+        </div>
+        <textarea id="randOut" rows="4" placeholder="Ausgabe…" title="Zufalls-Ausgabe" readonly></textarea>
+      </div>
+    </div>
+  </footer>
+</div>
+<script>
+(function(){
+  'use strict';
+  const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
+  const loglist=$('#loglist');
+  const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
+  const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
+  const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
+  const state={version:'1.1.2',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],_currentIndex:null};
+  function toast(msg){if(!$('#toastsChk').checked)return;const t=document.createElement('div');t.textContent=msg;t.setAttribute('role','status');Object.assign(t.style,{position:'fixed',right:'14px',bottom:'14px',background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'12px',boxShadow:'var(--shadow)',zIndex:99});document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
+  function addLog(type,msg){const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type,msg});if(state.log.length>200)state.log.shift();renderLog()}
+  function renderLog(){loglist.innerHTML='';state.log.slice(-10).forEach(e=>{const li=document.createElement('li');li.innerHTML=`<span class=\"muted\">[${e.time}]</span> <span>${e.msg}</span>`;if(e.type==='error')li.style.color='var(--err)';if(e.type==='ok')li.style.color='var(--ok)';loglist.appendChild(li)})}
+  const LS_KEY='modultool_state_v1';
+  function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));addLog('ok','Gespeichert.')}catch(err){addLog('error','Speichern fehlgeschlagen: '+err.message)}}
+  function load(){try{const raw=localStorage.getItem(LS_KEY);if(!raw)return;Object.assign(state,JSON.parse(raw));addLog('ok','Zustand geladen.')}catch(err){addLog('error','Laden fehlgeschlagen: '+err.message)}}
+  function selfRepair(){let fixes=0;if(!Array.isArray(state.modules)){state.modules=[];fixes++}if(!state.categories||typeof state.categories!=='object'){state.categories={};fixes++}if(!Array.isArray(state.genres)){state.genres=[];fixes++}if(!Array.isArray(state.moods)){state.moods=[];fixes++}if(!Array.isArray(state.playlist)){state.playlist=[];fixes++}if(!Array.isArray(state.log)){state.log=[];fixes++}const seen=new Set();state.modules=state.modules.filter(Boolean).map(m=>{const name=safeStr(m&&m.name).trim();let id=safeStr(m&&m.id).trim();const finalName=name||(id?id.replace(/-/g,' '):'Unbenanntes Modul');id=id||slugify(finalName);return{id,name:finalName}}).filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true});state.genres=[...new Set(state.genres.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));state.moods=[...new Set(state.moods.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));for(const c in state.categories){const cat=state.categories[c]||{genres:[],moods:[]};cat.genres=[...new Set((cat.genres||[]).map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));cat.moods=[...new Set((cat.moods||[]).map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));state.categories[c]=cat}if(fixes>0)addLog('ok','Self-Repair: '+fixes+' Fix(es) angewendet.')}
+  function renderStats(){$('#stat-modules').textContent=state.modules.length;$('#stat-cats').textContent=Object.keys(state.categories).length;$('#stat-genres').textContent=state.genres.length;$('#stat-moods').textContent=state.moods.length;$('#stat-tracks').textContent=state.playlist.length;$('#countGenres').textContent=state.genres.length;$('#countMoods').textContent=state.moods.length;$('#countCats').textContent=Object.keys(state.categories).length}
+  function renderTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('#themeSel').value=state.theme}
+  function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class=\"small\">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
+  function renderArchives(){const gl=$('#genresList');gl.innerHTML='';const gfrag=document.createDocumentFragment();state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li)});gl.appendChild(gfrag);const ml=$('#moodsList');ml.innerHTML='';const mfrag=document.createDocumentFragment();state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li)});ml.appendChild(mfrag)}
+  function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
+  function renderPlaylist(){const list=$('#playlist');list.innerHTML='';const frag=document.createDocumentFragment();state.playlist.forEach((t,idx)=>{const row=document.createElement('div');row.className='item';row.setAttribute('draggable','true');row.dataset.index=idx;row.innerHTML=`<div class=\"meta\"><strong>${safeStr(t.title)||'Unbenannt'}</strong><span class=\"muted\">${safeStr(t.artist)||'–'}</span></div><div class=\"row\"><button class=\"btn inline\" data-act=\"play\">▶</button><button class=\"btn inline warn\" data-act=\"del\">✖</button></div>`;frag.appendChild(row)});list.appendChild(frag)}
+  function tick(){const now=new Date();$('#clock').textContent=now.toLocaleTimeString('de-DE',{hour12:false});$('#today').textContent=now.toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'2-digit'})}
+  const moduleRegistry=new Map();
+  function registerModule(name,renderFn){const safeName=safeStr(name).trim()||'Unbenanntes Modul';const id=slugify(safeName);if(!state.modules.find(m=>m&&m.id===id)){state.modules.push({id,name:safeName});addLog('ok','Modul registriert: '+safeName);renderModules();renderStats();persist()}moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});return id}
+  function openModule(id){const renderFn=moduleRegistry.get(id);if(!renderFn){addLog('error','Modul nicht vorhanden: '+id);return}state.activeModule=id;const el=$('#canvas');el.innerHTML='';renderFn(el);addLog('ok','Modul geöffnet: '+id)}
+  const startId=registerModule('Start – Hinweise',(el)=>{el.innerHTML=`<h2>Start – Hinweise</h2><p>Dieses Modul erklärt die Bedienung. Links: Module, Rechts: Audio, Unten: Archiv & Zufall. Alles persistiert automatisch.</p><ul><li>Drag&Drop Audio in die rechte Dropzone.</li><li>Genres/Moods eingeben und per Enter übernehmen.</li><li>Kategorien anlegen und oben im Zufallsbereich auswählen.</li></ul>`});
+  registerModule('Notiz-Editor',(el)=>{const ta=document.createElement('textarea');ta.style.width='100%';ta.style.height='50vh';ta.placeholder='Deine Notizen…';ta.value=localStorage.getItem('modultool_notes')||'';ta.addEventListener('input',()=>localStorage.setItem('modultool_notes',ta.value));el.appendChild(ta)});
+  const splitInput=str=>safeStr(str).split(',').map(s=>s.trim()).filter(Boolean);
+  function addToArchive(targetArr,items){const before=targetArr.length;items.forEach(x=>{if(!targetArr.includes(x))targetArr.push(x)});targetArr.sort((a,b)=>a.localeCompare(b));return targetArr.length-before}
+  function addGenres(){const items=splitInput($('#genreInput').value);if(items.length===0)return toast('Keine Genres erkannt.');const added=addToArchive(state.genres,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].genres,items)}$('#genreInput').value='';renderArchives();renderStats();persist();addLog('ok','Genres hinzugefügt: +'+added)}
+  function addMoods(){const items=splitInput($('#moodInput').value);if(items.length===0)return toast('Keine Moods erkannt.');const added=addToArchive(state.moods,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].moods,items)}$('#moodInput').value='';renderArchives();renderStats();persist();addLog('ok','Moods hinzugefügt: +'+added)}
+  function addCategory(){const name=safeStr($('#catName').value).trim();if(!name)return toast('Kategoriename fehlt.');if(state.categories[name]){toast('Kategorie existiert.');return}state.categories[name]={genres:[],moods:[]};$('#catName').value='';renderCategories();renderStats();persist();addLog('ok','Kategorie angelegt: '+name)}
+  function delCategory(){const c=$('#catSel').value;if(!c)return toast('Keine Kategorie gewählt.');if(!confirm('Kategorie „'+c+'“ wirklich löschen?'))return;delete state.categories[c];renderCategories();renderStats();persist();addLog('ok','Kategorie gelöscht: '+c)}
+  function pickRandom(arr,n){const pool=[...new Set(arr)];const out=[];while(pool.length&&out.length<n){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0])}return out}
+  function runRandom(custom=false){const c=$('#randCatSel').value;let gsrc=state.genres,msrc=state.moods;if(c&&state.categories[c]){const cc=state.categories[c];gsrc=cc.genres.length?cc.genres:gsrc;msrc=cc.moods.length?cc.moods:msrc}const gn=custom?Math.max(1,+$('#randG').value|0):+(this&&this.dataset?this.dataset.g:0)||3;const mn=custom?Math.max(1,+$('#randM').value|0):+(this&&this.dataset?this.dataset.m:0)||3;const g=pickRandom(gsrc,gn);const m=pickRandom(msrc,mn);const out=`${g.join(', ')}`+(m.length?`, ${m.join(', ')}`:'');$('#randOut').value=out;addLog('ok','Zufall bereitgestellt ('+g.length+'/'+m.length+').')}
+  async function copyOutput(){try{const text=$('#randOut').value;if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{$('#randOut').select();document.execCommand('copy')}toast('In Zwischenablage kopiert.')}catch(e){addLog('error','Kopieren fehlgeschlagen: '+e.message)}}
+  const audio=$('#player');
+  function fileToTrack(file){return new Promise(res=>{const url=URL.createObjectURL(file);const base=safeStr(file.name).replace(/\.[^.]+$/,'');let title=base,artist='';const parts=base.split(' - ');if(parts.length>=2){artist=parts[0];title=parts.slice(1).join(' - ')}res({id:uuid(),title,artist,src:url,_blob:true})})}
+  function addFiles(files){const arr=Array.from(files||[]);if(!arr.length)return;const first=state.playlist.length===0;Promise.all(arr.map(fileToTrack)).then(tracks=>{state.playlist.push(...tracks);if(first){state._currentIndex=0;const t=state.playlist[0];$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`}renderPlaylist();renderStats();persist();addLog('ok',tracks.length+' Track(s) hinzugefügt.')})}
+  function playIndex(i){if(i<0||i>=state.playlist.length){toast('Keine Tracks.');return}const t=state.playlist[i];state._currentIndex=i;audio.src=t.src;try{audio.currentTime=0}catch{}const p=audio.play();if(p&&p.then){p.then(()=>{$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`;addLog('ok','Spiele: '+safeStr(t.title))}).catch(()=>{$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`})}}
+  function next(){if(typeof state._currentIndex!=="number")return;if(state.playlist.length===0)return;playIndex((state._currentIndex+1)%state.playlist.length)}
+  function prev(){if(typeof state._currentIndex!=="number")return;if(state.playlist.length===0)return;playIndex((state._currentIndex-1+state.playlist.length)%state.playlist.length)}
+  function revokeIfBlob(track){try{if(track&&track._blob&&track.src){URL.revokeObjectURL(track.src);track.src=''}}catch{}}
+  function removeTrackAt(idx){if(idx<0||idx>=state.playlist.length)return;const [t]=state.playlist.splice(idx,1);revokeIfBlob(t);if(typeof state._currentIndex==='number'){if(idx<state._currentIndex) state._currentIndex--;else if(idx===state._currentIndex) state._currentIndex=null}renderPlaylist();renderStats();persist();addLog('ok','Track entfernt.')}
+  function reorderPlaylist(from,to){if(from===to||from<0||to<0||from>=state.playlist.length||to>=state.playlist.length)return;const it=state.playlist.splice(from,1)[0];state.playlist.splice(to,0,it);if(typeof state._currentIndex==='number'){if(from===state._currentIndex) state._currentIndex=to;else if(from<state._currentIndex&&to>=state._currentIndex) state._currentIndex--;else if(from>state._currentIndex&&to<=state._currentIndex) state._currentIndex++}renderPlaylist();persist();addLog('ok','Playlist umsortiert.')}
+  function exportPlaylist(){const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);download('playlist.json',data)}
+  function importPlaylist(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json';inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state.playlist.forEach(revokeIfBlob);const arr=JSON.parse(r.result||'[]');if(!Array.isArray(arr))throw new Error('Kein Array');state.playlist=arr.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:x.src}));renderPlaylist();renderStats();persist();addLog('ok','Playlist importiert.')}catch(e){addLog('error','Import-Fehler: '+e.message)}};r.readAsText(f)});inp.click()}
+  function exportAll(){download('modultool_backup.json',JSON.stringify(state,null,2))}
+  function importAll(file){const r=new FileReader();r.onload=()=>{try{state.playlist.forEach(revokeIfBlob);const obj=JSON.parse(r.result||'{}');Object.assign(state,obj);selfRepair();renderAll();persist();addLog('ok','Gesamtdaten importiert.')}catch(e){addLog('error','Import-Fehler: '+e.message)}};r.readAsText(file)}
+  function download(name,content){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));a.download=name;a.click()}
+  function persist(){if($('#autosaveChk').checked)save()}
+  function runSelfTests(){let pass=0,fail=0;function test(n,fn){try{fn();pass++;addLog('ok','TEST ✓ '+n)}catch(e){fail++;addLog('error','TEST ✗ '+n+': '+e.message)}}
+    test('slugify(undefined)',()=>{slugify(undefined)});
+    test('safeLower(null)',()=>{safeLower(null)});
+    test('renderModules null-safe',()=>{const b=[...state.modules];state.modules=[{id:'a'},{id:'b',name:'Bravo'},{id:'c',name:undefined}];selfRepair();renderModules();state.modules=b;renderModules()});
+    test('registerModule(undefined)',()=>{const id=registerModule(undefined,null);if(!id)throw new Error('Kein ID')});
+    test('safeLower number',()=>{safeLower(123)});
+    test('runRandom no dataset',()=>{runRandom.call(null,false)});
+    test('slugify diacritics',()=>{if(!slugify('ÄÖÜ ß Ã'))throw new Error('leer')});
+    test('theme fallback',()=>{const p=state.theme;state.theme='x';renderTheme();state.theme=p;renderTheme()});
+    addLog(fail===0?'ok':'error','Selbsttests abgeschlossen: '+pass+' ok, '+fail+' fail')}
+  function bindEvents(){
+    $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme)});
+    $('#toggleLeft').addEventListener('click',()=>{document.body.classList.toggle('collapsed-left')});
+    $('#toggleRight').addEventListener('click',()=>{document.body.classList.toggle('collapsed-right')});
+    $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist()});
+    $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist()});
+    $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist()});
+    $('#exportAllBtn').addEventListener('click',exportAll);
+    $('#importAllFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f)});
+    $('#clearLogBtn').addEventListener('click',()=>{state.log=[];renderLog();persist()});
+    $('#downloadLogBtn').addEventListener('click',()=>download('log.txt',state.log.map(l=>`[${l.time}] ${l.type}: ${l.msg}`).join('\n')));
+    $('#aboutBtn').addEventListener('click',()=>alert('ModulTool – Singlefile v'+state.version+'\nOffline • Robust • Barrierefrei'));
+    $('#selfTestBtn').addEventListener('click',runSelfTests);
+    document.addEventListener('keydown',e=>{const key=safeLower(e&&e.key);if(e.ctrlKey&&key==='k'){e.preventDefault();$('#quickSearch').focus()}if(e.ctrlKey&&key==='s'){e.preventDefault();save();toast('Gespeichert.')}if(e.key==='F1'||key==='f1'){e.preventDefault();openModule(startId)}});
+    $('#quickSearch').addEventListener('input',()=>{const q=safeLower($('#quickSearch').value);$$('#modulesList .btn').forEach(btn=>{btn.style.display=safeLower(btn.textContent).includes(q)?'flex':'none'})});
+    $('#addModuleBtn').addEventListener('click',onAddModule);
+    $('#newModuleName').addEventListener('keydown',e=>{if(e.key==='Enter')onAddModule()});
+    $('#addGenresBtn').addEventListener('click',addGenres);
+    $('#genreInput').addEventListener('keydown',e=>{if(e.key==='Enter')addGenres()});
+    $('#addMoodsBtn').addEventListener('click',addMoods);
+    $('#moodInput').addEventListener('keydown',e=>{if(e.key==='Enter')addMoods()});
+    $('#addCatBtn').addEventListener('click',addCategory);
+    $('#delCatBtn').addEventListener('click',delCategory);
+    $$('.btn[data-g]').forEach(b=>b.addEventListener('click',runRandom));
+    $('#randGo').addEventListener('click',()=>runRandom(true));
+    $('#copyOut').addEventListener('click',copyOutput);
+    $('#impPlBtn').addEventListener('click',importPlaylist);
+    $('#expPlBtn').addEventListener('click',exportPlaylist);
+    $('#playBtn').addEventListener('click',()=>{if(typeof state._currentIndex!=="number"){if(state.playlist.length>0){playIndex(0)}else{toast('Keine Tracks.')}}else{if(audio.paused){const p=audio.play();if(p&&p.catch)p.catch(()=>playIndex(state._currentIndex))}else{audio.pause()}}});
+    $('#nextBtn').addEventListener('click',next);
+    $('#prevBtn').addEventListener('click',prev);
+    const dz=$('#dropzone');
+    dz.addEventListener('click',()=>$('#pickAudio').click());
+    dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.opacity=.8});
+    dz.addEventListener('dragleave',()=>dz.style.opacity=1);
+    dz.addEventListener('drop',e=>{e.preventDefault();dz.style.opacity=1;addFiles(e.dataTransfer.files)});
+    $('#pickAudio').addEventListener('change',e=>addFiles(e.target.files));
+    const pl=$('#playlist');
+    pl.addEventListener('click',e=>{const btn=e.target.closest('button[data-act]');if(!btn)return;const item=e.target.closest('.item');if(!item)return;const idx=+item.dataset.index;if(btn.dataset.act==='play') playIndex(idx); else if(btn.dataset.act==='del') removeTrackAt(idx)});
+    pl.addEventListener('dblclick',e=>{const item=e.target.closest('.item');if(item) playIndex(+item.dataset.index)});
+    pl.addEventListener('dragstart',e=>{const item=e.target.closest('.item');if(!item)return;e.dataTransfer.setData('text/plain',item.dataset.index)});
+    pl.addEventListener('dragover',e=>{e.preventDefault()});
+    pl.addEventListener('drop',e=>{e.preventDefault();const to=e.target.closest('.item');if(!to)return;const from=+e.dataTransfer.getData('text/plain');const toIdx=+to.dataset.index;reorderPlaylist(from,toIdx)});
+  }
+  function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
+  function renderAll(){renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog()}
+  function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);setInterval(tick,1000);tick();addLog('ok','Bereit.')}
+  init();
+})();
+</script>
+</body>
+</html>
