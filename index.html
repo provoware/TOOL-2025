@@ -256,6 +256,40 @@
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
   const state={version:'1.1.3',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const moduleRegistry=new Map();
+  function ensureModuleRegistryMatchesState(preferredId){
+    const validIds=new Set();
+    state.modules.filter(Boolean).forEach(m=>{
+      const id=safeStr(m&&m.id).trim();
+      if(!id)return;
+      validIds.add(id);
+      if(!moduleRegistry.has(id)){
+        const name=safeStr(m&&m.name).trim()||'Unbenanntes Modul';
+        moduleRegistry.set(id,el=>{
+          el.innerHTML=`<h2>${escapeHtml(name)}</h2><p>Dieses Modul wurde geladen und wartet noch auf eigene Inhalte. Ergänze Funktionen oder verknüpfe ein Plugin.</p>`;
+        });
+      }
+    });
+    Array.from(moduleRegistry.keys()).forEach(id=>{
+      if(!validIds.has(id)){
+        moduleRegistry.delete(id);
+      }
+    });
+    let fallbackId=null;
+    if(preferredId&&validIds.has(preferredId)){
+      fallbackId=preferredId;
+    }
+    if(!fallbackId){
+      const first=state.modules.find(m=>m&&safeStr(m.id).trim());
+      fallbackId=first?safeStr(first.id).trim():null;
+    }
+    if(state.activeModule&&!validIds.has(state.activeModule)){
+      state.activeModule=fallbackId;
+    }
+    if(!state.activeModule&&fallbackId){
+      state.activeModule=fallbackId;
+    }
+  }
   function toast(msg){if(!$('#toastsChk').checked)return;const t=document.createElement('div');t.textContent=msg;t.setAttribute('role','status');Object.assign(t.style,{position:'fixed',right:'14px',bottom:'14px',background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'12px',boxShadow:'var(--shadow)',zIndex:99});document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
   function addLog(type,msg){const lvl=['ok','warn','error'].includes(type)?type:'info';const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type:lvl,msg});if(state.log.length>300)state.log.shift();renderLog()}
   function renderLog(){loglist.innerHTML='';
@@ -352,6 +386,7 @@
       }
       return{id,name,description,version,author,moduleId,moduleName,sections,links};
     });
+    ensureModuleRegistryMatchesState(state.activeModule||null);
     if(fixes>0)addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
   }
   function renderStats(){$('#stat-modules').textContent=state.modules.length;$('#stat-cats').textContent=Object.keys(state.categories).length;$('#stat-genres').textContent=state.genres.length;$('#stat-moods').textContent=state.moods.length;$('#stat-tracks').textContent=state.playlist.length;$('#countGenres').textContent=state.genres.length;$('#countMoods').textContent=state.moods.length;$('#countCats').textContent=Object.keys(state.categories).length}
@@ -361,7 +396,6 @@
   function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
   function renderPlaylist(){const list=$('#playlist');list.innerHTML='';const frag=document.createDocumentFragment();state.playlist.forEach((t,idx)=>{const row=document.createElement('div');row.className='item';row.setAttribute('draggable','true');row.dataset.index=idx;row.innerHTML=`<div class=\"meta\"><strong>${safeStr(t.title)||'Unbenannt'}</strong><span class=\"muted\">${safeStr(t.artist)||'–'}</span></div><div class=\"row\"><button class=\"btn inline\" data-act=\"play\">▶</button><button class=\"btn inline warn\" data-act=\"del\">✖</button></div>`;frag.appendChild(row)});list.appendChild(frag)}
   function tick(){const now=new Date();$('#clock').textContent=now.toLocaleTimeString('de-DE',{hour12:false});$('#today').textContent=now.toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'2-digit'})}
-  const moduleRegistry=new Map();
   const moduleIdTaken=id=>!!id&&(state.modules.some(m=>m&&m.id===id)||moduleRegistry.has(id));
   function nextModuleId(name,preferred){
     const baseName=safeStr(name).trim()||'modul';
@@ -521,6 +555,7 @@
     }
     renderModules();
     renderStats();
+    ensureModuleRegistryMatchesState(state.activeModule||null);
     persist();
   }
   function removePlugin(id){
@@ -644,6 +679,7 @@
       persist();
     }
     moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});
+    ensureModuleRegistryMatchesState(id);
     return id;
   }
   function openModule(id){const renderFn=moduleRegistry.get(id);if(!renderFn){addLog('error','Modul nicht vorhanden: '+id);return}state.activeModule=id;const el=$('#canvas');el.innerHTML='';renderFn(el);addLog('ok','Modul geöffnet: '+id)}
@@ -860,7 +896,7 @@
     pl.addEventListener('drop',e=>{e.preventDefault();const to=e.target.closest('.item');if(!to)return;const from=+e.dataTransfer.getData('text/plain');const toIdx=+to.dataset.index;reorderPlaylist(from,toIdx)});
   }
   function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
-  function renderAll(){ensureAllPlugins();renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog();const filterSel=$('#logFilterSel');if(filterSel)filterSel.value=state.logFilter||'all';}
+  function renderAll(){ensureAllPlugins();ensureModuleRegistryMatchesState(startId);renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog();const filterSel=$('#logFilterSel');if(filterSel)filterSel.value=state.logFilter||'all';}
   function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);setInterval(tick,1000);tick();addLog('ok','Bereit.')}
   init();
 })();

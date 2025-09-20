@@ -8,6 +8,7 @@
 - [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
 - [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
 - [x] Backup-Import verschärfen (Module/Kategorien deduplizieren & sanitisieren)
+- [x] Persistente Module registrieren (Platzhalter-Renderer nach Self-Repair & Import)
 - [ ] Plugin-Tests automatisieren (Unit- und Smoke-Tests für Import/Entfernen)
 - [ ] Backup-Schema formalisieren (JSON-Schema definieren & CI-Prüfung)
 - [ ] Accessibility-Shortcuts erweitern (Playlist per Tastatur sortieren)
