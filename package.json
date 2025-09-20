@@ -1,0 +1,13 @@
+{
+  "name": "modultool",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test": "node --test tests"
+  },
+  "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^2.1.1",
+    "jsdom": "^24.1.0"
+  }
+}

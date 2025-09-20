@@ -41,8 +41,11 @@
   .header-grid{display:grid;gap:var(--gap);grid-template-columns:1fr auto auto auto;align-items:stretch}
   .header-block{min-height:64px}
   .clock{font-size:1.25rem;font-variant-numeric:tabular-nums}
-  .loglist{max-height:72px;overflow:auto}
+  .loglist{max-height:120px;overflow:auto}
   .loglist li{list-style:none;font-size:.9rem;border-bottom:1px dashed var(--border);padding:2px 0}
+  .loglist li:last-child{border-bottom:0}
+  .log-empty{font-size:.9rem;color:var(--muted);padding:4px 0}
+  .log-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
   .collapsed-left aside#left{display:none}
   .collapsed-left .app{grid-template-columns:0 1fr 360px}
   .collapsed-right aside#right{display:none}
@@ -53,7 +56,11 @@
   .workspace{height:100%;padding:var(--gap)}
   .workspace .canvas{min-height:calc(70vh);background:var(--panel);border:1px dashed var(--border);border-radius:var(--radius);padding:16px}
   .playlist{max-height:38vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--panel)}
-  .playlist .item{display:flex;justify-content:space-between;gap:8px;align-items:center;border-bottom:1px solid var(--border);padding:6px 0}
+  .playlist .item{display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:8px 6px;border-radius:10px;flex-wrap:wrap;outline:none}
+  .playlist .item:last-child{border-bottom:none}
+  .playlist .item:focus{outline:2px solid var(--accent);outline-offset:2px}
+  .playlist .item[aria-selected="true"]{background:var(--panel-2)}
+  .playlist .item .item-actions{display:flex;gap:6px;flex-wrap:wrap}
   .playlist .meta{display:flex;flex-direction:column}
   .dropzone{border:2px dashed var(--accent);border-radius:var(--radius);padding:16px;text-align:center}
   .footer-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(4,1fr)}
@@ -106,12 +113,22 @@
           <label><input type="checkbox" id="selfrepairChk"> Self-Repair</label>
           <label><input type="checkbox" id="toastsChk" checked> Toast-Meldungen</label>
           <button class="btn inline" id="exportAllBtn" title="Alles als JSON exportieren">Export</button>
+          <button class="btn inline" id="manifestBtn" title="Strukturelles Manifest herunterladen">Manifest</button>
           <input type="file" id="importAllFile" title="JSON importieren" accept="application/json" />
         </div>
         <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
       </div>
       <div class="panel header-block pad" aria-label="Echtzeit Logging">
         <div class="title">Log (letzte 10)</div>
+        <div class="log-controls">
+          <label for="logFilterSel">Anzeige</label>
+          <select id="logFilterSel" title="Logfilter wählen">
+            <option value="all">Alles</option>
+            <option value="ok">Nur Erfolge</option>
+            <option value="warn">Nur Hinweise</option>
+            <option value="error">Nur Fehler</option>
+          </select>
+        </div>
         <ul class="loglist" id="loglist" aria-live="polite"></ul>
         <div class="row">
           <button class="btn inline warn" id="clearLogBtn">Log leeren</button>
@@ -168,7 +185,7 @@
           <button class="btn inline" id="impPlBtn" title="Playlist importieren (JSON)">Import</button>
           <button class="btn inline" id="expPlBtn" title="Playlist exportieren (JSON)">Export</button>
         </div>
-        <div class="muted">Drag&Drop • Doppelklick: Abspielen</div>
+        <div class="muted">Drag&Drop • Enter: Abspielen • Entf: Entfernen • Alt+Pfeile: Sortieren</div>
       </div>
     </div>
     <div class="panel pad" style="margin-top:10px">
@@ -236,35 +253,534 @@
 <script>
 (function(){
   'use strict';
+  const isTestEnv=typeof window!=='undefined'&&window.__MODUL_TOOL_TEST__===true;
   const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
   const loglist=$('#loglist');
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
+  const escapeHtml=str=>safeStr(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.1.2',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],_currentIndex:null};
+  const state={version:'1.1.3',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  let clockTimer=null;
+  const moduleRegistry=new Map();
+  function ensureModuleRegistryMatchesState(preferredId){
+    const validIds=new Set();
+    state.modules.filter(Boolean).forEach(m=>{
+      const id=safeStr(m&&m.id).trim();
+      if(!id)return;
+      validIds.add(id);
+      if(!moduleRegistry.has(id)){
+        const name=safeStr(m&&m.name).trim()||'Unbenanntes Modul';
+        moduleRegistry.set(id,el=>{
+          el.innerHTML=`<h2>${escapeHtml(name)}</h2><p>Dieses Modul wurde geladen und wartet noch auf eigene Inhalte. Ergänze Funktionen oder verknüpfe ein Plugin.</p>`;
+        });
+      }
+    });
+    Array.from(moduleRegistry.keys()).forEach(id=>{
+      if(!validIds.has(id)){
+        moduleRegistry.delete(id);
+      }
+    });
+    let fallbackId=null;
+    if(preferredId&&validIds.has(preferredId)){
+      fallbackId=preferredId;
+    }
+    if(!fallbackId){
+      const first=state.modules.find(m=>m&&safeStr(m.id).trim());
+      fallbackId=first?safeStr(first.id).trim():null;
+    }
+    if(state.activeModule&&!validIds.has(state.activeModule)){
+      state.activeModule=fallbackId;
+    }
+    if(!state.activeModule&&fallbackId){
+      state.activeModule=fallbackId;
+    }
+  }
   function toast(msg){if(!$('#toastsChk').checked)return;const t=document.createElement('div');t.textContent=msg;t.setAttribute('role','status');Object.assign(t.style,{position:'fixed',right:'14px',bottom:'14px',background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'12px',boxShadow:'var(--shadow)',zIndex:99});document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
-  function addLog(type,msg){const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type,msg});if(state.log.length>200)state.log.shift();renderLog()}
-  function renderLog(){loglist.innerHTML='';state.log.slice(-10).forEach(e=>{const li=document.createElement('li');li.innerHTML=`<span class=\"muted\">[${e.time}]</span> <span>${e.msg}</span>`;if(e.type==='error')li.style.color='var(--err)';if(e.type==='ok')li.style.color='var(--ok)';loglist.appendChild(li)})}
+  function addLog(type,msg){const lvl=['ok','warn','error'].includes(type)?type:'info';const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type:lvl,msg});if(state.log.length>300)state.log.shift();renderLog()}
+  function renderLog(){loglist.innerHTML='';
+    const filter=(state.logFilter||'all').toLowerCase();
+    const entries=state.log.filter(e=>filter==='all'||e.type===filter).slice(-10);
+    if(entries.length===0){
+      const empty=document.createElement('li');
+      empty.className='log-empty';
+      empty.textContent='Keine Einträge für den gewählten Filter.';
+      loglist.appendChild(empty);
+      return;
+    }
+    entries.forEach(e=>{
+      const li=document.createElement('li');
+      li.innerHTML=`<span class="muted">[${e.time}]</span> <span>${e.msg}</span>`;
+      if(e.type==='error')li.style.color='var(--err)';
+      if(e.type==='ok')li.style.color='var(--ok)';
+      if(e.type==='warn')li.style.color='var(--warn)';
+      loglist.appendChild(li);
+    });
+  }
   const LS_KEY='modultool_state_v1';
   function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));addLog('ok','Gespeichert.')}catch(err){addLog('error','Speichern fehlgeschlagen: '+err.message)}}
   function load(){try{const raw=localStorage.getItem(LS_KEY);if(!raw)return;Object.assign(state,JSON.parse(raw));addLog('ok','Zustand geladen.')}catch(err){addLog('error','Laden fehlgeschlagen: '+err.message)}}
-  function selfRepair(){let fixes=0;if(!Array.isArray(state.modules)){state.modules=[];fixes++}if(!state.categories||typeof state.categories!=='object'){state.categories={};fixes++}if(!Array.isArray(state.genres)){state.genres=[];fixes++}if(!Array.isArray(state.moods)){state.moods=[];fixes++}if(!Array.isArray(state.playlist)){state.playlist=[];fixes++}if(!Array.isArray(state.log)){state.log=[];fixes++}const seen=new Set();state.modules=state.modules.filter(Boolean).map(m=>{const name=safeStr(m&&m.name).trim();let id=safeStr(m&&m.id).trim();const finalName=name||(id?id.replace(/-/g,' '):'Unbenanntes Modul');id=id||slugify(finalName);return{id,name:finalName}}).filter(m=>{if(seen.has(m.id))return false;seen.add(m.id);return true});state.genres=[...new Set(state.genres.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));state.moods=[...new Set(state.moods.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));for(const c in state.categories){const cat=state.categories[c]||{genres:[],moods:[]};cat.genres=[...new Set((cat.genres||[]).map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));cat.moods=[...new Set((cat.moods||[]).map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));state.categories[c]=cat}if(fixes>0)addLog('ok','Self-Repair: '+fixes+' Fix(es) angewendet.')}
+  function selfRepair(){
+    let fixes=0;
+    if(!Array.isArray(state.modules)){state.modules=[];fixes++;}
+    if(!state.categories||typeof state.categories!=='object'){state.categories={};fixes++;}
+    if(!Array.isArray(state.genres)){state.genres=[];fixes++;}
+    if(!Array.isArray(state.moods)){state.moods=[];fixes++;}
+    if(!Array.isArray(state.playlist)){state.playlist=[];fixes++;}
+    if(!Array.isArray(state.log)){state.log=[];fixes++;}
+    if(!['all','ok','warn','error'].includes(state.logFilter)){state.logFilter='all';fixes++;}
+    const seen=new Set();
+    const modules=[];
+    state.modules.filter(Boolean).forEach((m,idx)=>{
+      const name=safeStr(m&&m.name).trim();
+      const fallback=`Modul ${idx+1}`;
+      const finalName=name||fallback;
+      let id=safeStr(m&&m.id).trim();
+      if(id) id=slugify(id);
+      if(!id) id=slugify(finalName);
+      if(!id) id=slugify(fallback);
+      if(!id) id=`modul-${uuid().slice(-6)}`;
+      while(!id||seen.has(id)){
+        id=slugify(`${finalName}-${uuid().slice(-6)}`)||`modul-${uuid().slice(-6)}`;
+      }
+      seen.add(id);
+      modules.push({id,name:finalName});
+    });
+    state.modules=modules;
+    state.genres=[...new Set(state.genres.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    state.moods=[...new Set(state.moods.map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+    for(const c in state.categories){
+      const cat=state.categories[c]||{genres:[],moods:[]};
+      cat.genres=[...new Set((cat.genres||[]).map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      cat.moods=[...new Set((cat.moods||[]).map(s=>safeStr(s).trim()).filter(Boolean))].sort((a,b)=>a.localeCompare(b));
+      state.categories[c]=cat;
+    }
+    if(!Array.isArray(state.plugins)){state.plugins=[];fixes++;}
+    const pluginIds=new Set();
+    state.plugins=state.plugins.filter(Boolean).map(p=>{
+      let id=safeStr(p&&p.id).trim();
+      if(!id||pluginIds.has(id)){id=uuid();fixes++;}
+      pluginIds.add(id);
+      const name=safeStr(p&&p.name).trim()||'Unbenanntes Plugin';
+      const description=safeStr(p&&p.description).trim();
+      const version=safeStr(p&&p.version).trim();
+      const author=safeStr(p&&p.author).trim();
+      let moduleId=safeStr(p&&p.moduleId).trim();
+      if(moduleId) moduleId=slugify(moduleId);
+      let moduleName=safeStr(p&&p.moduleName).trim()||`Plugin – ${name}`;
+      const sections=Array.isArray(p&&p.sections)?p.sections.map(sec=>{
+        const title=safeStr(sec&&sec.title).trim();
+        const content=safeStr(sec&&sec.content).trim();
+        if(!title&&!content)return null;
+        return{title:title||'Abschnitt',content};
+      }).filter(Boolean):[];
+      const links=Array.isArray(p&&p.links)?p.links.map(link=>{
+        const label=safeStr(link&&link.label).trim()||safeStr(link&&link.title).trim();
+        const url=safeStr(link&&link.url).trim();
+        if(!url)return null;
+        return{label:label||url,url};
+      }).filter(Boolean):[];
+      if(!moduleId||!seen.has(moduleId)){
+        moduleId=slugify(`${name}-${id.slice(-6)}`);
+        moduleName=moduleName||`Plugin – ${name}`;
+        while(seen.has(moduleId)){
+          moduleId=slugify(`${name}-${uuid().slice(-6)}`);
+        }
+        state.modules.push({id:moduleId,name:moduleName});
+        seen.add(moduleId);
+        fixes++;
+      }
+      return{id,name,description,version,author,moduleId,moduleName,sections,links};
+    });
+    ensureModuleRegistryMatchesState(state.activeModule||null);
+    if(fixes>0)addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
+  }
   function renderStats(){$('#stat-modules').textContent=state.modules.length;$('#stat-cats').textContent=Object.keys(state.categories).length;$('#stat-genres').textContent=state.genres.length;$('#stat-moods').textContent=state.moods.length;$('#stat-tracks').textContent=state.playlist.length;$('#countGenres').textContent=state.genres.length;$('#countMoods').textContent=state.moods.length;$('#countCats').textContent=Object.keys(state.categories).length}
   function renderTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('#themeSel').value=state.theme}
   function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class=\"small\">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
   function renderArchives(){const gl=$('#genresList');gl.innerHTML='';const gfrag=document.createDocumentFragment();state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li)});gl.appendChild(gfrag);const ml=$('#moodsList');ml.innerHTML='';const mfrag=document.createDocumentFragment();state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li)});ml.appendChild(mfrag)}
   function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
-  function renderPlaylist(){const list=$('#playlist');list.innerHTML='';const frag=document.createDocumentFragment();state.playlist.forEach((t,idx)=>{const row=document.createElement('div');row.className='item';row.setAttribute('draggable','true');row.dataset.index=idx;row.innerHTML=`<div class=\"meta\"><strong>${safeStr(t.title)||'Unbenannt'}</strong><span class=\"muted\">${safeStr(t.artist)||'–'}</span></div><div class=\"row\"><button class=\"btn inline\" data-act=\"play\">▶</button><button class=\"btn inline warn\" data-act=\"del\">✖</button></div>`;frag.appendChild(row)});list.appendChild(frag)}
+  function renderPlaylist(){
+    const list=$('#playlist');
+    list.innerHTML='';
+    let activeOptionId=null;
+    if(state.playlist.length===0){
+      const empty=document.createElement('p');
+      empty.className='muted';
+      empty.textContent='Noch keine Titel vorhanden. Nutze Import oder ziehe Dateien hierher.';
+      list.appendChild(empty);
+      list.removeAttribute('aria-activedescendant');
+      return;
+    }
+    const frag=document.createDocumentFragment();
+    state.playlist.forEach((t,idx)=>{
+      const row=document.createElement('div');
+      row.className='item';
+      row.setAttribute('role','option');
+      row.setAttribute('tabindex','0');
+      row.setAttribute('draggable','true');
+      row.dataset.index=idx;
+      let trackId=safeStr(t.id).trim();
+      if(!trackId){trackId=uuid();t.id=trackId;}
+      row.dataset.trackId=trackId;
+      const rowId=`playlist-item-${trackId}`;
+      row.id=rowId;
+      const isActive=state._currentIndex===idx;
+      row.setAttribute('aria-selected',isActive?'true':'false');
+      row.title='Enter: Abspielen • Entf: Entfernen • Alt+Pfeile: Sortieren';
+      if(isActive) activeOptionId=rowId;
+      const meta=document.createElement('div');
+      meta.className='meta';
+      const title=document.createElement('strong');
+      title.textContent=safeStr(t.title)||'Unbenannt';
+      const artist=document.createElement('span');
+      artist.className='muted';
+      artist.textContent=safeStr(t.artist)||'–';
+      meta.appendChild(title);
+      meta.appendChild(artist);
+      const actions=document.createElement('div');
+      actions.className='row item-actions';
+      const playBtn=document.createElement('button');
+      playBtn.className='btn inline';
+      playBtn.dataset.act='play';
+      playBtn.setAttribute('aria-label','Titel abspielen');
+      playBtn.type='button';
+      playBtn.textContent='▶';
+      const upBtn=document.createElement('button');
+      upBtn.className='btn inline';
+      upBtn.dataset.act='up';
+      upBtn.setAttribute('aria-label','Titel nach oben verschieben');
+      upBtn.type='button';
+      upBtn.textContent='↑';
+      upBtn.disabled=idx===0;
+      const downBtn=document.createElement('button');
+      downBtn.className='btn inline';
+      downBtn.dataset.act='down';
+      downBtn.setAttribute('aria-label','Titel nach unten verschieben');
+      downBtn.type='button';
+      downBtn.textContent='↓';
+      downBtn.disabled=idx===state.playlist.length-1;
+      const delBtn=document.createElement('button');
+      delBtn.className='btn inline warn';
+      delBtn.dataset.act='del';
+      delBtn.setAttribute('aria-label','Titel entfernen');
+      delBtn.type='button';
+      delBtn.textContent='✖';
+      actions.appendChild(playBtn);
+      actions.appendChild(upBtn);
+      actions.appendChild(downBtn);
+      actions.appendChild(delBtn);
+      row.appendChild(meta);
+      row.appendChild(actions);
+      frag.appendChild(row);
+    });
+    list.appendChild(frag);
+    if(activeOptionId) list.setAttribute('aria-activedescendant',activeOptionId);
+    else list.removeAttribute('aria-activedescendant');
+  }
+  function focusPlaylistItem(trackId){
+    if(!trackId)return;
+    const escaped=typeof CSS!=='undefined'&&CSS.escape?CSS.escape(trackId):trackId.replace(/["']/g,'');
+    requestAnimationFrame(()=>{
+      const target=document.querySelector(`#playlist .item[data-track-id="${escaped}"]`);
+      if(target) target.focus();
+    });
+  }
   function tick(){const now=new Date();$('#clock').textContent=now.toLocaleTimeString('de-DE',{hour12:false});$('#today').textContent=now.toLocaleDateString('de-DE',{weekday:'long',year:'numeric',month:'long',day:'2-digit'})}
-  const moduleRegistry=new Map();
-  function registerModule(name,renderFn){const safeName=safeStr(name).trim()||'Unbenanntes Modul';const id=slugify(safeName);if(!state.modules.find(m=>m&&m.id===id)){state.modules.push({id,name:safeName});addLog('ok','Modul registriert: '+safeName);renderModules();renderStats();persist()}moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});return id}
+  const moduleIdTaken=id=>!!id&&(state.modules.some(m=>m&&m.id===id)||moduleRegistry.has(id));
+  function nextModuleId(name,preferred){
+    const baseName=safeStr(name).trim()||'modul';
+    let candidate=safeStr(preferred).trim();
+    if(candidate) candidate=slugify(candidate);
+    if(!candidate) candidate=slugify(baseName);
+    if(!candidate) candidate=slugify(`modul-${Date.now()}`);
+    if(!candidate) candidate=`modul-${uuid().slice(-6)}`;
+    let suffix=2;
+    while(moduleIdTaken(candidate)){
+      candidate=slugify(`${baseName}-${suffix++}`)||`modul-${uuid().slice(-6)}`;
+    }
+    return candidate;
+  }
+  function renderPluginModuleContent(el,pluginId){
+    const plugin=state.plugins.find(p=>p.id===pluginId);
+    if(!plugin){
+      el.innerHTML='<h2>Plugin nicht gefunden</h2><p>Bitte importiere das Plugin erneut.</p>';
+      return;
+    }
+    const header=document.createElement('div');
+    header.className='col';
+    header.innerHTML=`<h2>${escapeHtml(plugin.name)}</h2><p class="muted">${escapeHtml(plugin.description||'Dieses Plugin enthält keine Beschreibung.')}</p>`;
+    const meta=document.createElement('div');
+    meta.className='row';
+    meta.style.flexWrap='wrap';
+    meta.style.gap='8px';
+    [['Version',plugin.version||'n/a'],['Autor',plugin.author||'unbekannt']].forEach(([label,value])=>{
+      const badge=document.createElement('span');
+      badge.className='chip';
+      badge.innerHTML=`<strong>${escapeHtml(label)}:</strong> ${escapeHtml(value)}`;
+      meta.appendChild(badge);
+    });
+    header.appendChild(meta);
+    el.appendChild(header);
+    if(plugin.sections&&plugin.sections.length){
+      plugin.sections.forEach(sec=>{
+        const box=document.createElement('section');
+        box.className='panel pad';
+        box.style.marginTop='12px';
+        const title=escapeHtml(sec.title);
+        const contentHtml=escapeHtml(sec.content).replace(/\n/g,'<br>');
+        box.innerHTML=`<h3>${title}</h3><p>${contentHtml}</p>`;
+        el.appendChild(box);
+      });
+    }else{
+      const empty=document.createElement('div');
+      empty.className='panel pad';
+      empty.innerHTML='<p>Keine strukturierten Inhalte hinterlegt.</p>';
+      el.appendChild(empty);
+    }
+    if(plugin.links&&plugin.links.length){
+      const linksWrap=document.createElement('div');
+      linksWrap.className='panel pad';
+      linksWrap.style.marginTop='12px';
+      linksWrap.innerHTML='<h3>Links</h3>';
+      const list=document.createElement('ul');
+      list.style.padding='0';
+      list.style.listStyle='none';
+      plugin.links.forEach(link=>{
+        const li=document.createElement('li');
+        li.style.marginBottom='6px';
+        const a=document.createElement('a');
+        const url=safeStr(link.url);
+        if(!/^https?:/i.test(url))return;
+        a.href=url;
+        a.target='_blank';
+        a.rel='noopener';
+        a.textContent=`${safeStr(link.label)} →`;
+        li.appendChild(a);
+        list.appendChild(li);
+      });
+      linksWrap.appendChild(list);
+      el.appendChild(linksWrap);
+    }
+  }
+  function ensurePluginModule(plugin){
+    if(!plugin)return;
+    const moduleName=safeStr(plugin.moduleName).trim()||`Plugin – ${plugin.name}`;
+    let moduleId=safeStr(plugin.moduleId).trim();
+    moduleId=slugify(moduleId||`${plugin.name}-${plugin.id.slice(-6)}`);
+    if(!moduleId) moduleId=slugify(`plugin-${plugin.id.slice(-6)}`)||`plugin-${uuid().slice(-6)}`;
+    plugin.moduleName=moduleName;
+    plugin.moduleId=moduleId;
+    let existing=state.modules.find(m=>m.id===moduleId);
+    const occupiedByOtherPlugin=state.plugins.some(p=>p&&p!==plugin&&p.moduleId===moduleId);
+    if(existing&&occupiedByOtherPlugin){
+      moduleId=nextModuleId(moduleName,`${moduleId}-${plugin.id.slice(-4)}`);
+      plugin.moduleId=moduleId;
+      existing=null;
+    }
+    if(existing&&safeLower(existing.name)!==safeLower(moduleName)){
+      moduleId=nextModuleId(moduleName,moduleId);
+      plugin.moduleId=moduleId;
+      existing=null;
+    }
+    if(!existing){
+      state.modules.push({id:moduleId,name:moduleName});
+      renderModules();
+      renderStats();
+    }else if(existing.name!==moduleName){
+      existing.name=moduleName;
+    }
+    const renderPluginView=el=>renderPluginModuleContent(el,plugin.id);
+    renderPluginView.pluginId=plugin.id;
+    moduleRegistry.set(moduleId,renderPluginView);
+  }
+  function ensureAllPlugins(){state.plugins.forEach(ensurePluginModule);}
+  function validatePluginData(data){
+    if(!data||typeof data!=='object')throw new Error('Plugin-Datei ungültig');
+    const name=safeStr(data.name).trim();
+    if(!name)throw new Error('Plugin-Name fehlt');
+    const description=safeStr(data.description).trim();
+    const version=safeStr(data.version).trim();
+    const author=safeStr(data.author).trim();
+    const moduleName=safeStr(data.moduleName).trim();
+    const moduleId=safeStr(data.moduleId).trim();
+    const sections=Array.isArray(data.sections)?data.sections.map(sec=>{
+      const title=safeStr(sec&&sec.title).trim();
+      const content=safeStr(sec&&sec.content).trim();
+      if(!title&&!content)return null;
+      return{title:title||'Inhalt',content};
+    }).filter(Boolean):[];
+    const baseContent=safeStr(data.content).trim();
+    if(!sections.length&&baseContent){sections.push({title:'Inhalt',content:baseContent});}
+    const links=Array.isArray(data.links)?data.links.map(link=>{
+      const label=safeStr(link&&link.label).trim()||safeStr(link&&link.title).trim();
+      const url=safeStr(link&&link.url).trim();
+      if(!url||!/^https?:/i.test(url))return null;
+      return{label:label||url,url};
+    }).filter(Boolean):[];
+    return{name,description,version,author,moduleName,moduleId,sections,links};
+  }
+  function pluginExists(candidate){return state.plugins.some(p=>safeLower(p.name)===safeLower(candidate.name)&&safeLower(p.version||'')===safeLower(candidate.version||''));}
+  function registerPlugin(candidate){
+    if(pluginExists(candidate))throw new Error('Plugin mit gleicher Version bereits vorhanden');
+    const plugin=Object.assign({id:uuid()},candidate);
+    plugin.moduleName=safeStr(plugin.moduleName).trim()||`Plugin – ${plugin.name}`;
+    plugin.moduleId=safeStr(plugin.moduleId).trim();
+    state.plugins.push(plugin);
+    ensurePluginModule(plugin);
+    renderModules();
+    renderStats();
+    persist();
+    addLog('ok','Plugin importiert: '+plugin.name);
+    return plugin;
+  }
+  function removeModule(id){
+    const idx=state.modules.findIndex(m=>m.id===id);
+    if(idx===-1)return;
+    const wasActive=state.activeModule===id;
+    state.modules.splice(idx,1);
+    moduleRegistry.delete(id);
+    if(wasActive){
+      state.activeModule=startId;
+      openModule(startId);
+    }
+    renderModules();
+    renderStats();
+    ensureModuleRegistryMatchesState(state.activeModule||null);
+    persist();
+  }
+  function removePlugin(id){
+    const idx=state.plugins.findIndex(p=>p.id===id);
+    if(idx===-1)return;
+    const plugin=state.plugins[idx];
+    state.plugins.splice(idx,1);
+    if(plugin&&plugin.moduleId)removeModule(plugin.moduleId);
+    persist();
+    addLog('warn','Plugin entfernt: '+(plugin?plugin.name:'unbekannt'));
+    if(state.activeModule===pluginOverviewId)openModule(pluginOverviewId);
+  }
+  function renderPluginOverview(el){
+    el.innerHTML=`<h2>Plugin-Manager</h2><p>Importiere Erweiterungen im JSON-Format. Struktur: {"name","version","description","author","sections":[{"title","content"}]}.</p>`;
+    const controls=document.createElement('div');
+    controls.className='row';
+    controls.style.gap='8px';
+    const importBtn=document.createElement('button');
+    importBtn.className='btn inline';
+    importBtn.id='pluginImportBtn';
+    importBtn.textContent='Plugin importieren';
+    const file=document.createElement('input');
+    file.type='file';
+    file.accept='application/json';
+    file.id='pluginImportFile';
+    file.style.display='none';
+    controls.appendChild(importBtn);
+    controls.appendChild(file);
+    const hint=document.createElement('div');
+    hint.className='muted';
+    hint.textContent='Tipp: Plugins werden als eigene Module registriert und erscheinen in der Liste links.';
+    controls.appendChild(hint);
+    el.appendChild(controls);
+    const list=document.createElement('div');
+    list.className='col';
+    list.style.marginTop='12px';
+    if(state.plugins.length===0){
+      const empty=document.createElement('div');
+      empty.className='panel pad';
+      empty.innerHTML='<p>Noch keine Plugins importiert.</p>';
+      list.appendChild(empty);
+    }else{
+      state.plugins.forEach(plugin=>{
+        const card=document.createElement('div');
+        card.className='panel pad';
+        card.style.display='flex';
+        card.style.flexDirection='column';
+        card.style.gap='6px';
+        const head=document.createElement('div');
+        head.className='row';
+        head.style.justifyContent='space-between';
+        head.style.gap='6px';
+        head.style.flexWrap='wrap';
+        const title=document.createElement('strong');
+        title.textContent=safeStr(plugin.name);
+        const meta=document.createElement('span');
+        meta.className='muted';
+        meta.textContent=`v${safeStr(plugin.version||'n/a')} • ${safeStr(plugin.author||'unbekannt')}`;
+        head.appendChild(title);
+        head.appendChild(meta);
+        const desc=document.createElement('p');
+        desc.textContent=safeStr(plugin.description||'Keine Beschreibung hinterlegt.');
+        card.appendChild(head);
+        card.appendChild(desc);
+        const actions=document.createElement('div');
+        actions.className='row';
+        actions.style.gap='6px';
+        const openBtn=document.createElement('button');
+        openBtn.className='btn inline';
+        openBtn.textContent='Anzeigen';
+        openBtn.addEventListener('click',()=>openModule(plugin.moduleId));
+        const exportBtn=document.createElement('button');
+        exportBtn.className='btn inline';
+        exportBtn.textContent='Exportieren';
+        exportBtn.addEventListener('click',()=>exportPlugin(plugin));
+        const removeBtn=document.createElement('button');
+        removeBtn.className='btn inline warn';
+        removeBtn.textContent='Entfernen';
+        removeBtn.addEventListener('click',()=>{if(confirm('Plugin wirklich entfernen?'))removePlugin(plugin.id);});
+        actions.appendChild(openBtn);
+        actions.appendChild(exportBtn);
+        actions.appendChild(removeBtn);
+        card.appendChild(actions);
+        list.appendChild(card);
+      });
+    }
+    el.appendChild(list);
+    importBtn.addEventListener('click',()=>file.click());
+    file.addEventListener('change',e=>{
+      const f=e.target.files[0];
+      if(!f)return;
+      const reader=new FileReader();
+      reader.onload=()=>{
+        try{
+          const json=JSON.parse(reader.result||'{}');
+          const pluginData=validatePluginData(json);
+          const plugin=registerPlugin(pluginData);
+          openModule(plugin.moduleId);
+        }catch(err){
+          addLog('error','Plugin-Import: '+err.message);
+          toast('Plugin konnte nicht geladen werden.');
+        }finally{
+          file.value='';
+        }
+      };
+      reader.readAsText(f);
+    });
+  }
+  function registerModule(name,renderFn){
+    const safeName=safeStr(name).trim()||'Unbenanntes Modul';
+    let id=slugify(safeName);
+    const existing=state.modules.find(m=>m&&m.id===id);
+    if(existing){
+      existing.name=safeName;
+    }else{
+      id=nextModuleId(safeName,id);
+      state.modules.push({id,name:safeName});
+      addLog('ok','Modul registriert: '+safeName);
+      renderModules();
+      renderStats();
+      persist();
+    }
+    moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});
+    ensureModuleRegistryMatchesState(id);
+    return id;
+  }
   function openModule(id){const renderFn=moduleRegistry.get(id);if(!renderFn){addLog('error','Modul nicht vorhanden: '+id);return}state.activeModule=id;const el=$('#canvas');el.innerHTML='';renderFn(el);addLog('ok','Modul geöffnet: '+id)}
   const startId=registerModule('Start – Hinweise',(el)=>{el.innerHTML=`<h2>Start – Hinweise</h2><p>Dieses Modul erklärt die Bedienung. Links: Module, Rechts: Audio, Unten: Archiv & Zufall. Alles persistiert automatisch.</p><ul><li>Drag&Drop Audio in die rechte Dropzone.</li><li>Genres/Moods eingeben und per Enter übernehmen.</li><li>Kategorien anlegen und oben im Zufallsbereich auswählen.</li></ul>`});
+  const pluginOverviewId=registerModule('Plugin-Manager',renderPluginOverview);
   registerModule('Notiz-Editor',(el)=>{const ta=document.createElement('textarea');ta.style.width='100%';ta.style.height='50vh';ta.placeholder='Deine Notizen…';ta.value=localStorage.getItem('modultool_notes')||'';ta.addEventListener('input',()=>localStorage.setItem('modultool_notes',ta.value));el.appendChild(ta)});
   const splitInput=str=>safeStr(str).split(',').map(s=>s.trim()).filter(Boolean);
   function addToArchive(targetArr,items){const before=targetArr.length;items.forEach(x=>{if(!targetArr.includes(x))targetArr.push(x)});targetArr.sort((a,b)=>a.localeCompare(b));return targetArr.length-before}
-  function addGenres(){const items=splitInput($('#genreInput').value);if(items.length===0)return toast('Keine Genres erkannt.');const added=addToArchive(state.genres,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].genres,items)}$('#genreInput').value='';renderArchives();renderStats();persist();addLog('ok','Genres hinzugefügt: +'+added)}
-  function addMoods(){const items=splitInput($('#moodInput').value);if(items.length===0)return toast('Keine Moods erkannt.');const added=addToArchive(state.moods,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].moods,items)}$('#moodInput').value='';renderArchives();renderStats();persist();addLog('ok','Moods hinzugefügt: +'+added)}
+  function addGenres(){const items=splitInput($('#genreInput').value);if(items.length===0)return toast('Keine Genres erkannt.');const added=addToArchive(state.genres,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].genres,items)}$('#genreInput').value='';renderArchives();renderStats();persist();addLog(added>0?'ok':'warn',added>0?'Genres hinzugefügt: +'+added:'Keine neuen Genres (Duplikate)')}
+  function addMoods(){const items=splitInput($('#moodInput').value);if(items.length===0)return toast('Keine Moods erkannt.');const added=addToArchive(state.moods,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].moods,items)}$('#moodInput').value='';renderArchives();renderStats();persist();addLog(added>0?'ok':'warn',added>0?'Moods hinzugefügt: +'+added:'Keine neuen Moods (Duplikate)')}
   function addCategory(){const name=safeStr($('#catName').value).trim();if(!name)return toast('Kategoriename fehlt.');if(state.categories[name]){toast('Kategorie existiert.');return}state.categories[name]={genres:[],moods:[]};$('#catName').value='';renderCategories();renderStats();persist();addLog('ok','Kategorie angelegt: '+name)}
   function delCategory(){const c=$('#catSel').value;if(!c)return toast('Keine Kategorie gewählt.');if(!confirm('Kategorie „'+c+'“ wirklich löschen?'))return;delete state.categories[c];renderCategories();renderStats();persist();addLog('ok','Kategorie gelöscht: '+c)}
   function pickRandom(arr,n){const pool=[...new Set(arr)];const out=[];while(pool.length&&out.length<n){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0])}return out}
@@ -273,18 +789,195 @@
   const audio=$('#player');
   function fileToTrack(file){return new Promise(res=>{const url=URL.createObjectURL(file);const base=safeStr(file.name).replace(/\.[^.]+$/,'');let title=base,artist='';const parts=base.split(' - ');if(parts.length>=2){artist=parts[0];title=parts.slice(1).join(' - ')}res({id:uuid(),title,artist,src:url,_blob:true})})}
   function addFiles(files){const arr=Array.from(files||[]);if(!arr.length)return;const first=state.playlist.length===0;Promise.all(arr.map(fileToTrack)).then(tracks=>{state.playlist.push(...tracks);if(first){state._currentIndex=0;const t=state.playlist[0];$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`}renderPlaylist();renderStats();persist();addLog('ok',tracks.length+' Track(s) hinzugefügt.')})}
-  function playIndex(i){if(i<0||i>=state.playlist.length){toast('Keine Tracks.');return}const t=state.playlist[i];state._currentIndex=i;audio.src=t.src;try{audio.currentTime=0}catch{}const p=audio.play();if(p&&p.then){p.then(()=>{$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`;addLog('ok','Spiele: '+safeStr(t.title))}).catch(()=>{$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`})}}
+  function playIndex(i){
+    if(i<0||i>=state.playlist.length){toast('Keine Tracks.');return}
+    const track=state.playlist[i];
+    state._currentIndex=i;
+    renderPlaylist();
+    focusPlaylistItem(track.id);
+    audio.src=track.src;
+    try{audio.currentTime=0;}catch{}
+    const meta=`${safeStr(track.artist)||''} ${track.artist?'– ':''}${safeStr(track.title)||'Unbenannt'}`;
+    $('#nowMeta').textContent=meta;
+    const playPromise=audio.play();
+    if(playPromise&&playPromise.then){
+      playPromise.then(()=>{
+        $('#nowMeta').textContent=meta;
+        addLog('ok','Spiele: '+safeStr(track.title));
+      }).catch(()=>{
+        $('#nowMeta').textContent=meta;
+      });
+    }else{
+      addLog('ok','Spiele: '+safeStr(track.title));
+    }
+  }
   function next(){if(typeof state._currentIndex!=="number")return;if(state.playlist.length===0)return;playIndex((state._currentIndex+1)%state.playlist.length)}
   function prev(){if(typeof state._currentIndex!=="number")return;if(state.playlist.length===0)return;playIndex((state._currentIndex-1+state.playlist.length)%state.playlist.length)}
   function revokeIfBlob(track){try{if(track&&track._blob&&track.src){URL.revokeObjectURL(track.src);track.src=''}}catch{}}
-  function removeTrackAt(idx){if(idx<0||idx>=state.playlist.length)return;const [t]=state.playlist.splice(idx,1);revokeIfBlob(t);if(typeof state._currentIndex==='number'){if(idx<state._currentIndex) state._currentIndex--;else if(idx===state._currentIndex) state._currentIndex=null}renderPlaylist();renderStats();persist();addLog('ok','Track entfernt.')}
-  function reorderPlaylist(from,to){if(from===to||from<0||to<0||from>=state.playlist.length||to>=state.playlist.length)return;const it=state.playlist.splice(from,1)[0];state.playlist.splice(to,0,it);if(typeof state._currentIndex==='number'){if(from===state._currentIndex) state._currentIndex=to;else if(from<state._currentIndex&&to>=state._currentIndex) state._currentIndex--;else if(from>state._currentIndex&&to<=state._currentIndex) state._currentIndex++}renderPlaylist();persist();addLog('ok','Playlist umsortiert.')}
-  function exportPlaylist(){const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);download('playlist.json',data)}
+  function removeTrackAt(idx){
+    if(idx<0||idx>=state.playlist.length)return;
+    const [t]=state.playlist.splice(idx,1);
+    revokeIfBlob(t);
+    if(typeof state._currentIndex==='number'){
+      if(idx<state._currentIndex) state._currentIndex--;
+      else if(idx===state._currentIndex) state._currentIndex=null;
+    }
+    const nextTrack=state.playlist[Math.min(idx,state.playlist.length-1)];
+    renderPlaylist();
+    renderStats();
+    persist();
+    addLog('ok','Track entfernt.');
+    if(nextTrack) focusPlaylistItem(nextTrack.id);
+  }
+  function reorderPlaylist(from,to){
+    if(from===to||from<0||to<0||from>=state.playlist.length||to>=state.playlist.length)return;
+    const moved=state.playlist.splice(from,1)[0];
+    state.playlist.splice(to,0,moved);
+    if(typeof state._currentIndex==='number'){
+      if(from===state._currentIndex) state._currentIndex=to;
+      else if(from<state._currentIndex&&to>=state._currentIndex) state._currentIndex--;
+      else if(from>state._currentIndex&&to<=state._currentIndex) state._currentIndex++;
+    }
+    renderPlaylist();
+    persist();
+    addLog('ok','Playlist umsortiert.');
+    focusPlaylistItem(moved&&moved.id);
+  }
+  function exportPlaylist(){const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);download('playlist.json',data);addLog('ok','Playlist manifestiert.')}
   function importPlaylist(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json';inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state.playlist.forEach(revokeIfBlob);const arr=JSON.parse(r.result||'[]');if(!Array.isArray(arr))throw new Error('Kein Array');state.playlist=arr.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:x.src}));renderPlaylist();renderStats();persist();addLog('ok','Playlist importiert.')}catch(e){addLog('error','Import-Fehler: '+e.message)}};r.readAsText(f)});inp.click()}
-  function exportAll(){download('modultool_backup.json',JSON.stringify(state,null,2))}
-  function importAll(file){const r=new FileReader();r.onload=()=>{try{state.playlist.forEach(revokeIfBlob);const obj=JSON.parse(r.result||'{}');Object.assign(state,obj);selfRepair();renderAll();persist();addLog('ok','Gesamtdaten importiert.')}catch(e){addLog('error','Import-Fehler: '+e.message)}};r.readAsText(file)}
-  function download(name,content){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:'text/plain'}));a.download=name;a.click()}
-  function persist(){if($('#autosaveChk').checked)save()}
+  function generateManifest(){
+    return{
+      generatedAt:new Date().toISOString(),
+      version:state.version,
+      theme:state.theme,
+      modules:state.modules.map(m=>({id:m.id,name:m.name})),
+      plugins:state.plugins.map(p=>({id:p.id,name:p.name,version:p.version||'n/a',moduleId:p.moduleId})),
+      archives:{genres:state.genres.length,moods:state.moods.length,categories:Object.keys(state.categories).length},
+      playlist:state.playlist.length,
+      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false}
+    };
+  }
+  function buildBackup(){
+    return{
+      manifest:generateManifest(),
+      state:{
+        theme:state.theme,
+        autosave:!!state.autosave,
+        selfrepair:!!state.selfrepair,
+        toasts:state.toasts!==false,
+        modules:state.modules,
+        categories:state.categories,
+        genres:state.genres,
+        moods:state.moods,
+        playlist:state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),
+        plugins:state.plugins,
+        activeModule:state.activeModule,
+        log:state.log.slice(-50),
+        logFilter:state.logFilter||'all'
+      }
+    };
+  }
+  function downloadManifest(){download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));addLog('ok','Manifest exportiert.');}
+  function exportAll(){download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));addLog('ok','Backup exportiert (Manifest + Daten).');}
+  function validateBackup(obj){
+    if(!obj||typeof obj!=='object')throw new Error('Backup hat kein Objekt');
+    const statePart=obj.state;
+    if(!statePart||typeof statePart!=='object')throw new Error('State fehlt');
+    const sanitizeStringArray=arr=>Array.isArray(arr)?[...new Set(arr.map(x=>safeStr(x).trim()).filter(Boolean))]:[];
+    const sanitizeModules=arr=>Array.isArray(arr)?arr.filter(Boolean).map((m,idx)=>{
+      const name=safeStr(m&&m.name).trim();
+      const fallback=`Import Modul ${idx+1}`;
+      const finalName=name||fallback;
+      let id=safeStr(m&&m.id).trim();
+      if(id) id=slugify(id);
+      if(!id) id=slugify(finalName);
+      if(!id) id=`import-${uuid().slice(-6)}`;
+      return{id,name:finalName};
+    }):[];
+    const sanitizeCategories=catObj=>{
+      if(!catObj||typeof catObj!=='object')return{};
+      const out={};
+      Object.keys(catObj).forEach(key=>{
+        const cleanKey=safeStr(key).trim();
+        if(!cleanKey)return;
+        const entry=catObj[key]&&typeof catObj[key]==='object'?catObj[key]:{};
+        const genres=sanitizeStringArray(entry.genres).sort((a,b)=>a.localeCompare(b));
+        const moods=sanitizeStringArray(entry.moods).sort((a,b)=>a.localeCompare(b));
+        out[cleanKey]={genres,moods};
+      });
+      return out;
+    };
+    return{
+      theme:safeStr(statePart.theme).trim()||'neo',
+      autosave:!!statePart.autosave,
+      selfrepair:!!statePart.selfrepair,
+      toasts:statePart.toasts!==false,
+      modules:sanitizeModules(statePart.modules),
+      categories:sanitizeCategories(statePart.categories),
+      genres:sanitizeStringArray(statePart.genres).sort((a,b)=>a.localeCompare(b)),
+      moods:sanitizeStringArray(statePart.moods).sort((a,b)=>a.localeCompare(b)),
+      playlist:Array.isArray(statePart.playlist)?statePart.playlist.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:safeStr(x.src)})):[],
+      plugins:Array.isArray(statePart.plugins)?statePart.plugins:[],
+      activeModule:statePart.activeModule||null,
+      log:Array.isArray(statePart.log)?statePart.log:[],
+      logFilter:['all','ok','warn','error'].includes(statePart.logFilter)?statePart.logFilter:'all'
+    };
+  }
+  function pluginToSerializable(plugin){
+    if(!plugin)return{};
+    const sections=Array.isArray(plugin.sections)?plugin.sections.map(sec=>({title:safeStr(sec&&sec.title).trim(),content:safeStr(sec&&sec.content).trim()})):[];
+    const links=Array.isArray(plugin.links)?plugin.links.map(link=>({label:safeStr(link&&link.label).trim()||safeStr(link&&link.title).trim(),url:safeStr(link&&link.url).trim()})).filter(l=>l.url&&/^https?:/i.test(l.url)):[];
+    return{
+      name:safeStr(plugin.name).trim(),
+      description:safeStr(plugin.description).trim(),
+      version:safeStr(plugin.version).trim(),
+      author:safeStr(plugin.author).trim(),
+      moduleName:safeStr(plugin.moduleName).trim(),
+      moduleId:safeStr(plugin.moduleId).trim(),
+      sections:sections.filter(sec=>sec.title||sec.content),
+      links
+    };
+  }
+  function exportPlugin(plugin){
+    const data=pluginToSerializable(plugin);
+    if(!data.name){toast('Plugin hat keinen Namen.');return;}
+    const fileName=`${slugify(data.name)||'plugin'}-${safeStr(plugin.id).slice(-6)||'export'}.json`;
+    download(fileName,JSON.stringify(data,null,2));
+    addLog('ok','Plugin exportiert: '+data.name);
+  }
+  function importAll(file){
+    const r=new FileReader();
+    r.onload=()=>{
+      try{
+        state.playlist.forEach(revokeIfBlob);
+        const raw=JSON.parse(r.result||'{}');
+        const valid=validateBackup(raw);
+        state.theme=valid.theme;
+        state.autosave=valid.autosave;
+        state.selfrepair=valid.selfrepair;
+        state.toasts=valid.toasts;
+        state.modules=valid.modules;
+        state.categories=valid.categories;
+        state.genres=valid.genres;
+        state.moods=valid.moods;
+        state.playlist=valid.playlist;
+        state.plugins=valid.plugins;
+        state.activeModule=valid.activeModule;
+        state.log=valid.log;
+        state.logFilter=valid.logFilter;
+        selfRepair();
+        ensureAllPlugins();
+        renderAll();
+        persist();
+        addLog('ok','Gesamtdaten importiert.');
+      }catch(e){
+        addLog('error','Import-Fehler: '+e.message);
+      }
+    };
+    r.readAsText(file);
+  }
+  function download(name,content){const type=name.endsWith('.txt')?'text/plain':'application/json';const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
+  function persist(){if($('#autosaveChk').checked)save();}
   function runSelfTests(){let pass=0,fail=0;function test(n,fn){try{fn();pass++;addLog('ok','TEST ✓ '+n)}catch(e){fail++;addLog('error','TEST ✗ '+n+': '+e.message)}}
     test('slugify(undefined)',()=>{slugify(undefined)});
     test('safeLower(null)',()=>{safeLower(null)});
@@ -303,11 +996,13 @@
     $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist()});
     $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist()});
     $('#exportAllBtn').addEventListener('click',exportAll);
+    $('#manifestBtn').addEventListener('click',downloadManifest);
     $('#importAllFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f)});
     $('#clearLogBtn').addEventListener('click',()=>{state.log=[];renderLog();persist()});
     $('#downloadLogBtn').addEventListener('click',()=>download('log.txt',state.log.map(l=>`[${l.time}] ${l.type}: ${l.msg}`).join('\n')));
     $('#aboutBtn').addEventListener('click',()=>alert('ModulTool – Singlefile v'+state.version+'\nOffline • Robust • Barrierefrei'));
     $('#selfTestBtn').addEventListener('click',runSelfTests);
+    $('#logFilterSel').addEventListener('change',e=>{state.logFilter=e.target.value;renderLog();persist()});
     document.addEventListener('keydown',e=>{const key=safeLower(e&&e.key);if(e.ctrlKey&&key==='k'){e.preventDefault();$('#quickSearch').focus()}if(e.ctrlKey&&key==='s'){e.preventDefault();save();toast('Gespeichert.')}if(e.key==='F1'||key==='f1'){e.preventDefault();openModule(startId)}});
     $('#quickSearch').addEventListener('input',()=>{const q=safeLower($('#quickSearch').value);$$('#modulesList .btn').forEach(btn=>{btn.style.display=safeLower(btn.textContent).includes(q)?'flex':'none'})});
     $('#addModuleBtn').addEventListener('click',onAddModule);
@@ -328,21 +1023,25 @@
     $('#prevBtn').addEventListener('click',prev);
     const dz=$('#dropzone');
     dz.addEventListener('click',()=>$('#pickAudio').click());
+    dz.addEventListener('keydown',e=>{const key=safeLower(e.key||'');if(key==='enter'||key===' '||key==='spacebar'){e.preventDefault();$('#pickAudio').click();}});
     dz.addEventListener('dragover',e=>{e.preventDefault();dz.style.opacity=.8});
     dz.addEventListener('dragleave',()=>dz.style.opacity=1);
     dz.addEventListener('drop',e=>{e.preventDefault();dz.style.opacity=1;addFiles(e.dataTransfer.files)});
     $('#pickAudio').addEventListener('change',e=>addFiles(e.target.files));
     const pl=$('#playlist');
-    pl.addEventListener('click',e=>{const btn=e.target.closest('button[data-act]');if(!btn)return;const item=e.target.closest('.item');if(!item)return;const idx=+item.dataset.index;if(btn.dataset.act==='play') playIndex(idx); else if(btn.dataset.act==='del') removeTrackAt(idx)});
-    pl.addEventListener('dblclick',e=>{const item=e.target.closest('.item');if(item) playIndex(+item.dataset.index)});
+    pl.addEventListener('click',e=>{const btn=e.target.closest('button[data-act]');if(!btn||btn.disabled)return;const item=e.target.closest('.item');if(!item)return;const idx=Number(item.dataset.index);if(Number.isNaN(idx))return;const act=btn.dataset.act;if(act==='play') playIndex(idx); else if(act==='del') removeTrackAt(idx); else if(act==='up') reorderPlaylist(idx,idx-1); else if(act==='down') reorderPlaylist(idx,idx+1);});
+    pl.addEventListener('dblclick',e=>{const item=e.target.closest('.item');if(!item)return;const idx=Number(item.dataset.index);if(Number.isNaN(idx))return;playIndex(idx);});
     pl.addEventListener('dragstart',e=>{const item=e.target.closest('.item');if(!item)return;e.dataTransfer.setData('text/plain',item.dataset.index)});
     pl.addEventListener('dragover',e=>{e.preventDefault()});
-    pl.addEventListener('drop',e=>{e.preventDefault();const to=e.target.closest('.item');if(!to)return;const from=+e.dataTransfer.getData('text/plain');const toIdx=+to.dataset.index;reorderPlaylist(from,toIdx)});
+    pl.addEventListener('drop',e=>{e.preventDefault();const to=e.target.closest('.item');if(!to)return;const from=Number(e.dataTransfer.getData('text/plain'));const toIdx=Number(to.dataset.index);if(Number.isNaN(from)||Number.isNaN(toIdx))return;reorderPlaylist(from,toIdx);});
+    pl.addEventListener('keydown',e=>{const item=e.target.closest('.item');if(!item)return;const idx=Number(item.dataset.index);if(Number.isNaN(idx))return;const key=e.key;if((key==='Enter'||key===' '||key==='Spacebar')&&!e.altKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();playIndex(idx);}else if((key==='Delete'||key==='Backspace')&&!e.altKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();removeTrackAt(idx);}else if((key==='ArrowUp'||key==='ArrowDown')&&e.altKey){e.preventDefault();const target=key==='ArrowUp'?idx-1:idx+1;reorderPlaylist(idx,target);}});
   }
   function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
-  function renderAll(){renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog()}
-  function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);setInterval(tick,1000);tick();addLog('ok','Bereit.')}
-  init();
+  function renderAll(){ensureAllPlugins();ensureModuleRegistryMatchesState(startId);renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog();const filterSel=$('#logFilterSel');if(filterSel)filterSel.value=state.logFilter||'all';}
+  function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();addLog('ok','Bereit.')}
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
+  if(!isTestEnv){init();}
 })();
 </script>
 </body>

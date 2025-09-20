@@ -1,0 +1,17 @@
+# TOOL-2025 ToDo
+
+- [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
+- [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
+- [x] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen (Playlist steuerbar, Dropzone klick- und tastaturfähig)
+- [x] JSON-Validierung für Importfunktionen implementieren (Grundchecks & Playlist-Säuberung aktiv, Schema folgt)
+- [x] Logging verbessern (Filter & Hinweise ergänzt, Level-Standardisierung erweitern)
+- [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
+- [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
+- [x] Backup-Import verschärfen (Module/Kategorien deduplizieren & sanitisieren)
+- [x] Persistente Module registrieren (Platzhalter-Renderer nach Self-Repair & Import)
+- [ ] Plugin-Tests automatisieren (Unit- und Smoke-Tests für Import/Entfernen)
+- [x] Backup-Schema formalisieren (JSON-Schema definieren & CI-Prüfung)
+- [x] Accessibility-Shortcuts erweitern (Playlist per Tastatur sortieren)
+- [x] Playlist-Shortcuts automatisiert testen (Playwright-Szenarien vorbereiten)
+- [ ] Backup-Schema direkt im Tool prüfen (AJV im Browser oder leichtgewichtiges Schema-Checking)
+- [ ] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
