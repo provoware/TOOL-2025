@@ -43,6 +43,19 @@ TOOL-2025/
 - **Styling:** Tailwind CSS oder CSS-Variablen beibehalten, aber modulare Struktur.
 - **CI/CD:** GitHub Actions mit Linting, Tests, Build, Accessibility-Checks (Pa11y, axe-core).
 
+## Plugin-Schnittstelle (Stand nach Optimierung)
+- **Importformat:** JSON-Datei mit Mindestfeldern `name`, optional `description`, `version`, `author`, `sections`, `links`.
+- **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool HTML-escaped und Zeilenumbrüche in `<br>` umgewandelt.
+- **Links:** Nur `http`/`https`-URLs werden akzeptiert. Label wird automatisch aus `label` oder `title` gezogen.
+- **Registrierung:** Importierte Plugins erhalten eine eindeutige ID, werden als eigenständiges Modul (`Plugin – <Name>`) registriert und im Plugin-Manager gelistet.
+- **Entfernung:** Über den Plugin-Manager kann ein Plugin inklusive Modul gelöscht werden; Self-Repair räumt verwaiste Einträge auf.
+
+## Datenexport & Manifest
+- **Manifest-Button:** Exportiert eine schlanke Übersicht (Version, Theme, Modul-/Plugin-Anzahl, Archivgrößen, Einstellungen).
+- **Backup-Export:** Enthält Manifest + bereinigten Zustand (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter).
+- **Importprüfung:** Backups werden validiert (Arraytypen, Pflichtfelder, URL-Check). Playlisteinträge werden beim Import normalisiert (`id`, `title`, `artist`, `src`).
+- **Log-Filter:** Nutzer können im Header zwischen `Alles`, `Erfolge`, `Hinweise`, `Fehler` wechseln. Einstellung wird im Backup gespeichert und beim Import wiederhergestellt.
+
 ## Datenmodelle (Ist-Zustand)
 - `state.modules`: Array von `{id, name, category, tags, content}`.
 - `state.categories`: Array von Strings (Kategorie-Namen).

@@ -3,6 +3,8 @@
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [ ] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen
-- [ ] JSON-Validierung für Importfunktionen implementieren
-- [ ] Logging verbessern (Level, Filter, Export als JSON)
-- [ ] Dokumentation für Anwender und Plugins ergänzen
+- [x] JSON-Validierung für Importfunktionen implementieren (Grundchecks & Playlist-Säuberung aktiv, Schema folgt)
+- [x] Logging verbessern (Filter & Hinweise ergänzt, Level-Standardisierung erweitern)
+- [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
+- [ ] Plugin-Tests automatisieren (Unit- und Smoke-Tests für Import/Entfernen)
+- [ ] Backup-Schema formalisieren (JSON-Schema definieren & CI-Prüfung)

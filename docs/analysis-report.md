@@ -46,6 +46,13 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 9. **Konfigurationsmodul:** Export/Import von Einstellungen, Presets, Environment-abhängige Defaults.
 10. **Internationalisierung:** Mehrsprachige Oberfläche mit Übersetzungsdateien.
 
+## Umgesetzte Verbesserungen (aktuelle Iteration)
+- **Log-Filter & Manifest:** Das Dashboard zeigt jetzt nur relevante Logeinträge je nach Filter (`Alles`, `Erfolge`, `Hinweise`, `Fehler`). Zusätzlich lässt sich ein strukturielles Manifest inklusive Statistik als JSON exportieren.
+- **Gesicherter Datenexport:** Backups enthalten nun ein Manifest sowie bereinigte Nutzerdaten (Module, Kategorien, Playlist, Plugins). Der Import prüft Eingabedateien, saniert Playlisteinträge und respektiert den gespeicherten Log-Filter.
+- **Plugin-Manager:** Eine eigene Modulansicht erlaubt das Importieren, Anzeigen und Entfernen von Erweiterungen. Plugin-Inhalte werden geparst, validiert und mit HTML-Escaping angezeigt; Links sind auf `http(s)` beschränkt.
+- **Selbstheilung erweitert:** Die Self-Repair-Funktion normalisiert den Log-Filter und Plugins (IDs, Module, Abschnitte, Links). Fehlende Plug-in-Module werden automatisch erzeugt und im Modulverzeichnis sichtbar gemacht.
+- **Feedback & UX:** Playlist-Export protokolliert Erfolgsmeldungen, Genre-/Mood-Importe melden Duplikate als Hinweis (`warn`). Manifest-Download und Daten-Backup sind über Buttons erreichbar.
+
 ## Empfohlene nächste Schritte
 1. **Strukturierung & Dokumentation:** Projektverzeichnisse anlegen, Dokumentation schreiben, Build/Tooling vorbereiten.
 2. **Technische Schulden abbauen:** Tests erweitern, Self-Repair robuster gestalten, Datenvalidierung implementieren.
