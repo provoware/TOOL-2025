@@ -40,6 +40,9 @@
   .btn.ok{border-color:var(--ok)}
   .btn.err{border-color:var(--err)}
   .btn.block{width:100%;text-align:left}
+  .btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible,a:focus-visible,.dropzone:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+  .btn:focus:not(:focus-visible),input:focus:not(:focus-visible),select:focus:not(:focus-visible),textarea:focus:not(:focus-visible),a:focus:not(:focus-visible),.dropzone:focus:not(:focus-visible){outline:none}
+  .focus-ring{outline:3px solid var(--accent);outline-offset:3px}
   input[type=text],input[type=number],textarea,select{background:var(--input);color:var(--text);border:1px solid var(--border);border-radius:10px;padding:10px;font-size:1rem}
   input::placeholder,textarea::placeholder{color:var(--muted)}
   label{font-size:.9rem;color:var(--muted)}
@@ -144,6 +147,8 @@
           </select>
         </div>
         <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
+        <div id="processStatusLive" class="sr-only" aria-live="polite" aria-atomic="true">Prozessstatus bereit.</div>
+        <div id="processStatusText" class="status-banner muted" data-type="info">Prozessstatus: bereit.</div>
       </div>
       <div class="panel header-block pad" aria-label="Echtzeit Logging">
         <div class="title">Log (letzte 10)</div>
@@ -294,6 +299,8 @@
   const loglist=$('#loglist');
   const liveRegion=$('#liveStatus');
   const liveText=$('#liveStatusText');
+  const processLive=$('#processStatusLive');
+  const processText=$('#processStatusText');
   const systemMotionChk=$('#systemMotionChk');
   const reduceMotionChk=$('#reduceMotionChk');
   const systemContrastChk=$('#systemContrastChk');
@@ -347,6 +354,22 @@
       liveText.textContent='Status: '+text;
       if(statusType==='info'){liveText.classList.add('muted');}
       else{liveText.classList.remove('muted');}
+    }
+  }
+  function announceProcess(message,type='info',priority='polite'){
+    const text=safeStr(message).trim()||'Bereit.';
+    const statusType=STATUS_TYPES.has(type)?type:'info';
+    const politeness=safeLower(priority)==='assertive'?'assertive':'polite';
+    if(processLive){
+      processLive.textContent=text;
+      processLive.setAttribute('data-last-type',statusType);
+      processLive.setAttribute('aria-live',politeness);
+    }
+    if(processText){
+      processText.dataset.type=statusType;
+      processText.textContent='Prozessstatus: '+text;
+      if(statusType==='info'){processText.classList.add('muted');}
+      else{processText.classList.remove('muted');}
     }
   }
   const allowedFontScales=new Set([14,16,18,20]);
@@ -1251,6 +1274,9 @@
     resultBox.className='panel pad';
     resultBox.style.marginTop='12px';
     resultBox.setAttribute('role','status');
+    resultBox.setAttribute('aria-live','polite');
+    resultBox.setAttribute('aria-atomic','true');
+    resultBox.setAttribute('tabindex','-1');
     resultBox.textContent='Noch keine Prüfung durchgeführt.';
     el.appendChild(resultBox);
     const summary=document.createElement('div');
@@ -1268,6 +1294,7 @@
         const text=escapeHtml(details||'Fehler ohne Beschreibung').replace(/\n/g,'<br>');
         summary.innerHTML='<strong>Zusammenfassung</strong><p class="muted">'+text+'</p>';
       }
+      try{resultBox.focus({preventScroll:true});}catch(e){/* ignore focus errors */}
     }
     function formatSummary(validState,manifest){
       const fallbackStats={
@@ -1303,18 +1330,21 @@
     }
     function runCheck(source,jsonText){
       const trimmed=safeStr(jsonText).trim();
-      if(!trimmed){toast('Keine Daten gefunden.');return;}
+      if(!trimmed){toast('Keine Daten gefunden.');announceProcess('Backup-Prüfung abgebrochen: keine Daten.','warn');return;}
       try{
+        announceProcess(`Backup-Prüfung (${source}) läuft…`,'info');
         const parsed=JSON.parse(trimmed);
         assertBackupSchema(parsed);
         const sanitized=validateBackup(parsed);
         const manifest=parsed.manifest;
         showResult('ok',`Backup gültig (${source}).`,formatSummary(sanitized,manifest));
         addLog('ok','Backup geprüft: '+source);
+        announceProcess(`Backup-Prüfung erfolgreich (${source}).`,'ok');
       }catch(err){
         const message=err&&err.message?err.message:'Unbekannter Fehler';
         showResult('error','Fehler bei der Prüfung: '+message,message);
         addLog('error','Backup-Prüfung fehlgeschlagen: '+message);
+        announceProcess('Backup-Prüfung fehlgeschlagen: '+message,'error','assertive');
       }
     }
     fileBtn.addEventListener('click',()=>hiddenFile.click());
@@ -1322,6 +1352,7 @@
       const file=hiddenFile.files&&hiddenFile.files[0];
       if(!file)return;
       const reader=new FileReader();
+      announceProcess('Backup-Datei wird geladen…','info');
       reader.onload=()=>{textarea.value=reader.result||'';runCheck('Datei',textarea.value);hiddenFile.value='';};
       reader.readAsText(file);
     });
@@ -1460,8 +1491,8 @@
       }
     };
   }
-  function downloadManifest(){download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));addLog('ok','Manifest exportiert.');}
-  function exportAll(){download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));addLog('ok','Backup exportiert (Manifest + Daten).');}
+  function downloadManifest(){download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));addLog('ok','Manifest exportiert.');announceProcess('Manifest exportiert.','ok');}
+  function exportAll(){download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));addLog('ok','Backup exportiert (Manifest + Daten).');announceProcess('Backup exportiert (Manifest + Daten).','ok');}
   function validateBackup(obj){
     if(!obj||typeof obj!=='object')throw new Error('Backup hat kein Objekt');
     const statePart=obj.state;
@@ -1534,6 +1565,7 @@
     addLog('ok','Plugin exportiert: '+data.name);
   }
   function importAll(file){
+    announceProcess('Import gestartet – Daten werden geprüft.','info');
     const r=new FileReader();
     r.onload=()=>{
       try{
@@ -1564,15 +1596,17 @@
         renderAll();
         persist();
         addLog('ok','Gesamtdaten importiert.');
+        announceProcess('Import abgeschlossen.','ok');
       }catch(e){
         addLog('error','Import-Fehler: '+e.message);
+        announceProcess('Import fehlgeschlagen: '+(e&&e.message?e.message:'Unbekannt'),'error','assertive');
       }
     };
     r.readAsText(file);
   }
   function download(name,content){const type=name.endsWith('.txt')?'text/plain':'application/json';const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
   function persist(){if($('#autosaveChk').checked)save();}
-  function runSelfTests(){let pass=0,fail=0;function test(n,fn){try{fn();pass++;addLog('ok','TEST ✓ '+n)}catch(e){fail++;addLog('error','TEST ✗ '+n+': '+e.message)}}
+  function runSelfTests(){let pass=0,fail=0;announceProcess('Selbsttests gestartet.','info');function test(n,fn){try{fn();pass++;addLog('ok','TEST ✓ '+n)}catch(e){fail++;addLog('error','TEST ✗ '+n+': '+e.message)}}
     test('slugify(undefined)',()=>{slugify(undefined)});
     test('safeLower(null)',()=>{safeLower(null)});
     test('renderModules null-safe',()=>{const b=[...state.modules];state.modules=[{id:'a'},{id:'b',name:'Bravo'},{id:'c',name:undefined}];selfRepair();renderModules();state.modules=b;renderModules()});
@@ -1581,7 +1615,8 @@
     test('runRandom no dataset',()=>{runRandom.call(null,false)});
     test('slugify diacritics',()=>{if(!slugify('ÄÖÜ ß Ã'))throw new Error('leer')});
     test('theme fallback',()=>{const p=state.theme;state.theme='x';renderTheme();state.theme=p;renderTheme()});
-    addLog(fail===0?'ok':'error','Selbsttests abgeschlossen: '+pass+' ok, '+fail+' fail')}
+    addLog(fail===0?'ok':'error','Selbsttests abgeschlossen: '+pass+' ok, '+fail+' fail');
+    announceProcess('Selbsttests abgeschlossen: '+pass+' ok, '+fail+' fail',fail===0?'ok':'error',fail===0?'polite':'assertive');}
   function bindEvents(){
     $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme)});
     $('#toggleLeft').addEventListener('click',()=>{document.body.classList.toggle('collapsed-left')});
@@ -1602,7 +1637,7 @@
     $('#aboutBtn').addEventListener('click',()=>alert('ModulTool – Singlefile v'+state.version+'\nOffline • Robust • Barrierefrei'));
     $('#selfTestBtn').addEventListener('click',runSelfTests);
     $('#logFilterSel').addEventListener('change',e=>{state.logFilter=e.target.value;renderLog();persist()});
-    document.addEventListener('keydown',e=>{const key=safeLower(e&&e.key);if(e.ctrlKey&&key==='k'){e.preventDefault();$('#quickSearch').focus()}if(e.ctrlKey&&key==='s'){e.preventDefault();save();toast('Gespeichert.')}if(e.key==='F1'||key==='f1'){e.preventDefault();openModule(startId)}});
+    document.addEventListener('keydown',e=>{const key=safeLower(e&&e.key);if(e.ctrlKey&&key==='k'){e.preventDefault();$('#quickSearch').focus()}if(e.ctrlKey&&key==='s'){e.preventDefault();save();toast('Gespeichert.')}if(e.key==='F1'||key==='f1'){e.preventDefault();openModule(startId)}if(key==='escape'){let handled=false;if(document.body.classList.contains('collapsed-left')){document.body.classList.remove('collapsed-left');handled=true;}if(document.body.classList.contains('collapsed-right')){document.body.classList.remove('collapsed-right');handled=true;}if(handled){announceProcess('Ansicht zurückgesetzt.','info');const canvas=$('#canvas');if(canvas){try{canvas.focus({preventScroll:true});}catch(ex){/* ignore */}}e.preventDefault();}}});
     $('#quickSearch').addEventListener('input',()=>{const q=safeLower($('#quickSearch').value);$$('#modulesList .btn').forEach(btn=>{btn.style.display=safeLower(btn.textContent).includes(q)?'flex':'none'})});
     $('#addModuleBtn').addEventListener('click',onAddModule);
     $('#newModuleName').addEventListener('keydown',e=>{if(e.key==='Enter')onAddModule()});
@@ -1650,7 +1685,7 @@
     const filterSel=$('#logFilterSel');
     if(filterSel)filterSel.value=state.logFilter||'all';
   }
-  function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();addLog('ok','Bereit.')}
+  function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
   const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);},openModule},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}

@@ -29,12 +29,14 @@
 
 ## Barrierefreiheit (A11y) – Advanced
 - [x] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten (Statusbanner & Checkboxen aktiv)
-- [ ] Fokus-Outline-Design und Fokusfallen prüfen (sichtbare `:focus-visible`, Escape schließt Dialoge zuverlässig)
+- [x] Fokus-Outline-Design für Buttons, Eingaben, Links und Dropzone vereinheitlichen (sichtbare `:focus-visible`-Rahmen)
+- [ ] Fokusfallen & Escape-Handling für Dialoge ergänzen (Focus-Trap + globale Exit-Strategie)
 - [x] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren (globaler Status aktualisiert Log-Feedback)
 - [x] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren (Theme-Variable & UI-Select)
 - [ ] Escape-Mechanismus für alle Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit)
 - [ ] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern
-- [ ] Prozess-spezifische Live-Regionen für Backup-Prüfung, Importlauf und Selbsttest ergänzen (detaillierte Statusmeldungen)
+- [x] Prozess-spezifische Live-Regionen für Backup-Prüfung, Importlauf und Selbsttest ergänzen (detaillierte Statusmeldungen)
+- [ ] Prozess-Live-Region auf weitere Langläufer (Worker, Audioanalyse) ausweiten und Prioritäten dokumentieren
 
 ## UX & Microcopy
 - [ ] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern
