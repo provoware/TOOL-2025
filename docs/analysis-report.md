@@ -32,6 +32,7 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 - **Self-Repair:** Entfernt dublette IDs, generiert aber ggf. neue IDs ohne Nutzerfeedback. Es gibt keine Möglichkeit, Konfliktberichte einzusehen.
 - **Barrierefreiheit:** Fokusreihenfolge, Tastaturnavigation und Screenreader-Texte sind nicht vollständig optimiert. Drag & Drop besitzt jetzt Alt+Pfeil-Kurzbefehle für die Playlist, weitere Bereiche benötigen jedoch Prüfung.
 - **Sicherheit:** Importierte JSON-Dateien wurden bislang kaum geprüft; das neue Schema-Gate (`assertBackupSchema`) reduziert Risiken. Plugin-Module werden bereinigt und zusätzlich in eine Sandbox (Iframe ohne Same-Origin) ausgelagert. Eine globale CSP (`default-src 'self'`) schützt vor externen Skripten, dennoch fehlt langfristig ein Build, der Inline-Skripte überflüssig macht.
+- **Sicherheit:** Keine Validierung importierter JSON-Dateien gegen Schema. Möglichkeit schädlicher Skripte innerhalb von Modulinhalten (innerHTML).
 - **Leistung:** Das gesamte UI wird häufig neu gerendert, was bei großen Datenmengen ineffizient sein kann.
 
 ## Optimierungspotenziale
@@ -56,6 +57,11 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 - **Playlist-Zugänglichkeit:** Playlist-Einträge lassen sich per Tastatur steuern (Enter/Space für Play, Alt+Pfeile zum Sortieren, Entf zum Entfernen), inklusive Fokus- und Screenreader-Hinweisen.
 - **Automatisierte Sicherheiten:** Ein Node-basierter Testlauf prüft Playlist-Kurzbefehle, das Backup gegen das JSON-Schema sowie Plugin-Abläufe (Normalisierung, Registrierung, Entfernen). Defekte Sicherungen ohne Modulliste werden jetzt vom Test `assertBackupSchema` abgefangen. Dadurch werden Bedienfehler, Datenbrüche und fehlerhafte Erweiterungen früh erkannt.
 - **Backup-Prüfung im UI:** Ein neues Modul zeigt Prüfstatus, Fehlerdetails und Statistiken zu importierten Sicherungen, bevor Daten in den Zustand übernommen werden.
+- **Plugin-Manager:** Eine eigene Modulansicht erlaubt das Importieren, Anzeigen und Entfernen von Erweiterungen. Plugin-Inhalte werden geparst, validiert und mit HTML-Escaping angezeigt; Links sind auf `http(s)` beschränkt.
+- **Selbstheilung erweitert:** Die Self-Repair-Funktion normalisiert den Log-Filter und Plugins (IDs, Module, Abschnitte, Links). Fehlende Plug-in-Module werden automatisch erzeugt und im Modulverzeichnis sichtbar gemacht.
+- **Feedback & UX:** Playlist-Export protokolliert Erfolgsmeldungen, Genre-/Mood-Importe melden Duplikate als Hinweis (`warn`). Manifest-Download und Daten-Backup sind über Buttons erreichbar.
+- **Playlist-Zugänglichkeit:** Playlist-Einträge lassen sich per Tastatur steuern (Enter/Space für Play, Alt+Pfeile zum Sortieren, Entf zum Entfernen), inklusive Fokus- und Screenreader-Hinweisen.
+- **Automatisierte Sicherheiten:** Ein Node-basierter Testlauf prüft die Playlist-Kurzbefehle und stellt sicher, dass Backups dem neuen JSON-Schema entsprechen. Dadurch werden Bedienfehler und Datenbrüche früh erkannt.
 
 ## Empfohlene nächste Schritte
 1. **Strukturierung & Dokumentation:** Projektverzeichnisse anlegen, Dokumentation schreiben, Build/Tooling vorbereiten.

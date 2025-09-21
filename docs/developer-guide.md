@@ -7,6 +7,7 @@ Dieses Handbuch hilft Entwicklern, das Projekt zu verstehen, lokal zu starten un
 - **Typ:** Single-File-Webanwendung (HTML, CSS, JavaScript in `index.html`).
 - **Persistenz:** Browser `localStorage` mit Versionierung.
 - **Funktionalität:** Modulverwaltung, Archiv (Genres, Moods), Playlist mit Audio-Player, Zufallsgeneratoren, Logging, Selbsttests sowie eine integrierte Backup-Prüfung.
+- **Funktionalität:** Modulverwaltung, Archiv (Genres, Moods), Playlist mit Audio-Player, Zufallsgeneratoren, Logging, Selbsttests.
 
 ## Start & Nutzung
 1. Öffne `index.html` direkt im Browser (Doppelklick oder `file://`-Pfad).
@@ -37,6 +38,7 @@ TOOL-2025/
   - Bestehende Kurzbefehle: Dropzone reagiert auf `Enter`/`Space`, Playlist-Elemente besitzen Fokusrahmen sowie Alt+Pfeiltasten zum Sortieren.
 - **Performance:** Rendering-Strategien überdenken (z. B. Virtual DOM, Web Components, Svelte/React).
 - **Security:** Eingaben escapen, JSON-Imports validieren und die bestehende CSP (`default-src 'self'`, `object-src 'none'`) beibehalten. Plugin-Inhalte werden per Sanitizer bereinigt (erlaubt Standard-Textformatierungen, blockiert Skripte/Events) und zusätzlich in Sandbox-Iframes ohne Same-Origin-Kontext angezeigt.
+- **Security:** Eingaben escapen, JSON-Imports validieren, CSP definieren, um XSS zu verhindern.
 - **Plugins:** Klar definierte Schnittstellen mit Sandbox (z. B. iframe oder Web Worker) vorsehen.
 
 ## Build- & Toolchain-Empfehlung
@@ -61,6 +63,15 @@ TOOL-2025/
   - **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool bereinigt; erlaubte Auszeichnungen bleiben erhalten, Zeilenumbrüche werden zu `<br>`.
   - **Sicherheit:** Plugin-Ansichten akzeptieren nur einen freigegebenen HTML-Teilumfang (`<strong>`, `<em>`, Listen, Links). Alle Skript-/Event-Attribute sowie unsichere Protokolle werden verworfen und Links erhalten automatisch `rel="noopener noreferrer"`.
   - **Darstellung:** Plugin-Abschnitte erscheinen in Sandbox-Iframes (`sandbox="allow-popups allow-popups-to-escape-sandbox"`, `referrerpolicy="no-referrer"`). Themefarben werden beim Rendern in das Iframe übernommen, damit Inhalte konsistent aussehen.
+- **Node-Testlauf (`node --test`)** prüft seit dieser Iteration die wichtigsten Playlist-Aktionen. Dazu wird das Tool in einer Kopf-los-Umgebung (ohne echten Browser) mit `jsdom` (Browser-Simulation in Node) geladen und folgende Abläufe werden überprüft:
+  - `Alt` + `Pfeil` (Sortierkürzel) verschiebt Einträge korrekt und aktualisiert den aktuellen Index.
+  - `Entf` (Löschtaste) entfernt den gewählten Track und setzt den Fokusindex zurück.
+- **JSON-Schema (`schemas/backup-schema.json`)** beschreibt jetzt das komplette Backup-Format. Die Tests validieren automatisch, ob `buildBackup()` dieses Schema erfüllt. Nutze `npm test`, um die Prüfungen lokal auszuführen.
+- **Vorbereitung für weitere Checks:** Das Testsetup kann um zusätzliche Szenarien (z. B. Import-Fehler, Modul-Registry) erweitert werden. Dabei hilft die exponierte Test-API `window.ModulToolTestAPI`, die zentrale Funktionen (z. B. `renderPlaylist`, `reorderPlaylist`, `validateBackup`) bereitstellt.
+
+- **Plugin-Schnittstelle (Stand nach Optimierung)**
+  - **Importformat:** JSON-Datei mit Mindestfeldern `name`, optional `description`, `version`, `author`, `moduleName`, `moduleId`, `sections`, `links`.
+  - **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool HTML-escaped und Zeilenumbrüche in `<br>` umgewandelt.
   - **Links:** Nur `http`/`https`-URLs werden akzeptiert. Label wird automatisch aus `label` oder `title` gezogen.
   - **Registrierung:** Importierte Plugins erhalten eine eindeutige ID, werden als eigenständiges Modul (`Plugin – <Name>`) registriert und im Plugin-Manager gelistet. Kollisionen mit vorhandenen Modul-IDs werden automatisch durch neue Slugs (`plugin-name-2`, `plugin-name-3`, …) gelöst.
   - **Export:** Im Plugin-Manager steht pro Plugin ein Button „Exportieren“. Er erzeugt ein bereinigtes JSON inklusive `moduleName`/`moduleId`, sodass Plugins auf anderen Installationen erneut eingespielt werden können.
@@ -71,6 +82,7 @@ TOOL-2025/
 - **Backup-Export:** Enthält Manifest + bereinigten Zustand (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter).
 - **Importprüfung:** Backups werden via `assertBackupSchema` strikt validiert (Schema, Pflichtfelder, URL-Check). Playlisteinträge werden beim Import normalisiert (`id`, `title`, `artist`, `src`).
 - **Backup-Prüfung im UI:** Das Modul „Backup-Prüfung“ erlaubt es, JSON-Dateien, Texteingaben oder den aktuellen Zustand gegen das Schema zu testen. Ergebnisse werden farblich markiert und mit Statistiken (Module, Plugins, Playlist-Länge, Archivgrößen) dargestellt.
+- **Importprüfung:** Backups werden validiert (Arraytypen, Pflichtfelder, URL-Check). Playlisteinträge werden beim Import normalisiert (`id`, `title`, `artist`, `src`).
 - **Log-Filter:** Nutzer können im Header zwischen `Alles`, `Erfolge`, `Hinweise`, `Fehler` wechseln. Einstellung wird im Backup gespeichert und beim Import wiederhergestellt.
 
 - **Datenmodelle (Ist-Zustand)**
