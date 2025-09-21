@@ -1,24 +1,8 @@
 - vollautomatische Prüfungen und Tests
-- detailierte Manifeste erstellen
-- Toolhilfeelemente erweitern und optimieren
 - analysiere fehler und inkonsistenzen , sowie redundanzen oder suboptimale Aspekte
-- Entwicklerdoku im Projekt anlegen
-- globale standards und einheitliche Vorgehensweisen und designaspekte nutzen
-- optimiere barrierefreiheit
-- best practices und gängige standards anwenden, Prüf und Startroutine mit intellugentem Fehlerhandling mit SDelfrepair
-- StandardToolverzeichnisse verwenden und bei start vorhandensein prüfen ansonsten erstellen
-- globale Standards CRUD-Funktionalität und Drag&Drop, Tastaturnavigation, extrem detailierte und Laientaugliche Hilfe, Beschreibung und optimale optionale Vorgaben in Eingabefeldern, Input und Outputvallidierung, Duplikateprüfung, Tooltiphilfe
 - Codeformater und automatische tests und prüfungen einrichten
-- 5 optimale Farbthemes mit perfekten Kontrasten, auch funktionsbereiche farblich unterscheiden, schrift hintergrundkontraste beachten
 - zwei weiterführende hilfreiche Empfehlungen zum nächsten schritt abschließend angeben
-- Einstellungs und Konfigurationsmodul
-- Linuxkompatibilität
-- portabilität erzeugen
-- Maximale Nutzerfeedvback und Nutzerfreundlichkeit
 - Debugging und hoch detailiertes logging mit eindeutigen ereignis meldungen
-- Statistiken zum tool und archiv inhalt im dashboard anzeigen
-- maximale Interaktivität priorisiert über buttons oder auswahldialoge
-- Prio: Lieber Buttons oder auswahl als Texteingabe
-- Pluginfähigkeit, erweiterbarkeit und Updatefähigkeit
-- Maximale Flexibilität der fenstergrößen, Maximierbarkeit der untermodule, dynamisch automatische anpassung der elemente, auch auf kleinen bildschirmen darstellbar
-- Mockup und struktur.txt mit verzeichnisstruktur und tooldateien und manifest für benennung und handling mit dateien und verzeichnissen
+- fixe
+- Wartbarkeit verbessern und Firtschritt auch in prozent in fortschritt-infi.txt angeben
+- Modernes Design und moderate Farbnuancen
