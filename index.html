@@ -8,11 +8,11 @@
 <style>
   :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px;--font-size:16px;--max-line:75ch;--left-col:280px;--right-col:360px}
   html{font-size:var(--font-size)}
-  [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--info:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045}
-  [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--info:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb}
-  [data-theme="night"]{--bg:#000;--bg-soft:#0d0d0d;--panel:#111;--panel-2:#161616;--text:#fff;--muted:#d1d1d1;--accent:#00c2ff;--info:#00c2ff;--ok:#00ff99;--warn:#ffd000;--err:#ff4d4d;--input:#0a0a0a;--border:#2a2a2a;--link:#66d9ff;--badge:#1a1a1a}
-  [data-theme="forest"]{--bg:#0e1a14;--bg-soft:#13241b;--panel:#162a21;--panel-2:#1d3429;--text:#e9fff5;--muted:#b7d8c9;--accent:#34d399;--info:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--input:#0f1f19;--border:#2c4b3e;--link:#6ee7b7;--badge:#163428}
-  [data-theme="aurora"]{--bg:#0b1020;--bg-soft:#101636;--panel:#121a3f;--panel-2:#192456;--text:#ecf2ff;--muted:#bfc8f2;--accent:#7cdbff;--info:#7cdbff;--ok:#6ee7b7;--warn:#ffd166;--err:#ff6b6b;--input:#0d1433;--border:#2a3a78;--link:#9ae6ff;--badge:#1a2160}
+  [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--info:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045;--accent-modules:#66d9ff;--accent-modules-soft:rgba(102,217,255,.18);--accent-workspace:#00d680;--accent-workspace-soft:rgba(0,214,128,.2);--accent-audio:#c084ff;--accent-audio-soft:rgba(192,132,255,.2);--accent-library:#ffb000;--accent-library-soft:rgba(255,176,0,.22)}
+  [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--info:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb;--accent-modules:#2563eb;--accent-modules-soft:rgba(37,99,235,.12);--accent-workspace:#059669;--accent-workspace-soft:rgba(5,150,105,.12);--accent-audio:#7c3aed;--accent-audio-soft:rgba(124,58,237,.12);--accent-library:#d97706;--accent-library-soft:rgba(217,119,6,.15)}
+  [data-theme="night"]{--bg:#000;--bg-soft:#0d0d0d;--panel:#111;--panel-2:#161616;--text:#fff;--muted:#d1d1d1;--accent:#00c2ff;--info:#00c2ff;--ok:#00ff99;--warn:#ffd000;--err:#ff4d4d;--input:#0a0a0a;--border:#2a2a2a;--link:#66d9ff;--badge:#1a1a1a;--accent-modules:#00c2ff;--accent-modules-soft:rgba(0,194,255,.2);--accent-workspace:#00ff99;--accent-workspace-soft:rgba(0,255,153,.2);--accent-audio:#c084ff;--accent-audio-soft:rgba(192,132,255,.22);--accent-library:#ffd000;--accent-library-soft:rgba(255,208,0,.22)}
+  [data-theme="forest"]{--bg:#0e1a14;--bg-soft:#13241b;--panel:#162a21;--panel-2:#1d3429;--text:#e9fff5;--muted:#b7d8c9;--accent:#34d399;--info:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--input:#0f1f19;--border:#2c4b3e;--link:#6ee7b7;--badge:#163428;--accent-modules:#38bdf8;--accent-modules-soft:rgba(56,189,248,.18);--accent-workspace:#22c55e;--accent-workspace-soft:rgba(34,197,94,.2);--accent-audio:#a855f7;--accent-audio-soft:rgba(168,85,247,.22);--accent-library:#f59e0b;--accent-library-soft:rgba(245,158,11,.24)}
+  [data-theme="aurora"]{--bg:#0b1020;--bg-soft:#101636;--panel:#121a3f;--panel-2:#192456;--text:#ecf2ff;--muted:#bfc8f2;--accent:#7cdbff;--info:#7cdbff;--ok:#6ee7b7;--warn:#ffd166;--err:#ff6b6b;--input:#0d1433;--border:#2a3a78;--link:#9ae6ff;--badge:#1a2160;--accent-modules:#7cdbff;--accent-modules-soft:rgba(124,219,255,.2);--accent-workspace:#6ee7b7;--accent-workspace-soft:rgba(110,231,183,.2);--accent-audio:#a78bfa;--accent-audio-soft:rgba(167,139,250,.22);--accent-library:#ffd166;--accent-library-soft:rgba(255,209,102,.24)}
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;letter-spacing:.01em}
   body.font-large{line-height:1.7}
@@ -33,6 +33,23 @@
   .title{font-weight:700;letter-spacing:.3px}
   .muted{color:var(--muted)}
   .chip{display:inline-flex;align-items:center;gap:6px;background:var(--badge);border:1px solid var(--border);padding:4px 8px;border-radius:999px;font-size:.85rem}
+  .area-legend{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .area-tag{display:inline-flex;align-items:center;gap:8px;font-weight:600;font-size:.9rem;padding:6px 12px;border-radius:999px;margin-bottom:12px;border:1px solid transparent;box-shadow:var(--shadow);background:var(--panel-2);color:var(--text)}
+  .area-tag .area-dot{width:12px;height:12px;border-radius:999px;background:var(--accent)}
+  .area-tag .area-text{display:flex;flex-direction:column;line-height:1.3}
+  .area-tag .area-sub{font-size:.75rem;color:var(--muted);font-weight:500}
+  .area-tag.accent-modules{border-color:var(--accent-modules);background:var(--accent-modules-soft)}
+  .area-tag.accent-modules .area-dot{background:var(--accent-modules)}
+  .area-tag.accent-workspace{border-color:var(--accent-workspace);background:var(--accent-workspace-soft)}
+  .area-tag.accent-workspace .area-dot{background:var(--accent-workspace)}
+  .area-tag.accent-audio{border-color:var(--accent-audio);background:var(--accent-audio-soft)}
+  .area-tag.accent-audio .area-dot{background:var(--accent-audio)}
+  .area-tag.accent-library{border-color:var(--accent-library);background:var(--accent-library-soft)}
+  .area-tag.accent-library .area-dot{background:var(--accent-library)}
+  .panel.accent-modules{border-left:4px solid var(--accent-modules);box-shadow:var(--shadow),0 0 0 2px var(--accent-modules-soft)}
+  .panel.accent-workspace{border-left:4px solid var(--accent-workspace);box-shadow:var(--shadow),0 0 0 2px var(--accent-workspace-soft)}
+  .panel.accent-audio{border-left:4px solid var(--accent-audio);box-shadow:var(--shadow),0 0 0 2px var(--accent-audio-soft)}
+  .panel.accent-library{border-left:4px solid var(--accent-library);box-shadow:var(--shadow),0 0 0 2px var(--accent-library-soft)}
   .btn{cursor:pointer;user-select:none;border:1px solid var(--border);background:var(--panel-2);color:var(--text);border-radius:10px;padding:10px 12px;font-weight:600;box-shadow:var(--shadow)}
   .btn:hover{outline:2px solid var(--accent);outline-offset:1px}
   .btn.inline{padding:6px 10px;font-weight:600}
@@ -79,17 +96,21 @@
   .modules .btn{display:flex;justify-content:space-between;align-items:center}
   .modules .small{font-size:.8rem;color:var(--muted)}
   .workspace{height:100%;padding:var(--gap)}
-  .workspace .canvas{min-height:calc(70vh);background:var(--panel);border:1px dashed var(--border);border-radius:var(--radius);padding:16px}
+  .workspace .canvas{min-height:calc(70vh);background:var(--panel);border:2px dashed var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s ease,background .2s ease}
+  .workspace .canvas.accent-workspace{border-color:var(--accent-workspace);background:var(--accent-workspace-soft)}
   .playlist{max-height:38vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--panel)}
+  .accent-audio .playlist{background:var(--accent-audio-soft);border-color:var(--accent-audio)}
   .playlist .item{display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:8px 6px;border-radius:10px;flex-wrap:wrap;outline:none}
   .playlist .item:last-child{border-bottom:none}
   .playlist .item:focus{outline:2px solid var(--accent);outline-offset:2px}
   .playlist .item[aria-selected="true"]{background:var(--panel-2)}
   .playlist .item .item-actions{display:flex;gap:6px;flex-wrap:wrap}
   .playlist .meta{display:flex;flex-direction:column}
-  .dropzone{border:2px dashed var(--accent);border-radius:var(--radius);padding:16px;text-align:center}
+  .dropzone{border:2px dashed var(--accent);border-radius:var(--radius);padding:16px;text-align:center;transition:border-color .2s ease,background .2s ease}
+  .accent-audio .dropzone{border-color:var(--accent-audio);background:var(--accent-audio-soft)}
   .footer-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(4,1fr)}
   .listbox{max-height:140px;overflow:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px}
+  .accent-library .listbox{background:var(--accent-library-soft);border-color:var(--accent-library)}
   .listbox li{list-style:none;border-bottom:1px dashed var(--border);padding:4px 0}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .help-overlay{position:fixed;inset:0;background:rgba(15,17,21,.78);display:flex;align-items:center;justify-content:center;padding:24px;z-index:120;backdrop-filter:blur(2px)}
@@ -160,6 +181,10 @@
   [data-contrast="high"] .panel,[data-contrast="high"] .btn{border-width:2px}
   [data-contrast="high"] .panel{box-shadow:0 0 0 2px var(--accent)}
   [data-contrast="high"] .btn{box-shadow:0 0 0 2px rgba(0,0,0,.2)}
+  [data-contrast="high"] .panel.accent-modules{box-shadow:0 0 0 2px var(--accent-modules)}
+  [data-contrast="high"] .panel.accent-workspace{box-shadow:0 0 0 2px var(--accent-workspace)}
+  [data-contrast="high"] .panel.accent-audio{box-shadow:0 0 0 2px var(--accent-audio)}
+  [data-contrast="high"] .panel.accent-library{box-shadow:0 0 0 2px var(--accent-library)}
   @media (max-width:1100px){.app{grid-template-columns:230px 1fr 0}aside#right{display:none}}
   @media (max-width:800px){.app{grid-template-columns:0 1fr 0}aside#left{display:none}.footer-grid{grid-template-columns:1fr}.header-grid{grid-template-columns:1fr}}
 </style>
@@ -173,14 +198,32 @@
           <div>
             <div class="title" aria-label="Toolname">ModulTool – Dashboard</div>
             <div class="muted">Klick&Start • Offline • Robust</div>
-            <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
-              <span class="chip" title="Anzahl Module"><strong id="stat-modules">0</strong> Module</span>
-              <span class="chip" title="Anzahl Kategorien"><strong id="stat-cats">0</strong> Kategorien</span>
-              <span class="chip" title="Genres im Archiv"><strong id="stat-genres">0</strong> Genres</span>
-              <span class="chip" title="Moods im Archiv"><strong id="stat-moods">0</strong> Moods</span>
-              <span class="chip" title="Playlist-Titel"><strong id="stat-tracks">0</strong> Tracks</span>
-            </div>
+        <div class="row" style="margin-top:6px;gap:6px;flex-wrap:wrap">
+          <span class="chip" title="Anzahl Module"><strong id="stat-modules">0</strong> Module</span>
+          <span class="chip" title="Anzahl Kategorien"><strong id="stat-cats">0</strong> Kategorien</span>
+          <span class="chip" title="Genres im Archiv"><strong id="stat-genres">0</strong> Genres</span>
+          <span class="chip" title="Moods im Archiv"><strong id="stat-moods">0</strong> Moods</span>
+          <span class="chip" title="Playlist-Titel"><strong id="stat-tracks">0</strong> Tracks</span>
+        </div>
+        <div class="area-legend" aria-label="Farblegende der Bereiche">
+          <div class="area-tag accent-modules">
+            <span class="area-dot" aria-hidden="true"></span>
+            <span class="area-text"><span>Module</span><span class="area-sub">links • Aufbau</span></span>
           </div>
+          <div class="area-tag accent-workspace">
+            <span class="area-dot" aria-hidden="true"></span>
+            <span class="area-text"><span>Arbeitsfläche</span><span class="area-sub">Mitte • Inhalte</span></span>
+          </div>
+          <div class="area-tag accent-audio">
+            <span class="area-dot" aria-hidden="true"></span>
+            <span class="area-text"><span>Audio & Playlist</span><span class="area-sub">rechts • Abspielen</span></span>
+          </div>
+          <div class="area-tag accent-library">
+            <span class="area-dot" aria-hidden="true"></span>
+            <span class="area-text"><span>Archiv & Listen</span><span class="area-sub">unten • Sammlungen</span></span>
+          </div>
+        </div>
+      </div>
           <div class="col" style="min-width:220px;align-items:flex-end">
             <div class="clock" id="clock" aria-live="polite">--:--:--</div>
             <div class="muted" id="today">--.--.----</div>
@@ -284,17 +327,27 @@
     </div>
   </header>
   <aside id="left" class="pad" role="complementary" aria-label="Module">
-    <div class="title" style="margin-bottom:8px">Module</div>
-    <div class="row">
-      <input id="newModuleName" type="text" placeholder="Neues Modul (Enter)" title="Modul hinzufügen"/>
-      <button class="btn inline" id="addModuleBtn">Hinzufügen</button>
+    <div class="area-tag accent-modules">
+      <span class="area-dot" aria-hidden="true"></span>
+      <span class="area-text"><span>Modulbereich</span><span class="area-sub">Neue Module & Auswahl</span></span>
     </div>
-    <hr />
-    <div class="modules" id="modulesList" role="listbox" aria-label="Modulliste"></div>
+    <div class="panel pad accent-modules">
+      <div class="title" style="margin-bottom:8px">Module</div>
+      <div class="row">
+        <input id="newModuleName" type="text" placeholder="Neues Modul (Enter)" title="Modul hinzufügen"/>
+        <button class="btn inline" id="addModuleBtn">Hinzufügen</button>
+      </div>
+      <hr />
+      <div class="modules" id="modulesList" role="listbox" aria-label="Modulliste"></div>
+    </div>
   </aside>
   <main role="main" aria-label="Arbeitsfläche">
     <div class="workspace">
-      <div class="canvas" id="canvas" tabindex="0" aria-label="Modulfläche">
+      <div class="area-tag accent-workspace">
+        <span class="area-dot" aria-hidden="true"></span>
+        <span class="area-text"><span>Arbeitsfläche</span><span class="area-sub">Hier erscheinen Inhalte</span></span>
+      </div>
+      <div class="canvas accent-workspace" id="canvas" tabindex="0" aria-label="Modulfläche">
         <h2>Willkommen im ModulTool</h2>
         <p>Wähle links ein Modul oder erstelle ein neues. Rechte Sidebar: Audioplayer & Playlist. Unten: Genres, Moods, Kategorien & Zufall.</p>
         <p class="muted">Alles ist offline, robust und speichert lokal (localStorage).</p>
@@ -302,8 +355,12 @@
     </div>
   </main>
   <aside id="right" class="pad" role="complementary" aria-label="Audio & Playlist">
-    <div class="title" style="margin-bottom:8px">Audio-Player</div>
-    <div class="panel pad" style="display:flex;flex-direction:column;gap:10px">
+    <div class="area-tag accent-audio">
+      <span class="area-dot" aria-hidden="true"></span>
+      <span class="area-text"><span>Audio & Playlist</span><span class="area-sub">Abspielen & Reihenfolge</span></span>
+    </div>
+    <div class="panel pad accent-audio" style="display:flex;flex-direction:column;gap:10px">
+      <div class="title">Audio-Player</div>
       <audio id="player" preload="metadata" controls style="width:100%"></audio>
       <div class="row" style="justify-content:space-between">
         <div class="muted" id="nowMeta">–</div>
@@ -325,14 +382,18 @@
         <div class="muted">Drag&Drop • Enter: Abspielen • Entf: Entfernen • Alt+Pfeile: Sortieren</div>
       </div>
     </div>
-    <div class="panel pad" style="margin-top:10px">
+    <div class="panel pad accent-audio" style="margin-top:10px">
       <div class="title">Playlist</div>
       <div class="playlist" id="playlist" role="listbox" aria-label="Playlist"></div>
     </div>
   </aside>
   <footer class="pad" role="contentinfo" aria-label="Fußbereich">
+    <div class="area-tag accent-library">
+      <span class="area-dot" aria-hidden="true"></span>
+      <span class="area-text"><span>Archiv & Listen</span><span class="area-sub">Genres, Moods, Kategorien</span></span>
+    </div>
     <div class="footer-grid">
-      <div class="panel pad">
+      <div class="panel pad accent-library">
         <div class="title">Genres (Archiv)</div>
         <label for="genreInput">Kommagetrennte Eingabe (Enter bestätigt)</label>
         <input id="genreInput" type="text" placeholder="z.B. techno, acid techno, hardgroove" title="Genres eingeben"/>
@@ -342,7 +403,7 @@
         </div>
         <ul class="listbox" id="genresList"></ul>
       </div>
-      <div class="panel pad">
+      <div class="panel pad accent-library">
         <div class="title">Moods (Archiv)</div>
         <label for="moodInput">Kommagetrennte Eingabe (Enter bestätigt)</label>
         <input id="moodInput" type="text" placeholder="z.B. dark, uplifting, gritty" title="Moods eingeben"/>
@@ -352,7 +413,7 @@
         </div>
         <ul class="listbox" id="moodsList"></ul>
       </div>
-      <div class="panel pad">
+      <div class="panel pad accent-library">
         <div class="title">Kategorien</div>
         <div class="row">
           <input id="catName" type="text" placeholder="z.B. Techno, Rap" title="Neue Über-Kategorie"/>
@@ -365,7 +426,7 @@
           <span class="muted">Kategorien: <strong id="countCats">0</strong></span>
         </div>
       </div>
-      <div class="panel pad">
+      <div class="panel pad accent-library">
         <div class="title">Zufall (Genres & Moods)</div>
         <label for="randCatSel">Kategorie</label>
         <select id="randCatSel" title="Kategorie für Zufall"></select>

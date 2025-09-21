@@ -47,7 +47,8 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 ## 7. Nutzererlebnis & Microcopy
 - **Stärken:** Umfangreiche Tooltips, laienfreundliches Hilfe-Center mit Shortcut-Spickzettel, Logbuch mit farbcodierten Level-Icons, Manifest-Export und klare Buttons für Kernaktionen.
 - **Layout-Flexibilität:** Bereichsvorlagen per Button (Ausgewogen, Fokus, Übereinander) inklusive sofortiger Ansage erhöhen Verständlichkeit und funktionieren auch auf kleinen Displays; die Sichtbarkeitsanzeige erläutert zusätzlich, welche Fenster aktuell eingeblendet sind.
-- **Lücken:** Leere Zustände zeigen keine Anleitungen, Farbsemantik bleibt uneinheitlich (mehrere Akzentfarben), Self-Repair kommuniziert Entscheidungen nur via Log und ein geführter Onboarding-Assistent fehlt weiterhin.
+- **Farbampel für Bereiche:** Farblegende im Kopfbereich plus Modul-, Arbeitsflächen-, Audio- und Archivkarten mit abgestimmten Akzentfarben heben nun jeden Fensterbereich konsistent hervor (Blau=Module/Info, Grün=Arbeitsfläche, Violett=Audio, Orange=Archiv) und erleichtern Laien die Orientierung.
+- **Lücken:** Leere Zustände zeigen keine Anleitungen, abseits der vier Hauptbereiche bleibt die Farbsemantik uneinheitlich (Formulare, Dialoge, Statusleisten), Self-Repair kommuniziert Entscheidungen nur via Log und ein geführter Onboarding-Assistent fehlt weiterhin.
 - **Empfehlungen:** Empty States mit CTA, konsistentes Farbset (Grün Erfolg, Blau Info, Orange Aktion, Rot Fehler), Microcopy-Standards (Verb + Nutzen), Onboarding-Assistent mit geführten Touren und Feedback-Schleifen mit Nutzerbewertungen.
 
 ## 8. Performance & Robustheit
