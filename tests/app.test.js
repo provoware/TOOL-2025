@@ -157,6 +157,36 @@ test('Backup übernimmt Fehlerfänger-, Datei- und Debug-Einstellungen', async (
   assert.equal(backup.manifest.settings.feedbackMode, 'smart');
 });
 
+test('renderModules zeigt leeren Hinweis für Laien', () => {
+  api.state.modules = [];
+  api.actions.renderModules();
+  const empty = dom.window.document.querySelector('#modulesList .empty-state');
+  assert.ok(empty, 'Leerer Hinweis sollte angezeigt werden');
+  assert.match(empty.textContent, /Noch keine Module angelegt/);
+});
+
+test('renderPlaylist nutzt Skeleton während des Imports', () => {
+  api.state.playlist = [];
+  api.state.loadingPlaylist = true;
+  api.actions.renderPlaylist();
+  const skeleton = dom.window.document.querySelector('#playlist .skeleton-row');
+  assert.ok(skeleton, 'Skeleton-Reihe sollte vorhanden sein');
+  api.state.loadingPlaylist = false;
+  api.actions.renderPlaylist();
+});
+
+test('renderStats liefert laienfreundliche Zusammenfassung', () => {
+  api.state.modules = [];
+  api.state.categories = {};
+  api.state.genres = [];
+  api.state.moods = [];
+  api.state.playlist = [];
+  api.actions.renderStats();
+  const summary = dom.window.document.querySelector('#statsSummary');
+  assert.ok(summary, 'Zusammenfassungselement fehlt');
+  assert.match(summary.textContent, /Noch alles leer/);
+});
+
 test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
   const dirtyBackup = {
     state: {

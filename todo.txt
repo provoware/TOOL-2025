@@ -44,7 +44,8 @@
 - [ ] Prozess-Live-Region auf weitere Langläufer (Worker, Audioanalyse) ausweiten und Prioritäten dokumentieren
 
 ## UX & Microcopy
-- [ ] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern
+- [x] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern (Playlist + Module umgesetzt, Archiv folgt nach Struktur-Refactor)
+- [ ] Skeleton-Loader und Leerstaaten auf Archivlisten/weitere Module ausweiten, sobald Worker/Build-Setup steht
 - [ ] Farbsemantik vereinheitlichen (Grün=Erfolg, Blau=Info, Orange=Aktion, Rot=Fehler) für Formulare, Dialoge & Statusleisten (Bereiche & Fenster bereits farbkodiert)
 - [x] Bereichs-Farbampel für Module, Arbeitsfläche, Audio & Archiv ergänzen (Legende, Panels, Dropzone, Listen farblich abgestimmt)
 - [x] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten (Hilfe-Center umgesetzt)

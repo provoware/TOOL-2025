@@ -112,6 +112,19 @@
   .workspace{height:100%;padding:var(--gap)}
   .workspace .canvas{min-height:calc(70vh);background:var(--panel);border:2px dashed var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s ease,background .2s ease}
   .workspace .canvas.accent-workspace{border-color:var(--accent-workspace);background:var(--accent-workspace-soft)}
+  .empty-state{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--border);border-radius:var(--radius);padding:16px;background:var(--panel-2);color:var(--muted);align-items:flex-start}
+  .empty-state strong{font-size:1rem;color:var(--text)}
+  .empty-state .empty-icon{font-size:1.4rem;display:block;margin-bottom:4px}
+  .empty-state p{margin:0}
+  .empty-state .empty-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:4px}
+  .empty-state .empty-actions .btn{box-shadow:none}
+  .skeleton-list{display:flex;flex-direction:column;gap:10px}
+  .skeleton-intro{font-size:.9rem;color:var(--muted)}
+  .skeleton-row{display:flex;gap:10px;align-items:center}
+  .skeleton-row .skeleton-line{flex:1;height:14px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.18),rgba(255,255,255,.06));animation:skeletonPulse 1.4s ease-in-out infinite}
+  .skeleton-row .skeleton-line.short{flex:.5}
+  .skeleton-row .skeleton-dot{width:12px;height:12px;border-radius:999px;background:linear-gradient(90deg,rgba(255,255,255,.06),rgba(255,255,255,.18),rgba(255,255,255,.06));animation:skeletonPulse 1.4s ease-in-out infinite}
+  @keyframes skeletonPulse{0%{opacity:.25}50%{opacity:.6}100%{opacity:.25}}
   .playlist{max-height:38vh;overflow:auto;border:1px solid var(--border);border-radius:var(--radius);padding:8px;background:var(--panel)}
   .accent-audio .playlist{background:var(--accent-audio-soft);border-color:var(--accent-audio)}
   .playlist .item{display:flex;justify-content:space-between;gap:10px;align-items:center;border-bottom:1px solid var(--border);padding:8px 6px;border-radius:10px;flex-wrap:wrap;outline:none}
@@ -126,6 +139,7 @@
   .listbox{max-height:140px;overflow:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px}
   .accent-library .listbox{background:var(--accent-library-soft);border-color:var(--accent-library)}
   .listbox li{list-style:none;border-bottom:1px dashed var(--border);padding:4px 0}
+  .listbox li.empty-hint{border-bottom:none;color:var(--muted);font-size:.9rem;padding:8px 0}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
   .help-overlay{position:fixed;inset:0;background:rgba(15,17,21,.78);display:flex;align-items:center;justify-content:center;padding:24px;z-index:120;backdrop-filter:blur(2px)}
   .help-overlay[hidden]{display:none}
@@ -219,6 +233,7 @@
           <span class="chip" title="Moods im Archiv"><strong id="stat-moods">0</strong> Moods</span>
           <span class="chip" title="Playlist-Titel"><strong id="stat-tracks">0</strong> Tracks</span>
         </div>
+        <p class="muted" id="statsSummary" aria-live="polite">Starte mit einem Modul oder importiere ein Backup – alles ist bereit.</p>
         <div class="area-legend" aria-label="Farblegende der Bereiche">
           <div class="area-tag accent-modules">
             <span class="area-dot" aria-hidden="true"></span>
@@ -606,6 +621,65 @@
   const systemContrastDefault=(prefersContrastMedia&&typeof prefersContrastMedia.matches==='boolean'?prefersContrastMedia.matches:false)||(forcedColorsMedia&&typeof forcedColorsMedia.matches==='boolean'?forcedColorsMedia.matches:false);
   const isTestEnv=typeof window!=='undefined'&&window.__MODUL_TOOL_TEST__===true;
   const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
+  function createEmptyState(options={}){
+    const cfg=Object.assign({icon:null,title:'Keine Einträge',description:'Füge Inhalte hinzu, damit hier etwas erscheint.',action:null},options);
+    const wrap=document.createElement('div');
+    wrap.className='empty-state';
+    if(cfg.icon){
+      const icon=document.createElement('span');
+      icon.className='empty-icon';
+      icon.setAttribute('aria-hidden','true');
+      icon.textContent=cfg.icon;
+      wrap.appendChild(icon);
+    }
+    const title=document.createElement('strong');
+    title.textContent=cfg.title;
+    wrap.appendChild(title);
+    const desc=document.createElement('p');
+    desc.className='empty-desc';
+    desc.textContent=cfg.description;
+    wrap.appendChild(desc);
+    if(cfg.action&&cfg.action.label&&typeof cfg.action.onClick==='function'){
+      const actions=document.createElement('div');
+      actions.className='empty-actions';
+      const btn=document.createElement('button');
+      btn.type='button';
+      btn.className='btn inline';
+      btn.textContent=cfg.action.label;
+      btn.addEventListener('click',cfg.action.onClick);
+      actions.appendChild(btn);
+      wrap.appendChild(actions);
+    }
+    return wrap;
+  }
+  function createSkeletonList(count=3,message='Inhalte werden vorbereitet …'){
+    const wrap=document.createElement('div');
+    wrap.className='skeleton-list';
+    wrap.setAttribute('role','status');
+    wrap.setAttribute('aria-live','polite');
+    const intro=document.createElement('p');
+    intro.className='skeleton-intro';
+    intro.textContent=message;
+    wrap.appendChild(intro);
+    for(let i=0;i<count;i+=1){
+      const row=document.createElement('div');
+      row.className='skeleton-row';
+      const dot=document.createElement('span');
+      dot.className='skeleton-dot';
+      dot.setAttribute('aria-hidden','true');
+      row.appendChild(dot);
+      const line=document.createElement('span');
+      line.className='skeleton-line';
+      line.setAttribute('aria-hidden','true');
+      row.appendChild(line);
+      const short=document.createElement('span');
+      short.className='skeleton-line short';
+      short.setAttribute('aria-hidden','true');
+      row.appendChild(short);
+      wrap.appendChild(row);
+    }
+    return wrap;
+  }
   const loglist=$('#loglist');
   const liveRegion=$('#liveStatus');
   const liveText=$('#liveStatusText');
@@ -1687,7 +1761,7 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.2.0',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:'1.2.0',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null};
   function getPresetMeta(id){return CONFIG_PRESETS[id]||CONFIG_PRESETS.custom;}
   function findPresetMatch(snapshot){
     if(!snapshot)return null;
@@ -2391,6 +2465,29 @@
     }
     return fixes;
   }
+  function buildStatsSummary(){
+    const moduleCount=state.modules.length;
+    const categoryCount=Object.keys(state.categories).length;
+    const genreCount=state.genres.length;
+    const moodCount=state.moods.length;
+    const trackCount=state.playlist.length;
+    const archiveCount=genreCount+moodCount;
+    if(moduleCount===0&&categoryCount===0&&archiveCount===0&&trackCount===0){
+      return 'Noch alles leer. Lege dein erstes Modul an oder importiere ein Backup.';
+    }
+    const fragments=[];
+    fragments.push(moduleCount>0?`${moduleCount} Modul${moduleCount===1?'':'e'} bereit`:'Noch kein Modul angelegt');
+    if(categoryCount>0){
+      fragments.push(`${categoryCount} Kategorie${categoryCount===1?'':'n'} sortieren dein Archiv`);
+    }else{
+      fragments.push('Archiv-Kategorien können noch ergänzt werden');
+    }
+    if(archiveCount>0){
+      fragments.push(`${archiveCount} Archiv-Einträge gespeichert`);
+    }
+    fragments.push(trackCount>0?`${trackCount} Track${trackCount===1?'':'s'} spielbereit`:'Playlist wartet auf deine Musik');
+    return fragments.join(' • ');
+  }
   function renderStats(){
     $('#stat-modules').textContent=state.modules.length;
     $('#stat-cats').textContent=Object.keys(state.categories).length;
@@ -2400,6 +2497,10 @@
     $('#countGenres').textContent=state.genres.length;
     $('#countMoods').textContent=state.moods.length;
     $('#countCats').textContent=Object.keys(state.categories).length;
+    const summary=$('#statsSummary');
+    if(summary){
+      summary.textContent=buildStatsSummary();
+    }
     updateHelpStats();
   }
   function renderTheme(){
@@ -2409,18 +2510,124 @@
     applyDisplayPreferences();
     refreshPluginFrames();
   }
-  function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class="small">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
-  function renderArchives(){const gl=$('#genresList');gl.innerHTML='';const gfrag=document.createDocumentFragment();state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li)});gl.appendChild(gfrag);const ml=$('#moodsList');ml.innerHTML='';const mfrag=document.createDocumentFragment();state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li)});ml.appendChild(mfrag)}
-  function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
+  function renderModules(){
+    const list=$('#modulesList');
+    if(!list)return;
+    list.innerHTML='';
+    const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));
+    if(sorted.length===0){
+      list.appendChild(createEmptyState({
+        icon:'🧩',
+        title:'Noch keine Module angelegt',
+        description:'Trage einen Namen in „Neues Modul (Enter)“ ein oder importiere eine Sicherung. Wir erstellen das Modul automatisch.',
+        action:{
+          label:'Eingabefeld fokussieren',
+          onClick:()=>{
+            const input=$('#newModuleName');
+            if(input){
+              input.focus();
+            }
+          }
+        }
+      }));
+      return;
+    }
+    const frag=document.createDocumentFragment();
+    sorted.forEach(m=>{
+      const btn=document.createElement('button');
+      btn.className='btn block';
+      btn.setAttribute('role','option');
+      btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class="small">anzeigen</span>`;
+      btn.addEventListener('click',()=>openModule(m.id));
+      frag.appendChild(btn);
+    });
+    list.appendChild(frag);
+  }
+  function renderArchives(){
+    const gl=$('#genresList');
+    if(gl){
+      gl.innerHTML='';
+      const gfrag=document.createDocumentFragment();
+      if(state.genres.length===0){
+        const empty=document.createElement('li');
+        empty.className='empty-hint';
+        empty.textContent='Noch keine Genres eingetragen. Ergänze Genres in den Kategorien.';
+        gfrag.appendChild(empty);
+      }else{
+        state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li);});
+      }
+      gl.appendChild(gfrag);
+    }
+    const ml=$('#moodsList');
+    if(ml){
+      ml.innerHTML='';
+      const mfrag=document.createDocumentFragment();
+      if(state.moods.length===0){
+        const empty=document.createElement('li');
+        empty.className='empty-hint';
+        empty.textContent='Noch keine Stimmungen (Moods) vergeben. Nutze Kategorien oder Zufallsgenerator.';
+        mfrag.appendChild(empty);
+      }else{
+        state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li);});
+      }
+      ml.appendChild(mfrag);
+    }
+  }
+  function renderCategories(){
+    const sel=$('#catSel');
+    const rsel=$('#randCatSel');
+    const categories=Object.keys(state.categories).sort((a,b)=>a.localeCompare(b));
+    if(sel){
+      sel.innerHTML='';
+      const placeholder=document.createElement('option');
+      placeholder.value='';
+      placeholder.textContent=categories.length>0?'Kategorie auswählen (optional)':'Noch keine Kategorien vorhanden';
+      sel.appendChild(placeholder);
+    }
+    if(rsel){
+      rsel.innerHTML='';
+      const placeholder=document.createElement('option');
+      placeholder.value='';
+      placeholder.textContent=categories.length>0?'Alle Kategorien':'Noch keine Kategorien';
+      rsel.appendChild(placeholder);
+    }
+    categories.forEach(c=>{
+      if(sel){
+        const option=document.createElement('option');
+        option.value=c;
+        option.textContent=c;
+        sel.appendChild(option);
+      }
+      if(rsel){
+        const option=document.createElement('option');
+        option.value=c;
+        option.textContent=c;
+        rsel.appendChild(option);
+      }
+    });
+  }
   function renderPlaylist(){
     const list=$('#playlist');
+    if(!list)return;
     list.innerHTML='';
     let activeOptionId=null;
+    if(state.loadingPlaylist){
+      list.setAttribute('aria-busy','true');
+      list.appendChild(createSkeletonList(4,'Playlist wird vorbereitet …'));
+      list.removeAttribute('aria-activedescendant');
+      return;
+    }
+    list.removeAttribute('aria-busy');
     if(state.playlist.length===0){
-      const empty=document.createElement('p');
-      empty.className='muted';
-      empty.textContent='Noch keine Titel vorhanden. Nutze Import oder ziehe Dateien hierher.';
-      list.appendChild(empty);
+      list.appendChild(createEmptyState({
+        icon:'🎵',
+        title:'Playlist ist leer',
+        description:'Ziehe Audiodateien hierher oder klicke auf die Audio-Dropzone, um Dateien auszuwählen.',
+        action:{
+          label:'Audio-Bereich öffnen',
+          onClick:()=>focusAndAnnounce('#dropzone','Audio-Dropzone fokussiert. Dateien können hinzugefügt werden.')
+        }
+      }));
       list.removeAttribute('aria-activedescendant');
       return;
     }
@@ -2987,7 +3194,35 @@
   async function copyOutput(){try{const text=$('#randOut').value;if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{$('#randOut').select();document.execCommand('copy')}toast('In Zwischenablage kopiert.')}catch(e){addLog('error','Kopieren fehlgeschlagen: '+e.message)}}
   const audio=$('#player');
   function fileToTrack(file){return new Promise(res=>{const url=URL.createObjectURL(file);const base=safeStr(file.name).replace(/\.[^.]+$/,'');let title=base,artist='';const parts=base.split(' - ');if(parts.length>=2){artist=parts[0];title=parts.slice(1).join(' - ')}res({id:uuid(),title,artist,src:url,_blob:true})})}
-  function addFiles(files){const arr=Array.from(files||[]);if(!arr.length)return;const accepted=[];arr.forEach(file=>{const validation=validateAudioFile(file);if(!validation.ok){handleValidationResult(validation,{context:`Audio ${safeStr(file&&file.name||'ohne Namen')}`,level:validation.level||'warn'});return;}accepted.push(file);});if(!accepted.length){announceProcess('Keine Audiodatei übernommen.','warn');return;}const first=state.playlist.length===0;Promise.all(accepted.map(fileToTrack)).then(tracks=>{state.playlist.push(...tracks);if(first){state._currentIndex=0;const t=state.playlist[0];$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`}renderPlaylist();renderStats();persist();addLog('ok',tracks.length+' Track(s) hinzugefügt.')})}
+  function addFiles(files){
+    const arr=Array.from(files||[]);
+    if(!arr.length)return;
+    const accepted=[];
+    arr.forEach(file=>{const validation=validateAudioFile(file);if(!validation.ok){handleValidationResult(validation,{context:`Audio ${safeStr(file&&file.name||'ohne Namen')}`,level:validation.level||'warn'});return;}accepted.push(file);});
+    if(!accepted.length){announceProcess('Keine Audiodatei übernommen.','warn');return;}
+    const first=state.playlist.length===0;
+    state.loadingPlaylist=true;
+    renderPlaylist();
+    Promise.all(accepted.map(fileToTrack)).then(tracks=>{
+      state.playlist.push(...tracks);
+      if(first&&state.playlist.length>0){
+        state._currentIndex=0;
+        const t=state.playlist[0];
+        $('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`;
+      }
+      renderStats();
+      persist();
+      addLog('ok',tracks.length+' Track(s) hinzugefügt.');
+      announceProcess(tracks.length===1?'1 Titel importiert.':tracks.length+' Titel importiert.','ok');
+    }).catch(error=>{
+      console.error(error);
+      addLog('error','Import der Audiodateien ist fehlgeschlagen.');
+      announceProcess('Import fehlgeschlagen. Bitte Dateien prüfen.','error');
+    }).finally(()=>{
+      state.loadingPlaylist=false;
+      renderPlaylist();
+    });
+  }
   function playIndex(i){
     if(i<0||i>=state.playlist.length){toast('Keine Tracks.');return}
     const track=state.playlist[i];
