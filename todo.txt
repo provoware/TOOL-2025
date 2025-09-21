@@ -6,6 +6,7 @@
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
 - [ ] Sandbox-Iframes dynamisch in der Höhe anpassen (Resize ohne Same-Origin, z. B. via `postMessage`)
+- [ ] Doppelte Inline-Skriptblöcke in `index.html` entfernen und eine Build-Prüfung (Lint + Test) als Pflichtschritt verankern
 
 ## Vertiefte Architektur & Modularität
 - [ ] Schichtenarchitektur definieren (UI ↔ State ↔ Services) und Übergaben über klar dokumentierte Events entkoppeln
