@@ -1,3 +1,3 @@
-Release-Fortschritt: 82 %
-Stand: 2025-09-28
-Einschätzung: State-Digest-Verlauf wird jetzt zusammen mit dem Manifest und dem Backup gespeichert; laienfreundliche Klartextzusammenfassungen reisen damit in jede Sicherung und Importe spiegeln sofort die letzten Änderungen wider. Nächste Etappen: Event-Statecharts, Build-Toolchain und weitere Sicherheitsprüfungen.
+Release-Fortschritt: 83 %
+Stand: 2025-09-29
+Einschätzung: JSON- und Audio-Importe prüfen jetzt nicht nur Typ und Größe, sondern auch die Dateisignatur. Verdächtige Dateien blocken wir mit laienfreundlichen Hinweisen, während gültige Audio-Header direkt durchgehen – abgesichert durch neue Node-Tests. Nächste Etappen: Event-Statecharts, Build-Toolchain und erweiterte Signaturprüfungen für Mehrformat-Backups.

@@ -204,6 +204,29 @@ test('Backup und Manifest enthalten Digest-Verlauf für Laienberichte', async ()
   }
 });
 
+test('JSON-Signatur-Erkennung warnt vor HTML-Dateien', () => {
+  const invalid = api.actions.validateJsonContent('<html><body></body></html>', { expectedRoot: 'object' });
+  assert.equal(invalid.ok, false, 'HTML darf nicht als JSON durchgehen');
+  assert.match(invalid.message, /Kein JSON/, 'Fehlermeldung sollte JSON erwähnen');
+
+  const valid = api.actions.validateJsonContent('\uFEFF {"key":1}', { expectedRoot: 'object' });
+  assert.equal(valid.ok, true, 'JSON mit BOM sollte akzeptiert werden');
+});
+
+test('Audio-Signatur-Prüfung erkennt falsche Dateien', async () => {
+  const { File, Uint8Array } = dom.window;
+  const mp3Header = new Uint8Array([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+  const validFile = new File([mp3Header], 'demo.mp3', { type: 'audio/mpeg' });
+  const validResult = await api.actions.validateAudioFile(validFile);
+  assert.equal(validResult.ok, true, 'gültiger MP3-Header sollte akzeptiert werden');
+
+  const fakeContent = new Uint8Array([0x7b, 0x22, 0x78, 0x22]);
+  const invalidFile = new File([fakeContent], 'fake.mp3', { type: 'audio/mpeg' });
+  const invalidResult = await api.actions.validateAudioFile(invalidFile);
+  assert.equal(invalidResult.ok, false, 'JSON-Inhalt darf nicht als Audio durchgehen');
+  assert.match(invalidResult.message, /Audio-Signatur|Keine Audiodatei/, 'Fehlermeldung sollte Signatur nennen');
+});
+
 test('renderModules zeigt leeren Hinweis für Laien', () => {
   api.state.modules = [];
   api.actions.renderModules();

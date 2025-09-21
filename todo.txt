@@ -27,7 +27,8 @@
 ## Sicherheit & Sanitizing
 - [x] Smart-Error-Guard einführen (globale Fehlerfänger, JSON-/Audio-Dateiprüfung, Feedback-Panel, Debug-Snapshot)
 - [ ] Eingaben härten und Sanitizing für HTML/Clipboard-Inhalte mit Whitelisting ergänzen (z. B. DOMPurify-Äquivalent offline)
-- [ ] MIME- und Signaturprüfung bei Drag & Drop/Import ergänzen (Header-Sniffing + Endungsabgleich mit Nutzerhinweis)
+- [x] MIME- und Signaturprüfung bei Drag & Drop/Import ergänzen (Header-Sniffing + Endungsabgleich mit Nutzerhinweis)
+- [ ] Signaturprüfung auf weitere Formate (z. B. Mehrformat-Backups, Plugin-Pakete mit Assets) ausweiten und in Worker auslagern
 - [ ] Lokales Rechte-/Berechtigungsmodell mit Schreibschutz-Flag, Bestätigungen und Papierkorb (TTL) einführen
 - [ ] Trusted Types, CSP-Reporting und Reporting-API integrieren, um Inline-Skripte dauerhaft zu blocken
 - [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen

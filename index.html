@@ -977,6 +977,19 @@
   const FEEDBACK_TYPE_LABELS=Object.freeze({info:'Info',ok:'Erfolg',warn:'Hinweis',error:'Fehler'});
   const ACCEPTED_JSON_TYPES=new Set(['application/json','text/json','application/ld+json','']);
   const AUDIO_TYPE_PREFIX='audio/';
+  const ACCEPTED_AUDIO_EXTENSIONS=new Set(['.mp3','.wav','.ogg','.oga','.flac','.m4a','.aac','.webm']);
+  const AUDIO_SIGNATURE_PATTERNS=Object.freeze([
+    {label:'mp3-id3',bytes:[0x49,0x44,0x33]},
+    {label:'mp3-frame',bytes:[0xff,0xfb],mask:[0xff,0xfe]},
+    {label:'mp3-frame-alt',bytes:[0xff,0xf3],mask:[0xff,0xfe]},
+    {label:'aac-adts',bytes:[0xff,0xf1],mask:[0xff,0xf7]},
+    {label:'aac-adts-alt',bytes:[0xff,0xf9],mask:[0xff,0xf7]},
+    {label:'wave',bytes:[0x52,0x49,0x46,0x46],validate:bytes=>bytes.length>=12&&bytes[8]===0x57&&bytes[9]===0x41&&bytes[10]===0x56&&bytes[11]===0x45},
+    {label:'ogg',bytes:[0x4f,0x67,0x67,0x53]},
+    {label:'flac',bytes:[0x66,0x4c,0x61,0x43]},
+    {label:'mp4',bytes:[0x66,0x74,0x79,0x70]},
+    {label:'webm',bytes:[0x1a,0x45,0xdf,0xa3]}
+  ]);
   const DEFAULT_MAX_JSON_SIZE=5*1024*1024;
   const DEFAULT_MAX_AUDIO_SIZE=25*1024*1024;
   const feedbackEntries=[];
@@ -1379,6 +1392,75 @@
     if(announce){announceProcess(baseMessage,finalLevel==='error'?'error':'warn','assertive');}
     return false;
   }
+  function readFileSignature(file,length=16){
+    return new Promise((resolve,reject)=>{
+      try{
+        const reader=new FileReader();
+        reader.onerror=()=>reject(reader.error||new Error('Datei konnte nicht gelesen werden.'));
+        reader.onload=()=>{
+          try{resolve(new Uint8Array(reader.result||new ArrayBuffer(0)));}
+          catch(error){reject(error);}
+        };
+        const sliceLength=typeof file.slice==='function'?length:file.size;
+        const blob=typeof file.slice==='function'?file.slice(0,length):file;
+        if(sliceLength===0){resolve(new Uint8Array());return;}
+        reader.readAsArrayBuffer(blob);
+      }catch(error){reject(error);}
+    });
+  }
+  function matchesAudioSignature(bytes){
+    if(!bytes||!bytes.length)return false;
+    return AUDIO_SIGNATURE_PATTERNS.some(pattern=>{
+      const {bytes:expected,mask,validate}=pattern;
+      if(!expected||expected.length>bytes.length)return false;
+      for(let i=0;i<expected.length;i+=1){
+        const actual=bytes[i];
+        const exp=expected[i];
+        if(mask&&mask[i]!=null){
+          if((actual&mask[i])!==(exp&mask[i])){
+            return false;
+          }
+        }else if(actual!==exp){
+          return false;
+        }
+      }
+      if(typeof validate==='function'&&!validate(bytes)){
+        return false;
+      }
+      return true;
+    });
+  }
+  function getFileExtension(name){
+    const lower=safeLower(name||'');
+    const dot=lower.lastIndexOf('.');
+    return dot>=0?lower.slice(dot):'';
+  }
+  function validateJsonContent(content,{expectedRoot='any'}={}){
+    if(state.preventMistakes===false){return{ok:true};}
+    const raw=safeStr(content||'');
+    const withoutBom=raw.replace(/^\uFEFF/,'');
+    const trimmed=withoutBom.trim();
+    if(!trimmed){
+      return{ok:false,level:'warn',message:'Datei ist leer.',detail:'Bitte eine Datei mit Inhalt auswählen.'};
+    }
+    const first=trimmed[0];
+    if(first===undefined){
+      return{ok:false,level:'warn',message:'Datei ist leer.',detail:'Bitte eine Datei mit Inhalt auswählen.'};
+    }
+    if(first==='<'&&expectedRoot!=='html'){
+      return{ok:false,level:'error',message:'Kein JSON erkannt.',detail:'Die Datei sieht nach HTML aus (beginnt mit "<").'};
+    }
+    if(expectedRoot==='object'&&first!=='{'){
+      return{ok:false,level:'error',message:'JSON erwartet ein Objekt am Anfang.',detail:`Datei startet mit „${first}“. Bitte eine Datei mit {...} nutzen.`};
+    }
+    if(expectedRoot==='array'&&first!=='['){
+      return{ok:false,level:'error',message:'JSON erwartet eine Liste am Anfang.',detail:`Datei startet mit „${first}“. Bitte eine Datei mit [...] nutzen.`};
+    }
+    if(first!=='{'&&first!=='['){
+      return{ok:false,level:'error',message:'Kein JSON erkannt.',detail:`Datei startet mit „${first}“. Erwartet wird „{" oder "[".`};
+    }
+    return{ok:true};
+  }
   function validateJsonFile(file,{maxSize=DEFAULT_MAX_JSON_SIZE}={}){
     if(!file){return{ok:false,level:'warn',message:'Keine Datei ausgewählt.'};}
     if(state.preventMistakes===false){return{ok:true};}
@@ -1396,19 +1478,36 @@
     }
     return{ok:true};
   }
-  function validateAudioFile(file,{maxSize=DEFAULT_MAX_AUDIO_SIZE}={}){
+  async function validateAudioFile(file,{maxSize=DEFAULT_MAX_AUDIO_SIZE}={}){
     if(!file){return{ok:false,level:'warn',message:'Keine Datei ausgewählt.'};}
     if(state.preventMistakes===false){return{ok:true};}
+    if(!file.size){
+      return{ok:false,level:'warn',message:'Datei ist leer.',detail:'Die Audiodatei enthält keine Daten.'};
+    }
     const type=safeLower(file.type||'');
-    if(!type.startsWith(AUDIO_TYPE_PREFIX)){
-      return{ok:false,level:'warn',message:'Keine Audiodatei erkannt.',detail:`Gelieferter Typ: ${type||'unbekannt'}`};
+    if(type&&type!=='application/octet-stream'&&!type.startsWith(AUDIO_TYPE_PREFIX)){
+      return{ok:false,level:'warn',message:'Keine Audiodatei erkannt.',detail:`Gemeldeter Typ: ${type||'unbekannt'}`};
     }
     if(file.size>maxSize){
       const sizeMb=(file.size/1024/1024).toFixed(1);
       const limitMb=(maxSize/1024/1024).toFixed(1);
       return{ok:false,level:'warn',message:`Audiodatei zu groß (${sizeMb} MB)`,detail:`Maximal ${limitMb} MB erlaubt.`};
     }
-    return{ok:true};
+    try{
+      const signature=await readFileSignature(file,16);
+      const signatureOk=matchesAudioSignature(signature);
+      if(signatureOk){
+        return{ok:true};
+      }
+      const ext=getFileExtension(file.name);
+      const detail='Bitte MP3, WAV, OGG, FLAC, AAC/M4A oder WEBM verwenden.';
+      if(ACCEPTED_AUDIO_EXTENSIONS.has(ext)){
+        return{ok:false,level:'warn',message:'Audio-Signatur nicht erkannt.',detail};
+      }
+      return{ok:false,level:'error',message:'Keine Audiodatei erkannt.',detail};
+    }catch(error){
+      return{ok:false,level:'warn',message:'Audiodatei konnte nicht geprüft werden.',detail:safeStr(error&&error.message||'Lesefehler beim Signatur-Check.')};
+    }
   }
   function highlightElement(el){
     if(!el||!el.classList)return;
@@ -3431,6 +3530,12 @@
       }
       const reader=new FileReader();
       reader.onload=()=>{
+        const signatureCheck=validateJsonContent(reader.result,{expectedRoot:'object'});
+        if(!signatureCheck.ok){
+          handleValidationResult(signatureCheck,{context:'Plugin-Import',level:signatureCheck.level||'warn'});
+          file.value='';
+          return;
+        }
         let imported;
         try{
           imported=guardAction('Plugin importieren',()=>{
@@ -3642,16 +3747,28 @@
   async function copyOutput(){try{const text=$('#randOut').value;if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{$('#randOut').select();document.execCommand('copy')}toast('In Zwischenablage kopiert.')}catch(e){addLog('error','Kopieren fehlgeschlagen: '+e.message)}}
   const audio=$('#player');
   function fileToTrack(file){return new Promise(res=>{const url=URL.createObjectURL(file);const base=safeStr(file.name).replace(/\.[^.]+$/,'');let title=base,artist='';const parts=base.split(' - ');if(parts.length>=2){artist=parts[0];title=parts.slice(1).join(' - ')}res({id:uuid(),title,artist,src:url,_blob:true})})}
-  function addFiles(files){
+  async function addFiles(files){
     const arr=Array.from(files||[]);
     if(!arr.length)return;
-    const accepted=[];
-    arr.forEach(file=>{const validation=validateAudioFile(file);if(!validation.ok){handleValidationResult(validation,{context:`Audio ${safeStr(file&&file.name||'ohne Namen')}`,level:validation.level||'warn'});return;}accepted.push(file);});
-    if(!accepted.length){announceProcess('Keine Audiodatei übernommen.','warn');return;}
-    const first=state.playlist.length===0;
     state.loadingPlaylist=true;
     renderPlaylist();
-    Promise.all(accepted.map(fileToTrack)).then(tracks=>{
+    try{
+      const validations=await Promise.all(arr.map(file=>validateAudioFile(file)));
+      const accepted=[];
+      validations.forEach((result,idx)=>{
+        const file=arr[idx];
+        if(result&&result.ok){
+          accepted.push(file);
+        }else{
+          handleValidationResult(result,{context:`Audio ${safeStr(file&&file.name||'ohne Namen')}`,level:result&&result.level||'warn'});
+        }
+      });
+      if(!accepted.length){
+        announceProcess('Keine Audiodatei übernommen.','warn');
+        return;
+      }
+      const first=state.playlist.length===0;
+      const tracks=await Promise.all(accepted.map(fileToTrack));
       state.playlist.push(...tracks);
       if(first&&state.playlist.length>0){
         state._currentIndex=0;
@@ -3662,14 +3779,14 @@
       persist({reason:'playlist-added',detail:{tracks:tracks.length}});
       addLog('ok',tracks.length+' Track(s) hinzugefügt.');
       announceProcess(tracks.length===1?'1 Titel importiert.':tracks.length+' Titel importiert.','ok');
-    }).catch(error=>{
+    }catch(error){
       console.error(error);
       addLog('error','Import der Audiodateien ist fehlgeschlagen.');
       announceProcess('Import fehlgeschlagen. Bitte Dateien prüfen.','error');
-    }).finally(()=>{
+    }finally{
       state.loadingPlaylist=false;
       renderPlaylist();
-    });
+    }
   }
   function playIndex(i){
     if(i<0||i>=state.playlist.length){toast('Keine Tracks.');return}
@@ -3751,6 +3868,11 @@
       }
       const r=new FileReader();
       r.onload=()=>{
+        const signatureCheck=validateJsonContent(r.result,{expectedRoot:'array'});
+        if(!signatureCheck.ok){
+          handleValidationResult(signatureCheck,{context:'Playlist-Import',level:signatureCheck.level||'warn'});
+          return;
+        }
         let success=false;
         try{
           success=guardAction('Playlist importieren',()=>{
@@ -4246,6 +4368,11 @@
     announceProcess('Import gestartet – Daten werden geprüft.','info');
     const r=new FileReader();
     r.onload=()=>{
+      const signatureCheck=validateJsonContent(r.result,{expectedRoot:'object'});
+      if(!signatureCheck.ok){
+        handleValidationResult(signatureCheck,{context:'Import',level:signatureCheck.level||'warn'});
+        return;
+      }
       try{
         state.playlist.forEach(revokeIfBlob);
         const raw=JSON.parse(r.result||'{}');
@@ -4534,7 +4661,7 @@
       addLog('info','Dashboard geladen. Viel Erfolg!');
     }
   }
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport, getStorageMeta:()=>Object.assign({},storageMeta)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,validateJsonFile,validateJsonContent,validateAudioFile,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport, getStorageMeta:()=>Object.assign({},storageMeta)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();
