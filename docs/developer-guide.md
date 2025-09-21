@@ -51,17 +51,17 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
    ```bash
    node tools/start-tool.js
    ```
-4. Tests ausführen (führt dank `pretest` automatisch `npm run lint` vor dem Testlauf aus):
+4. Qualitäts-Gate (Linting + Tests) in einem Schritt starten:
    ```bash
-   npm test
+   npm run quality
    ```
-5. Linting separat ausführen (wenn nur Analyse ohne Tests gewünscht):
+5. Qualitäts-Gate mit automatischer Korrektur (ESLint `--fix`):
    ```bash
-   npm run lint
+   npm run quality -- --fix
    ```
-6. Kompletten Qualitätslauf starten (`npm run verify` alias für `npm test`):
+6. Preflight-Prüfung inkl. Qualitäts-Gate (Release-Vorbereitung):
    ```bash
-   npm run verify
+   npm run preflight -- --with-quality
    ```
 
 ## 6. Geplante Projektstruktur (Post-Refactor)
@@ -106,7 +106,10 @@ TOOL-2025/
 | Security | npm audit, OWASP ZAP (offline), Signatur-Checks | Schwachstellenprüfung |
 
 ## 9. Tests & Automatisierung (Ist-Stand)
-- `npm test`: Node-gestützte Tests (Playlist-Kurzbefehle, Backup-Schema, Plugin-Registrierung, Self-Repair-Basics, Präventionshinweis-Deduplizierung, Modul-Duplikatschutz, Modul-/Plugin-Löschschutz, Fokusfalle im Hilfe-Dialog, Start-Check-Report, JSON-/Audio-Signatur-Checks) inklusive automatischem Lint-Lauf via `pretest`.
+- `npm run quality`: Qualitäts-Gate (ESLint mit `--max-warnings=0` + Node-Test-Suite). Bricht bei Warnungen/Fehlern ab.
+- `npm run quality -- --fix`: Gleiches Qualitäts-Gate, führt vorher automatisch ESLint im Fix-Modus aus.
+- `npm test`: Reiner Node-Testlauf (nützlich für schnelle Regressionstests ohne Linting).
+- `npm run preflight -- --with-quality`: Start-/Release-Check (Node-Version, Pflichtdateien, JSON, doppelte Skripte) plus anschließendes Qualitäts-Gate.
 - JSON-Schema in `schemas/backup-schema.json` validiert Backups und wird in den Tests automatisiert geprüft.
 - Erweiterungsoptionen: Playwright-Szenarien für Import/Export, axe-Integration, Performance-Smoke-Test, Property-Tests.
 

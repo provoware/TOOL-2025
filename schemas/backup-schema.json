@@ -142,16 +142,17 @@
                 "stacked"
               ]
             }
-        "settings": {
-          "type": "object",
-          "additionalProperties": false,
-          "required": ["autosave", "selfrepair", "toasts"],
-          "properties": {
-            "autosave": { "type": "boolean" },
-            "selfrepair": { "type": "boolean" },
-            "toasts": { "type": "boolean" }
+          },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["autosave", "selfrepair", "toasts"],
+            "properties": {
+              "autosave": { "type": "boolean" },
+              "selfrepair": { "type": "boolean" },
+              "toasts": { "type": "boolean" }
+            }
           }
-        }
       }
     },
     "state": {
@@ -175,7 +176,6 @@
         "preventMistakes",
         "debugMode",
         "feedbackMode"
-        "logFilter"
       ],
       "properties": {
         "theme": { "type": "string", "minLength": 1 },
@@ -397,7 +397,6 @@
               }
             }
           }
-          "enum": ["all", "ok", "warn", "error"]
         }
       }
     }
