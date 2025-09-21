@@ -1,0 +1,42 @@
+# Info you need
+
+## Voraussetzungen
+- Node.js (>= 20.x) installieren und im Pfad verfügbar machen.
+- npm (wird mit Node ausgeliefert).
+
+## Projekt vorbereiten
+```bash
+npm install
+```
+
+## Tool starten (ein Datei-Befehl für Laien)
+```bash
+npm start
+```
+Der Startbefehl richtet automatisch die Standardordner ein, startet den lokalen Server und öffnet deinen Browser mit dem ModulTool.
+
+Falls du kein npm verwenden möchtest:
+```bash
+node tools/start-tool.js
+```
+Auch dieser Direktaufruf erledigt alles automatisch (Ordnerprüfung, Server, Browser).
+
+## Tests ausführen (führt automatisch `npm run lint` via `pretest` aus)
+```bash
+npm test
+```
+
+## Code-Qualität prüfen
+```bash
+npm run lint
+```
+
+## Alles prüfen (Alias für `npm test`)
+```bash
+npm run verify
+```
+
+## Empfohlene Zusatztools (optional, für spätere Ausbaustufen)
+```bash
+npm install --save-dev vite typescript eslint prettier
+```

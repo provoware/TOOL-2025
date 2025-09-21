@@ -60,6 +60,10 @@ after(() => {
 beforeEach(() => {
   api.actions.clearPlugins();
   api.state.log = [];
+  api.events.resetDigestHistory();
+  api.actions.activateConfigPreset('balanced', { announceSelection: false });
+  api.actions.applyLayoutPreset('balanced', { announceSelection: false, persistChange: false });
+  api.state.exportSequences = {};
 });
 
 function seedPlaylist(ids) {
@@ -74,6 +78,17 @@ function seedPlaylist(ids) {
 }
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
+
+test('Start-Check meldet Speicher- und Importstatus laienverständlich', () => {
+  const report = api.helpers.getDependencyReport();
+  assert.ok(Array.isArray(report), 'Report sollte ein Array sein');
+  assert.ok(report.length > 0, 'Report sollte mindestens einen Eintrag enthalten');
+  const storageEntry = report.find((item) => item.id === 'storage');
+  assert.ok(storageEntry, 'Speicher-Eintrag fehlt im Start-Check');
+  assert.match(storageEntry.message, /Speicher/, 'Speicherhinweis fehlt');
+  const rerun = api.actions.runDependencyCheck();
+  assert.ok(Array.isArray(rerun.entries), 'Rerun liefert keine Einträge');
+});
 
 test('Alt+Pfeil Sortierung verschiebt Eintrag und aktualisiert Fokusindex', async () => {
   seedPlaylist(['a', 'b', 'c']);
@@ -92,6 +107,29 @@ test('Entfernen löscht Track und setzt aktuellen Index zurück', async () => {
   assert.equal(api.state._currentIndex, null);
 });
 
+test('createUserModule erzeugt eindeutige Namen und verhindert Duplikate', async () => {
+  const initialCount = api.state.modules.length;
+  const first = api.actions.createUserModule('Mein Modul');
+  assert.ok(first.id, 'erstes Modul sollte angelegt werden');
+  assert.equal(api.state.modules.length, initialCount + 1);
+
+  const duplicate = api.actions.createUserModule('Mein Modul');
+  assert.equal(duplicate.id, null, 'Duplikat darf kein Modul anlegen');
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(api.state.modules.length, initialCount + 1, 'Anzahl bleibt nach Duplikat gleich');
+
+  const fallback = api.actions.createUserModule('', { announce: false });
+  assert.ok(fallback.id, 'Fallback-Name sollte Modul anlegen');
+  assert.ok(fallback.usedFallback, 'Fallback-Kennzeichen sollte gesetzt sein');
+  assert.match(fallback.name, /^Modul /);
+  assert.equal(api.state.modules.length, initialCount + 2);
+
+  await flush();
+
+  api.state.modules = api.state.modules.filter((mod) => mod.id !== first.id && mod.id !== fallback.id);
+  api.actions.ensureModuleRegistryMatchesState(api.state.activeModule || null);
+});
+
 test('Backup erfüllt JSON-Schema', () => {
   const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
   const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -102,6 +140,503 @@ test('Backup erfüllt JSON-Schema', () => {
   if (!valid) {
     assert.fail(ajv.errorsText(validate.errors, { separator: '\n' }));
   }
+});
+
+test('Export-Dateien erhalten eindeutige Zeitstempel und Zähler', () => {
+  const first = api.helpers.generateExportFileName('modultool-backup', 'json', { key: 'backup' });
+  const second = api.helpers.generateExportFileName('modultool-backup', 'json', { key: 'backup' });
+  assert.match(first, /^modultool-backup_\d{8}-\d{6}_v001\.json$/);
+  assert.match(second, /^modultool-backup_\d{8}-\d{6}_v002\.json$/);
+  const sequences = api.helpers.getExportSequences();
+  assert.ok(sequences.backup, 'Backup-Sequenz fehlt');
+  assert.equal(sequences.backup.counter, 2);
+  assert.match(sequences.backup.stamp, /^\d{8}-\d{6}$/);
+});
+
+test('Backup übernimmt Fehlerfänger-, Datei- und Debug-Einstellungen', async () => {
+  const { document } = dom.window;
+  const smartToggle = document.querySelector('#smartErrorsChk');
+  const preventToggle = document.querySelector('#preventMistakesChk');
+  const debugToggle = document.querySelector('#debugModeChk');
+  const feedbackSelect = document.querySelector('#feedbackModeSel');
+
+  smartToggle.checked = false;
+  smartToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  preventToggle.checked = false;
+  preventToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  debugToggle.checked = true;
+  debugToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  feedbackSelect.value = 'smart';
+  feedbackSelect.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+
+  await flush();
+
+  const backup = api.actions.buildBackup();
+  assert.equal(backup.state.smartErrors, false);
+  assert.equal(backup.state.preventMistakes, false);
+  assert.equal(backup.state.debugMode, true);
+  assert.equal(backup.state.feedbackMode, 'smart');
+  assert.equal(backup.manifest.settings.smartErrors, false);
+  assert.equal(backup.manifest.settings.preventMistakes, false);
+  assert.equal(backup.manifest.settings.debugMode, true);
+  assert.equal(backup.manifest.settings.feedbackMode, 'smart');
+});
+
+test('Konfigurations-Export fasst Preset und Einstellungen für Laien zusammen', () => {
+  api.actions.activateConfigPreset('performance', { announceSelection: false });
+  const snapshot = api.actions.buildConfigSnapshot();
+  assert.equal(snapshot.type, 'modultool-config');
+  assert.equal(snapshot.version, '1.0.0');
+  assert.equal(snapshot.preset, 'performance');
+  assert.equal(snapshot.settings.toasts, false);
+  assert.equal(snapshot.settings.reduceMotion, true);
+  assert.ok(Array.isArray(snapshot.summary), 'Zusammenfassung sollte eine Liste sein');
+  assert.ok(
+    snapshot.summary.some((line) => /Autospeichern/.test(line)),
+    'Autospeichern-Hinweis fehlt in der Zusammenfassung'
+  );
+});
+
+test('Konfigurationsimport übernimmt Layout, Theme und Sicherheitsoptionen', () => {
+  const snapshot = {
+    type: 'modultool-config',
+    version: '1.0.0',
+    preset: 'custom',
+    theme: 'night',
+    layout: 'audio-only',
+    fontScale: 18,
+    settings: {
+      autosave: false,
+      selfrepair: false,
+      toasts: false,
+      respectSystemMotion: false,
+      reduceMotion: true,
+      respectSystemContrast: false,
+      highContrast: true,
+      smartErrors: false,
+      preventMistakes: false,
+      debugMode: true,
+      feedbackMode: 'smart'
+    }
+  };
+
+  const result = api.actions.applyConfigSnapshot(snapshot, {
+    announce: false,
+    log: false,
+    updateHint: false,
+    persistChange: false
+  });
+
+  assert.ok(result.ok, 'Konfiguration sollte übernommen werden');
+  assert.equal(api.state.theme, 'night');
+  assert.equal(api.state.layoutPreset, 'audio-only');
+  assert.equal(api.state.autosave, false);
+  assert.equal(api.state.selfrepair, false);
+  assert.equal(api.state.toasts, false);
+  assert.equal(api.state.smartErrors, false);
+  assert.equal(api.state.preventMistakes, false);
+  assert.equal(api.state.debugMode, true);
+  assert.equal(api.state.feedbackMode, 'smart');
+  assert.equal(api.state.fontScale, 18);
+  assert.equal(api.state.reduceMotion, true);
+  assert.equal(api.state.highContrast, true);
+});
+
+test('Backup und Manifest enthalten Digest-Verlauf für Laienberichte', async () => {
+  api.events.resetDigestHistory();
+  const created = api.actions.createUserModule('Digest-Demo', { announce: false });
+  await flush();
+  const backup = api.actions.buildBackup();
+
+  assert.ok(Array.isArray(backup.state.digestHistory), 'State-Digest-Historie fehlt');
+  assert.ok(backup.state.digestHistory.length > 0, 'Digest-Historie sollte Einträge haben');
+  const firstEntry = backup.state.digestHistory[0];
+  assert.ok(Number.isFinite(Number(firstEntry.timestamp)), 'Zeitstempel muss numerisch sein');
+  assert.ok(firstEntry.digest, 'Digest-Daten fehlen');
+  assert.equal(
+    firstEntry.digest.modules,
+    backup.state.modules.length,
+    'Digest muss Modul-Anzahl widerspiegeln'
+  );
+
+  assert.ok(backup.manifest.digest, 'Manifest-Digest fehlt');
+  assert.equal(
+    backup.manifest.digest.modules,
+    backup.state.modules.length,
+    'Manifest-Digest nutzt Modul-Anzahl'
+  );
+  assert.ok(Array.isArray(backup.manifest.digestHistory), 'Manifest-Historie fehlt');
+  assert.ok(
+    backup.manifest.digestHistory[0].summary.includes('Modul'),
+    'Manifest fasst die Änderung laienverständlich zusammen'
+  );
+
+  if (created && created.id) {
+    api.actions.removeModule(created.id);
+    await flush();
+  }
+});
+
+test('JSON-Signatur-Erkennung warnt vor HTML-Dateien', () => {
+  const invalid = api.actions.validateJsonContent('<html><body></body></html>', { expectedRoot: 'object' });
+  assert.equal(invalid.ok, false, 'HTML darf nicht als JSON durchgehen');
+  assert.match(invalid.message, /Kein JSON/, 'Fehlermeldung sollte JSON erwähnen');
+
+  const valid = api.actions.validateJsonContent('\uFEFF {"key":1}', { expectedRoot: 'object' });
+  assert.equal(valid.ok, true, 'JSON mit BOM sollte akzeptiert werden');
+});
+
+test('Audio-Signatur-Prüfung erkennt falsche Dateien', async () => {
+  const { File, Uint8Array } = dom.window;
+  const mp3Header = new Uint8Array([0x49, 0x44, 0x33, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]);
+  const validFile = new File([mp3Header], 'demo.mp3', { type: 'audio/mpeg' });
+  const validResult = await api.actions.validateAudioFile(validFile);
+  assert.equal(validResult.ok, true, 'gültiger MP3-Header sollte akzeptiert werden');
+
+  const fakeContent = new Uint8Array([0x7b, 0x22, 0x78, 0x22]);
+  const invalidFile = new File([fakeContent], 'fake.mp3', { type: 'audio/mpeg' });
+  const invalidResult = await api.actions.validateAudioFile(invalidFile);
+  assert.equal(invalidResult.ok, false, 'JSON-Inhalt darf nicht als Audio durchgehen');
+  assert.match(invalidResult.message, /Audio-Signatur|Keine Audiodatei/, 'Fehlermeldung sollte Signatur nennen');
+});
+
+test('renderModules zeigt leeren Hinweis für Laien', () => {
+  api.state.modules = [];
+  api.actions.renderModules();
+  const empty = dom.window.document.querySelector('#modulesList .empty-state');
+  assert.ok(empty, 'Leerer Hinweis sollte angezeigt werden');
+  assert.match(empty.textContent, /Noch keine Module angelegt/);
+});
+
+test('renderPlaylist nutzt Skeleton während des Imports', () => {
+  api.state.playlist = [];
+  api.state.loadingPlaylist = true;
+  api.actions.renderPlaylist();
+  const skeleton = dom.window.document.querySelector('#playlist .skeleton-row');
+  assert.ok(skeleton, 'Skeleton-Reihe sollte vorhanden sein');
+  api.state.loadingPlaylist = false;
+  api.actions.renderPlaylist();
+});
+
+test('renderStats liefert laienfreundliche Zusammenfassung', () => {
+  api.state.modules = [];
+  api.state.categories = {};
+  api.state.genres = [];
+  api.state.moods = [];
+  api.state.playlist = [];
+  api.actions.renderStats();
+  const summary = dom.window.document.querySelector('#statsSummary');
+  assert.ok(summary, 'Zusammenfassungselement fehlt');
+  assert.match(summary.textContent, /Noch alles leer/);
+});
+
+test('State-Digest-Panel zeigt Zahlen und kürzt die Historie', async () => {
+  api.events.resetDigestHistory();
+  api.state.modules = [];
+  api.state.categories = {};
+  api.state.genres = [];
+  api.state.moods = [];
+  api.state.playlist = [];
+  api.actions.renderStats();
+  const document = dom.window.document;
+  const digestSummary = document.querySelector('#digestSummaryText');
+  assert.ok(digestSummary, 'Digest-Zusammenfassung fehlt');
+  assert.match(digestSummary.textContent, /Status/);
+
+  for (let i = 0; i < 5; i += 1) {
+    api.actions.createUserModule(`Digest Modul ${i}`);
+  }
+  await flush();
+
+  const moduleCount = Number(document.querySelector('#digestModules').textContent);
+  assert.equal(moduleCount, api.state.modules.length);
+
+  const historyAfterCreate = api.events.getDigestHistory();
+  assert.ok(historyAfterCreate.length >= 1, 'es sollte mindestens einen Digest-Eintrag geben');
+  historyAfterCreate.forEach((entry) => {
+    assert.ok(entry.timestamp, 'Digest-Eintrag benötigt Zeitstempel');
+    assert.ok(entry.digest, 'Digest-Eintrag benötigt Zustand');
+  });
+
+  for (let i = 0; i < 12; i += 1) {
+    api.actions.createUserModule(`Digest Extra ${i}`);
+  }
+  await flush();
+
+  const trimmedHistory = api.events.getDigestHistory();
+  assert.ok(trimmedHistory.length <= 8, 'Digest-Historie sollte begrenzt sein');
+
+  api.state.modules = [];
+  api.actions.renderModules();
+  api.actions.renderStats();
+  api.events.resetDigestHistory();
+});
+
+test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
+  const dirtyBackup = {
+    state: {
+      theme: 'neo',
+      autosave: true,
+      selfrepair: true,
+      toasts: true,
+      respectSystemMotion: true,
+      reduceMotion: false,
+      respectSystemContrast: true,
+      highContrast: false,
+      fontScale: 16,
+      configPreset: 'custom',
+      layoutPreset: 'balanced',
+      modules: [
+        { id: 'dup', name: 'Alpha' },
+        { id: 'dup', name: 'Beta' }
+      ],
+      categories: {
+        ' ': { genres: ['Rock', 'Rock'], moods: ['Calm'] },
+        Focus: { genres: ['Deep', 'Deep'], moods: ['Chill', 'Chill'] }
+      },
+      genres: ['Rock', 'Rock', 'Pop'],
+      moods: ['Chill', 'Chill'],
+      playlist: [
+        { id: 'track', title: 'Song A', artist: 'Artist', src: 'track-a.mp3' },
+        { id: 'track', title: 'Song B', artist: 'Artist', src: 'track-b.mp3' }
+      ],
+      plugins: [
+        {
+          id: 'plugin-1',
+          name: 'Plugin One',
+          description: 'desc',
+          version: '1.0.0',
+          author: 'Author',
+          moduleId: 'dup',
+          moduleName: 'Modul Name',
+          sections: [{ title: '', content: 'Info' }],
+          links: [
+            { label: 'Site', url: 'ftp://invalid' },
+            { label: 'Ok', url: 'https://valid.local' }
+          ]
+        }
+      ],
+      activeModule: 'missing',
+      log: [
+        { time: '', type: 'INFO', msg: '' },
+        { time: '12:00:00', type: 'warn', msg: 'Warnung' },
+        null
+      ],
+      logFilter: 'all',
+      smartErrors: true,
+      preventMistakes: true,
+      debugMode: false,
+      feedbackMode: 'full'
+    }
+  };
+
+  const { state: sanitized, report } = api.actions.validateBackup(dirtyBackup, { collect: true });
+
+  assert.ok(Array.isArray(sanitized.modules));
+  const moduleIds = new Set(sanitized.modules.map((m) => m.id));
+  assert.equal(moduleIds.size, sanitized.modules.length);
+  assert.ok(!Object.prototype.hasOwnProperty.call(sanitized.categories, ''));
+  assert.ok(Array.isArray(sanitized.genres));
+  assert.deepStrictEqual(Array.from(sanitized.genres), ['Pop', 'Rock']);
+  assert.deepStrictEqual(Array.from(sanitized.categories.Focus.genres), ['Deep']);
+  assert.equal(new Set(sanitized.playlist.map((t) => t.id)).size, sanitized.playlist.length);
+  assert.equal(sanitized.plugins.length, 1);
+  assert.equal(sanitized.plugins[0].links.length, 1);
+  assert.match(sanitized.plugins[0].links[0].url, /^https?:/);
+  assert.equal(sanitized.activeModule, null);
+  assert.equal(sanitized.log.length, 2);
+  assert.equal(sanitized.smartErrors, true);
+  assert.equal(sanitized.preventMistakes, true);
+  assert.equal(sanitized.debugMode, false);
+  assert.equal(sanitized.feedbackMode, 'full');
+  assert.ok(report.fixes.length >= 1);
+});
+
+test('Hilfe-Dialog hält Fokus im Overlay und lässt nach dem Schließen los', async () => {
+  const { document } = dom.window;
+  const searchField = document.querySelector('#quickSearch');
+  searchField.focus();
+
+  api.actions.openHelp('quickstart');
+  await flush();
+
+  const helpDialog = document.querySelector('#helpDialog');
+  const closeBtn = document.querySelector('#helpCloseBtn');
+  await flush();
+  assert.ok(helpDialog.contains(document.activeElement), 'Fokus sollte im Hilfe-Dialog landen');
+  if (closeBtn) {
+    assert.ok(
+      document.activeElement === closeBtn || document.activeElement === helpDialog,
+      'Schließen-Button oder Dialog erhält den Startfokus'
+    );
+  }
+
+  searchField.focus();
+  searchField.dispatchEvent(new dom.window.FocusEvent('focusin', { bubbles: true, composed: true }));
+  await flush();
+  assert.ok(helpDialog.contains(document.activeElement), 'Fokus sollte im Hilfe-Dialog gehalten werden');
+  assert.notEqual(document.activeElement, searchField);
+  if (closeBtn) {
+    assert.ok(
+      document.activeElement === closeBtn || document.activeElement === helpDialog,
+      'Fokus landet auf Schließen-Button oder Dialog'
+    );
+  }
+
+  api.actions.closeHelp();
+  await flush();
+
+  searchField.focus();
+  searchField.dispatchEvent(new dom.window.FocusEvent('focusin', { bubbles: true, composed: true }));
+  await flush();
+  assert.equal(document.activeElement, searchField, 'Fokus darf nach dem Schließen frei wechseln');
+});
+
+test('Feedback-Panel sammelt Prozessmeldungen und lässt sich leeren', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: true, persistChange: false });
+  await flush();
+  const itemsAfterLayout = Array.from(list.querySelectorAll('li'));
+  assert.ok(itemsAfterLayout.some((li) => /Audio/.test(li.textContent)), 'Audio-Hinweis sichtbar');
+  const clearBtn = document.querySelector('#clearFeedbackBtn');
+  clearBtn.click();
+  await flush();
+  const resetItems = Array.from(list.querySelectorAll('li'));
+  assert.equal(resetItems.length, 1);
+  assert.match(resetItems[0].textContent, /Noch keine Hinweise/);
+});
+
+test('Smart Errors fangen globale Fehler ab und loggen Meldung', async () => {
+  const initialLogLength = api.state.log.length;
+  const errorEvent = new dom.window.ErrorEvent('error', {
+    message: 'Testfehler',
+    filename: 'test.js',
+    lineno: 42
+  });
+  dom.window.dispatchEvent(errorEvent);
+  await flush();
+  assert.ok(api.state.log.length > initialLogLength, 'Logeintrag wurde ergänzt');
+  const lastEntry = api.state.log[api.state.log.length - 1];
+  assert.equal(lastEntry.type, 'error');
+  assert.match(lastEntry.msg, /Schutz: Fehler abgefangen/);
+});
+
+test('guardAction fängt Fehler ab und liefert Feedback für Laien', async () => {
+  const list = dom.window.document.querySelector('#feedbackList');
+  const badge = dom.window.document.querySelector('#feedbackBadge');
+  api.actions.guardAction('Testaktion', () => {
+    throw new Error('Absichtlicher Fehler');
+  });
+  await flush();
+  const items = Array.from(list.querySelectorAll('li'));
+  assert.ok(items.some((item) => /Testaktion/.test(item.textContent)), 'Hinweis für Testaktion sichtbar');
+  const lastLog = api.state.log[api.state.log.length - 1];
+  assert.equal(lastLog.type, 'error');
+  assert.match(lastLog.msg, /Testaktion/);
+  if (badge) {
+    assert.match(badge.textContent, /Hinweise/, 'Badge zeigt Hinweisanzahl an');
+  }
+});
+
+test('guardAction blendet Präventionshinweise nur einmal ein', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  api.actions.guardAction('Plugin-Test', () => {
+    throw new Error('Fehlerhafte Plugin-Datei');
+  }, { hint: 'plugin-import' });
+  await flush();
+  const firstTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  const initialHints = firstTexts.filter((text) => /Tipp:/.test(text));
+  assert.ok(initialHints.length >= 1, 'Mindestens ein Tipp-Hinweis sichtbar');
+  api.actions.guardAction('Plugin-Test erneut', () => {
+    throw new Error('Fehlerhafte Plugin-Datei');
+  }, { hint: 'plugin-import' });
+  await flush();
+  const secondTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  const hintsAfterSecondRun = secondTexts.filter((text) => /Tipp:/.test(text));
+  assert.equal(hintsAfterSecondRun.length, initialHints.length, 'Hinweis erscheint nur einmal');
+});
+
+test('Modul entfernen liefert Feedback, Log und Prozessansage', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  const newModule = api.actions.createUserModule('Entfern-Test', { announce: false });
+  await flush();
+  assert.ok(newModule.id, 'Modul sollte erzeugt werden');
+
+  const previousLogLength = api.state.log.length;
+  const removed = api.actions.removeModule(newModule.id);
+  await flush();
+
+  assert.equal(removed, true, 'removeModule sollte true liefern');
+  assert.ok(!api.state.modules.some((mod) => mod.id === newModule.id), 'Modul sollte entfernt werden');
+  const lastLog = api.state.log[api.state.log.length - 1];
+  assert.ok(api.state.log.length > previousLogLength, 'Log sollte gewachsen sein');
+  assert.equal(lastLog.type, 'warn');
+  assert.match(lastLog.msg, /Modul „Entfern-Test“ entfernt/, 'Logtext benennt das Modul');
+  const feedbackTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  assert.ok(feedbackTexts.some((text) => /Modul „Entfern-Test“ entfernt/.test(text)), 'Feedback enthält den Hinweis');
+});
+
+test('Plugin entfernen räumt Modul auf und meldet den Erfolg', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  const plugin = api.actions.registerPlugin({
+    name: 'Demo Plugin',
+    version: '1.0.0',
+    description: 'Testfall',
+    author: 'QA',
+    moduleName: 'Demo Plugin Modul',
+    moduleId: 'demo-plugin-module',
+    sections: [{ title: 'Intro', content: 'Hallo Welt' }],
+    links: []
+  });
+  await flush();
+  assert.ok(plugin && plugin.id, 'Plugin sollte importiert werden');
+  assert.ok(api.state.modules.some((mod) => mod.id === plugin.moduleId), 'Plugin-Modul vorhanden');
+
+  const removed = api.actions.removePlugin(plugin.id);
+  await flush();
+
+  assert.equal(removed, true, 'removePlugin sollte true liefern');
+  assert.ok(!api.state.plugins.some((p) => p.id === plugin.id), 'Plugin-Eintrag entfernt');
+  assert.ok(!api.state.modules.some((mod) => mod.id === plugin.moduleId), 'Plugin-Modul ebenfalls entfernt');
+  const lastLog = api.state.log[api.state.log.length - 1];
+  assert.equal(lastLog.type, 'warn');
+  assert.match(lastLog.msg, /Plugin „Demo Plugin“ entfernt/, 'Logtext benennt das Plugin');
+  const feedbackTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  assert.ok(feedbackTexts.some((text) => /Plugin „Demo Plugin“ entfernt/.test(text)), 'Feedback meldet den Plugin-Abbau');
+});
+
+test('Layout-Preset steuert Seitenleisten und landet im Backup', async () => {
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: false, persistChange: false });
+  await flush();
+  assert.equal(api.state.layoutPreset, 'audio-only');
+  const body = dom.window.document.body;
+  assert.equal(body.getAttribute('data-layout'), 'audio-only');
+  assert.equal(body.classList.contains('collapsed-left'), true);
+  assert.equal(body.classList.contains('collapsed-right'), false);
+  const backup = api.actions.buildBackup();
+  assert.equal(backup.state.layoutPreset, 'audio-only');
+  assert.equal(backup.manifest.settings.layoutPreset, 'audio-only');
+});
+
+test('Layout-Sichtbarkeit erklärt Bereiche für Laien', async () => {
+  const { document } = dom.window;
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: false, persistChange: false });
+  await flush();
+  const messages = Array.from(document.querySelectorAll('#layoutVisibilityList li')).map((li) => li.textContent.trim());
+  assert.ok(messages.some((text) => text.startsWith('Module links: ausgeblendet')), 'Linker Bereich wird als ausgeblendet beschrieben.');
+  assert.ok(messages.some((text) => text.startsWith('Audio rechts: sichtbar')), 'Rechter Bereich wird als sichtbar beschrieben.');
+  const cycleBtn = document.querySelector('#layoutCycleBtn');
+  assert.ok(cycleBtn, 'Cycle-Button existiert');
+  assert.ok(/Weiter zu: /.test(cycleBtn.textContent), 'Cycle-Button nennt das nächste Layout.');
+  const nextLayout = cycleBtn.dataset.nextLayout;
+  assert.ok(nextLayout, 'Next-Layout-Datensatz gesetzt');
+  api.actions.applyLayoutPreset(nextLayout, { announceSelection: false, persistChange: false });
+  await flush();
+  assert.equal(api.state.layoutPreset, nextLayout);
 });
 
 test('validatePluginData normalisiert Inhalte', () => {
@@ -209,8 +744,79 @@ test('Plugin-Inhalte werden sanitisiert', async () => {
   assert.equal(frame.dataset.sectionTitle, 'Hinweis');
 });
 
+test('Event-Bus meldet Layout-Wechsel mit Digest', async () => {
+  const events = [];
+  const stopListening = api.events.bus.subscribe(api.events.names.STATE_CHANGED, (detail) => {
+    if (detail && detail.reason === 'layout-changed') {
+      events.push(detail);
+    }
+  });
+
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: false });
+  await flush();
+  api.actions.applyLayoutPreset('balanced', { announceSelection: false });
+  await flush();
+  stopListening();
+
+  assert.ok(events.length >= 1, 'es sollte mindestens ein Layout-Event geben');
+  const first = events[0];
+  assert.equal(first.layout, 'audio-only');
+  assert.equal(first.digest.modules, api.state.modules.length);
+  assert.equal(first.digest.playlist, api.state.playlist.length);
+});
+
+test('Persistenter Zustand kürzt Log und behält Version', () => {
+  api.state.version = '9.9.9';
+  api.state.log = Array.from({ length: 350 }, (_, index) => ({
+    id: `entry-${index}`,
+    time: `12:00:${index.toString().padStart(2, '0')}`,
+    type: 'info',
+    msg: `Nachricht ${index}`
+  }));
+
+  const snapshot = api.helpers.createPersistableState();
+
+  assert.equal(snapshot.version, '9.9.9');
+  assert.ok(snapshot.log.length <= 200, 'Log sollte für Speicherungen gekürzt werden');
+  const newest = snapshot.log[snapshot.log.length - 1];
+  assert.match(newest.msg, /Nachricht 349/);
+  assert.ok(snapshot.log.every((entry) => entry.id), 'Logeinträge besitzen IDs');
+});
+
+test('Konfigurations-Preset lässt sich anwenden und erkennt individuelle Änderung', async () => {
+  api.actions.activateConfigPreset('accessibility', { announceSelection: false });
+  await flush();
+  assert.equal(api.state.configPreset, 'accessibility');
+  assert.equal(api.state.fontScale, 18);
+  assert.equal(api.state.reduceMotion, true);
+  assert.equal(api.state.highContrast, true);
+  const toastsToggle = dom.window.document.querySelector('#toastsChk');
+  toastsToggle.checked = false;
+  toastsToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await flush();
+  assert.equal(api.state.configPreset, 'custom');
+});
+
 test('assertBackupSchema erkennt fehlende Modul-Liste', () => {
   const backup = api.actions.buildBackup();
   delete backup.state.modules;
   assert.throws(() => api.actions.assertBackupSchema(backup), /state\.modules/);
+});
+
+test('help center liefert Themenliste und Plaintext', async () => {
+  assert.equal(api.actions.isHelpOpen(), false);
+  api.actions.openHelp('audio');
+  await flush();
+  assert.equal(api.actions.isHelpOpen(), true);
+  const topics = api.actions.getHelpTopics();
+  assert.ok(topics.includes('quickstart'));
+  assert.ok(topics.includes('audio'));
+  assert.ok(topics.includes('configSafety'));
+  const plain = api.actions.buildHelpPlainText();
+  assert.match(plain, /Hilfe-Center/);
+  assert.match(plain, /Schnell loslegen/);
+  assert.match(plain, /Einstellungen sichern & teilen/);
+  api.actions.closeHelp();
+  await flush();
+  assert.equal(api.actions.isHelpOpen(), false);
 });

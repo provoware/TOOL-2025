@@ -1,11 +1,132 @@
 # TOOL-2025 ToDo
 
+## Offene Basisarbeiten
+- [x] ESLint-Linting (`npm run lint`) und kombinierte Qualitätsprüfung (`npm run verify`) anlegen
+- [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
+- [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
+- [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
+- [ ] Sandbox-Iframes dynamisch in der Höhe anpassen (Resize ohne Same-Origin, z. B. via `postMessage`)
+
+## Vertiefte Architektur & Modularität
+- [ ] Schichtenarchitektur definieren (UI ↔ State ↔ Services) und Übergaben über klar dokumentierte Events entkoppeln
+- [x] Event-Bus (Pub/Sub) als zentrale Kommunikationsschicht einführen und globale Funktionsaufrufe ablösen (Basis steht; Event-Archiv & Statecharts folgen)
+- [ ] Zustandsmaschinen (Statecharts) für kritische Abläufe wie Import, Drag & Drop und Playback modellieren und testen
+- [ ] Stabilen Plugin-Contract (Mini-SDK mit Lifecycle, Manifest, Datenschema) festschreiben und dokumentieren
+- [ ] Plugin-Capabilities und Berechtigungen aushandeln (Capability-Matrix, Version-Kompatibilität, Fallbacks)
+- [ ] Trusted Types und strikt modularisierte Bundles vorbereiten, um CSP ohne `unsafe-inline` einzuhalten
+
+## Daten, IDs & Persistenz
+- [ ] Stabile IDs (UUIDv4/ULID) für alle Entities einführen und Kollisionstests samt Index-Map aufsetzen
+- [ ] Transaktions-Log mit Undo/Redo auf Datenebene implementieren (append-only, mit vor/nachher-Werten)
+- [ ] Atomare Schreibstrategie mit Versionstempel und Migrationstracking etablieren (tmp-Datei → Commit)
+- [x] Konfliktfreie Dateinamen-Strategie (Zeitstempel + `_vXYZ`) für Exportdateien implementieren (State `exportSequences`, Sanitizer & Tests)
+- [ ] Validierungsreport zusätzlich als JSON-Datei exportieren und Undo-Pfade dokumentieren
+- [ ] State-Digest dauerhaft speichern (Event-Archiv, Verlauf für Module/Playlist/Plugins; UI-Historie aktiv, Persistenz/Export offen)
+- [ ] Start-Check-Bericht in Backups/Manifest aufnehmen und Speicher-Fallback im Export dokumentieren
+
+## Sicherheit & Sanitizing
+- [x] Smart-Error-Guard einführen (globale Fehlerfänger, JSON-/Audio-Dateiprüfung, Feedback-Panel, Debug-Snapshot)
+- [ ] Eingaben härten und Sanitizing für HTML/Clipboard-Inhalte mit Whitelisting ergänzen (z. B. DOMPurify-Äquivalent offline)
+- [x] MIME- und Signaturprüfung bei Drag & Drop/Import ergänzen (Header-Sniffing + Endungsabgleich mit Nutzerhinweis)
+- [ ] Signaturprüfung auf weitere Formate (z. B. Mehrformat-Backups, Plugin-Pakete mit Assets) ausweiten und in Worker auslagern
+- [ ] Lokales Rechte-/Berechtigungsmodell mit Schreibschutz-Flag, Bestätigungen und Papierkorb (TTL) einführen
+- [ ] Trusted Types, CSP-Reporting und Reporting-API integrieren, um Inline-Skripte dauerhaft zu blocken
+- [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen
+- [ ] `guardAction` auf alle kritischen Datenpfade (Import, Export, Module, Playlist) ausweiten und Fehlerkategorien für Auswertungen erfassen (Exporte + Plugin/Playlist-Importe + Modul-Anlage/-Entfernung erledigt; Modulbearbeitung & Backup-Dialog offen)
+- [ ] Plugin-Import um Signatur-/Prüfsummen-Checks und laienfreundliche Lösungsvorschläge im Fehlerfall erweitern
+
+## Barrierefreiheit (A11y) – Advanced
+- [x] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten (Statusbanner & Checkboxen aktiv)
+- [x] Fokus-Outline-Design für Buttons, Eingaben, Links und Dropzone vereinheitlichen (sichtbare `:focus-visible`-Rahmen)
+- [x] Fokusfallen & Escape-Handling für Hilfe- und Konfigurationsdialog ergänzt (Focus-Trap + globale Exit-Strategie) – weitere Overlays markieren
+- [x] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren (globaler Status aktualisiert Log-Feedback)
+- [x] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren (Theme-Variable & UI-Select)
+- [ ] Escape-Mechanismus für verbleibende Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit) – Hilfe/Konfiguration erledigt, restliche Overlays offen
+- [x] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern (Log-Zusammenfassung + Prozessbanner)
+- [x] Prozess-spezifische Live-Regionen für Backup-Prüfung, Importlauf und Selbsttest ergänzen (detaillierte Statusmeldungen)
+- [ ] Prozess-Live-Region auf weitere Langläufer (Worker, Audioanalyse) ausweiten und Prioritäten dokumentieren
+
+## UX & Microcopy
+- [x] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern (Playlist + Module umgesetzt, Archiv folgt nach Struktur-Refactor)
+- [ ] Skeleton-Loader und Leerstaaten auf Archivlisten/weitere Module ausweiten, sobald Worker/Build-Setup steht
+- [ ] Farbsemantik vereinheitlichen (Grün=Erfolg, Blau=Info, Orange=Aktion, Rot=Fehler) für Formulare, Dialoge & Statusleisten (Bereiche & Fenster bereits farbkodiert)
+- [x] Bereichs-Farbampel für Module, Arbeitsfläche, Audio & Archiv ergänzen (Legende, Panels, Dropzone, Listen farblich abgestimmt)
+- [x] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten (Hilfe-Center umgesetzt)
+- [ ] Hilfe-Center um Fokus-Trap und geführte Onboarding-Tour erweitern
+- [x] Hilfe-Center um Abschnitt zur Konfigurations-Sicherung (Export/Import) ergänzen
+- [ ] Onboarding-Assistent mit Schritt-für-Schritt-Erklärungen, Beispieldaten und Feedback-Schleifen implementieren
+- [ ] Kontextuelle Hilfetexte und Tooltips standardisieren (Microcopy-Styleguide)
+- [x] Konfigurations-Assistent mit Presets, Klartext-Zusammenfassung und Button-Steuerung integrieren
+- [x] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen (Export/Import aktiv, Fokusfalle umgesetzt)
+- [ ] Layout-Anpassung per Drag/Resize ermöglichen (Seitenleistenbreite stufenlos, Speicher je Preset) und mobile Breakpoints dokumentieren
+- [ ] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
+- [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen
+- [x] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (Manifest & Backup speichern Digest + Verlauf, UI-Historie synchronisiert)
+- [ ] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
+
+## Performance & Robustheit
+- [ ] Rechenintensive Aufgaben (JSON-Validierung, Datei-Scans, Wellenformen) in Web-Worker auslagern
+- [ ] Performance-Budgets (z. B. TTI < 1,5 s, Interaktionslatenz < 100 ms) definieren und messen
+- [ ] Resize/Scroll/Drag-Events mit Debounce/Throttle absichern (16–32 ms Throttle, 150–250 ms Debounce)
+- [ ] Speicher-Wächter für LocalStorage/Dateigrößen integrieren und Nutzer-Fallbacks anbieten
+- [ ] Performance-Monitoring mit `performance.now()`-Messpunkten und Reporting-Dashboard aufbauen
+- [ ] Worker-Bridge für Sanitizing, Schema-Validierung und Audio-Vorverarbeitung designen
+
+## Audio-Engine
+- [ ] Autoplay-Policies respektieren (erstes Abspielen nur nach Nutzergeste, visuelle Freigabe anzeigen)
+- [ ] Audio-Latenz & Puffer-Management optimieren (lazy AudioContext, Preload, Fehlerpfade)
+- [ ] Marker/Regions mit IDs, Zeitbereichen und Labels persistieren
+- [ ] Audio-Diagnosemodus mit Latenzmessung, Fehlerlogging und Nutzerhinweisen entwickeln
+
+## Tests – Advanced
+- [ ] Property-Based-Tests (z. B. mit fast-check) für State- und Importpfade ergänzen
+- [ ] Visuelle Regressionstests (Pixel-Diff/Screenshot) für kritische Screens etablieren
+- [ ] A11y-Snapshot-Tests (axe-Regeln) automatisieren und in die CI aufnehmen
+- [ ] Performance-Smoke-Test (Key-Flows messen und gegen Budgets prüfen) implementieren
+- [ ] Playwright-End-to-End-Flows für Import/Export, Plugin-Install und Playlist-Steuerung automatisieren
+- [ ] Pa11y/axe A11y-Regressionen in CI einhängen
+- [ ] Performance-Smoke-Test in CI mit Budget-Grenzen (Lighthouse, Web Vitals) verankern
+- [ ] Playwright-Szenario für Anzeigeeinstellungen (Motion/Kontrast/Schrift) und Statusbanner automatisieren
+- [ ] Automatisierte Tests für `guardAction`-Pfad (Node + Playwright) erweitern und Fehlerfeedback visuell verifizieren (Node-Test vorhanden, Playwright offen)
+
+## Build/Release & Offline-Verteilung
+- [ ] Reproduzierbare Builds mit deterministischer Minifizierung und Build-Hash im Footer erzeugen
+- [ ] Release-Pakete lokal signieren (SHA256 + Signaturdatei) und Integritätsanzeige im Tool ergänzen
+- [ ] Mehrformat-Exporte (JSON, TXT, optional PDF) offline generieren
+- [ ] Start-Routine in portable Pakete überführen (z. B. Node-Packer oder einfache Shell/Bat-Dateien) und Prüfschritte dokumentieren
+- [ ] Service Worker + PWA-Manifest für Offline-Distribution vorbereiten
+- [ ] Release-Playbook dokumentieren (Build, Signatur, QA, Auslieferung)
+- [ ] Integritätsanzeige im Tool („Signatur geprüft“) ergänzen
+
+## Dokumentation & Governance
+- [ ] Leichtes Threat-Model (STRIDE-Checkliste) erstellen und Gegenmaßnahmen notieren
+- [ ] Code-Hausordnung/Styleguide (Dateinamen, Funktionen, Kommentare, Fehlercodes) veröffentlichen
+- [ ] Benutzer-Richtlinien zum Offline-Datenschutz (Was wird gespeichert? Wo? Wie löschen?) ausarbeiten
+- [ ] Governance-Checkliste für Reviews (Security, A11y, Performance, Tests, Doku) einführen
+- [ ] Wissensdatenbank mit FAQ, Troubleshooting, Release-Historie aufbauen
+
+## Logging & Monitoring
+- [ ] Log-Level vereinheitlichen (`debug`, `info`, `warn`, `error`) und strukturierte Payloads einführen
+- [ ] Audit-Log für kritische Events (Import, Export, Plugin-Änderungen) erzeugen und exportierbar machen
+- [ ] Telemetrie-Option (opt-in) für anonymisierte Nutzungsstatistiken evaluieren
+
+## Priorisierte Empfehlungen (Pro-Stufe)
+- [ ] Transaktions-Kernel mit Undo/Redo, stabilen IDs, atomaren Writes und Migrationen entwickeln
+- [ ] A11y-Advanced inkl. System-Preferences, starken Fokus-Styling und Live-Regionen fertigstellen
+- [ ] Event-Bus plus Statecharts für Import/Export, DnD und Playback etablieren
+- [ ] Worker-basierte Schwerarbeit und Performance-Budgets umsetzen
+- [ ] Sichere Importe/Exporte mit Dry-Run, Sanitizing und Signaturen bereitstellen
+
+## Abgeschlossene Arbeiten
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [x] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen (Playlist steuerbar, Dropzone klick- und tastaturfähig)
 - [x] JSON-Validierung für Importfunktionen implementieren (Grundchecks & Playlist-Säuberung aktiv, Schema folgt)
 - [x] Logging verbessern (Filter & Hinweise ergänzt, Level-Standardisierung erweitern)
 - [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
+- [x] Start-Check im Dashboard eingeführt (Abhängigkeitsprüfung, Speicher-Fallback, Log-/Process-Feedback, Node-Test)
+- [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
+- [x] Ein-Datei-Start-Routine (`npm start`/`node tools/start-tool.js`) ergänzt, die Standardordner erzeugt, Server startet und Browser öffnet
 - [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
 - [x] Backup-Import verschärfen (Module/Kategorien deduplizieren & sanitisieren)
 - [x] Persistente Module registrieren (Platzhalter-Renderer nach Self-Repair & Import)
@@ -16,6 +137,16 @@
 - [x] Backup-Schema direkt im Tool prüfen (AJV im Browser oder leichtgewichtiges Schema-Checking)
 - [x] Plugin-Module aus HTML-Inhalten gegen Skripte absichern (z. B. Sanitizer oder Render-Sandbox)
 - [x] CSP und Sandbox-Konzept für Plugins definieren (iframe/Web-Worker prüfen)
+- [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
+- [x] System-Preferences & Live-Status implementiert (Motion/Kontrast, Schriftgrößen, aria-live)
+- [x] Log-Level-Design vereinheitlicht (Icons, Farbcodierung, Info-Filter)
+- [x] Hilfe- und Konfigurationsdialoge mit Fokusfallen abgesichert und Modul-Anlage über `guardAction` + Duplikatschutz laienfreundlich gemacht
+- [x] Sichtbarkeits-Assistent für Bereiche & Fenster (Mini-Vorschau, Klartextstatus, Schnellbuttons) ergänzt
+- [x] Layout-Presets inklusive Backup-/Manifest-Unterstützung und Statusmeldungen implementiert (Buttons für Ausgewogen, Module/Audio-Fokus, Arbeitsfläche, Stapeln)
+- [x] Validierungsreport für Backup/Import eingeführt (sanitizeStateForExport, Report-Anzeige im Prüfmodul, Import-Log-Hinweise)
+- [x] Feedback-Badge mit Zeitstempel, `guardAction`-Helper, Plugin-Vorprüfung und Debug-Download ergänzt; `npm test` läuft jetzt automatisch mit `npm run lint` (pretest)
+- [x] Log-Zusammenfassung liefert Filter-/Anzahl-/Letzte-Meldung-Klartext (sichtbar + Screenreader) und Self-Repair meldet Ergebnisse über das Prozessbanner
+- [x] Event-Bus & State-Digest implementiert (STATE_CHANGED/LOG_ADDED Events, gekürzte Autosave-Snapshots, Screenreader-Live-Status)
 - [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
 - [ ] Sandbox-Iframes dynamisch in der Höhe anpassen (Resize ohne Same-Origin, z. B. via `postMessage`)
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)

@@ -3,11 +3,18 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "pretest": "npm run lint",
+    "test": "node --test tests",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .js,.html index.html tests",
+    "verify": "npm test",
+    "start": "node tools/start-tool.js"
     "test": "node --test tests"
   },
   "devDependencies": {
     "ajv": "^8.17.1",
     "ajv-formats": "^2.1.1",
+    "eslint": "^8.57.0",
+    "eslint-plugin-html": "^7.1.0",
     "jsdom": "^24.1.0"
   }
 }

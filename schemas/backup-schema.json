@@ -50,6 +50,98 @@
           }
         },
         "playlist": { "type": "integer", "minimum": 0 },
+        "digest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "modules",
+            "plugins",
+            "categories",
+            "genres",
+            "moods",
+            "playlist",
+            "log"
+          ],
+          "properties": {
+            "modules": { "type": "integer", "minimum": 0 },
+            "plugins": { "type": "integer", "minimum": 0 },
+            "categories": { "type": "integer", "minimum": 0 },
+            "genres": { "type": "integer", "minimum": 0 },
+            "moods": { "type": "integer", "minimum": 0 },
+            "playlist": { "type": "integer", "minimum": 0 },
+            "log": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "digestHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["timestamp", "reason", "summary"],
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "state-change",
+                  "state-loaded",
+                  "state-imported",
+                  "manual-save",
+                  "layout-changed",
+                  "module-registered",
+                  "module-removed",
+                  "plugin-registered",
+                  "plugin-removed",
+                  "playlist-added",
+                  "playlist-removed",
+                  "playlist-reordered",
+                  "playlist-imported",
+                  "log-cleared",
+                  "log-filter-changed",
+                  "settings-changed",
+                  "genres-added",
+                  "moods-added",
+                  "category-added",
+                  "category-removed"
+                ]
+              },
+              "summary": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "settings": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["autosave", "selfrepair", "toasts", "smartErrors", "preventMistakes", "debugMode", "feedbackMode"],
+          "properties": {
+            "autosave": { "type": "boolean" },
+            "selfrepair": { "type": "boolean" },
+            "toasts": { "type": "boolean" },
+            "respectSystemMotion": { "type": "boolean" },
+            "reduceMotion": { "type": "boolean" },
+            "respectSystemContrast": { "type": "boolean" },
+            "highContrast": { "type": "boolean" },
+            "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
+            "smartErrors": { "type": "boolean" },
+            "preventMistakes": { "type": "boolean" },
+            "debugMode": { "type": "boolean" },
+            "feedbackMode": { "type": "string", "enum": ["full", "smart"] },
+            "configPreset": {
+              "type": "string",
+              "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
+            },
+            "layoutPreset": {
+              "type": "string",
+              "enum": [
+                "balanced",
+                "modules-wide",
+                "audio-wide",
+                "module-only",
+                "audio-only",
+                "workspace",
+                "stacked"
+              ]
+            }
         "settings": {
           "type": "object",
           "additionalProperties": false,
@@ -78,6 +170,11 @@
         "plugins",
         "activeModule",
         "log",
+        "logFilter",
+        "smartErrors",
+        "preventMistakes",
+        "debugMode",
+        "feedbackMode"
         "logFilter"
       ],
       "properties": {
@@ -85,6 +182,31 @@
         "autosave": { "type": "boolean" },
         "selfrepair": { "type": "boolean" },
         "toasts": { "type": "boolean" },
+       "respectSystemMotion": { "type": "boolean" },
+        "reduceMotion": { "type": "boolean" },
+        "respectSystemContrast": { "type": "boolean" },
+        "highContrast": { "type": "boolean" },
+        "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
+        "smartErrors": { "type": "boolean" },
+        "preventMistakes": { "type": "boolean" },
+        "debugMode": { "type": "boolean" },
+        "feedbackMode": { "type": "string", "enum": ["full", "smart"] },
+        "configPreset": {
+          "type": "string",
+          "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
+        },
+        "layoutPreset": {
+          "type": "string",
+          "enum": [
+            "balanced",
+            "modules-wide",
+            "audio-wide",
+            "module-only",
+            "audio-only",
+            "workspace",
+            "stacked"
+          ]
+        },
         "modules": {
           "type": "array",
           "items": {
@@ -203,6 +325,78 @@
         },
         "logFilter": {
           "type": "string",
+          "enum": ["all", "info", "ok", "warn", "error"]
+        },
+        "exportSequences": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stamp", "counter"],
+            "properties": {
+              "stamp": { "type": "string", "pattern": "^\\d{8}-\\d{6}$" },
+              "counter": { "type": "integer", "minimum": 1, "maximum": 999 }
+            }
+          }
+        },
+        "digestHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["timestamp", "reason", "digest"],
+            "properties": {
+              "timestamp": { "type": "number" },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "state-change",
+                  "state-loaded",
+                  "state-imported",
+                  "manual-save",
+                  "layout-changed",
+                  "module-registered",
+                  "module-removed",
+                  "plugin-registered",
+                  "plugin-removed",
+                  "playlist-added",
+                  "playlist-removed",
+                  "playlist-reordered",
+                  "playlist-imported",
+                  "log-cleared",
+                  "log-filter-changed",
+                  "settings-changed",
+                  "genres-added",
+                  "moods-added",
+                  "category-added",
+                  "category-removed"
+                ]
+              },
+              "digest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "modules",
+                  "plugins",
+                  "categories",
+                  "genres",
+                  "moods",
+                  "playlist",
+                  "log"
+                ],
+                "properties": {
+                  "modules": { "type": "integer", "minimum": 0 },
+                  "plugins": { "type": "integer", "minimum": 0 },
+                  "categories": { "type": "integer", "minimum": 0 },
+                  "genres": { "type": "integer", "minimum": 0 },
+                  "moods": { "type": "integer", "minimum": 0 },
+                  "playlist": { "type": "integer", "minimum": 0 },
+                  "log": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
           "enum": ["all", "ok", "warn", "error"]
         }
       }
