@@ -9,7 +9,7 @@
 
 ## Vertiefte Architektur & Modularität
 - [ ] Schichtenarchitektur definieren (UI ↔ State ↔ Services) und Übergaben über klar dokumentierte Events entkoppeln
-- [ ] Event-Bus (Pub/Sub) als zentrale Kommunikationsschicht einführen und globale Funktionsaufrufe ablösen
+- [x] Event-Bus (Pub/Sub) als zentrale Kommunikationsschicht einführen und globale Funktionsaufrufe ablösen (Basis steht; Event-Archiv & Statecharts folgen)
 - [ ] Zustandsmaschinen (Statecharts) für kritische Abläufe wie Import, Drag & Drop und Playback modellieren und testen
 - [ ] Stabilen Plugin-Contract (Mini-SDK mit Lifecycle, Manifest, Datenschema) festschreiben und dokumentieren
 - [ ] Plugin-Capabilities und Berechtigungen aushandeln (Capability-Matrix, Version-Kompatibilität, Fallbacks)
@@ -21,6 +21,7 @@
 - [ ] Atomare Schreibstrategie mit Versionstempel und Migrationstracking etablieren (tmp-Datei → Commit)
 - [ ] Konfliktfreie Dateinamen-Strategie (z. B. `_v001`/Zeitstempel) für Exporte und Backups implementieren
 - [ ] Validierungsreport zusätzlich als JSON-Datei exportieren und Undo-Pfade dokumentieren
+- [ ] State-Digest dauerhaft speichern (Event-Archiv, Verlauf für Module/Playlist/Plugins; UI-Historie aktiv, Persistenz/Export offen)
 
 ## Sicherheit & Sanitizing
 - [x] Smart-Error-Guard einführen (globale Fehlerfänger, JSON-/Audio-Dateiprüfung, Feedback-Panel, Debug-Snapshot)
@@ -56,6 +57,8 @@
 - [ ] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen
 - [ ] Layout-Anpassung per Drag/Resize ermöglichen (Seitenleistenbreite stufenlos, Speicher je Preset) und mobile Breakpoints dokumentieren
 - [ ] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
+- [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen
+- [ ] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (UI-Historie existiert, Persistenz fehlt)
 - [ ] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
 
 ## Performance & Robustheit
@@ -134,3 +137,4 @@
 - [x] Validierungsreport für Backup/Import eingeführt (sanitizeStateForExport, Report-Anzeige im Prüfmodul, Import-Log-Hinweise)
 - [x] Feedback-Badge mit Zeitstempel, `guardAction`-Helper, Plugin-Vorprüfung und Debug-Download ergänzt; `npm test` läuft jetzt automatisch mit `npm run lint` (pretest)
 - [x] Log-Zusammenfassung liefert Filter-/Anzahl-/Letzte-Meldung-Klartext (sichtbar + Screenreader) und Self-Repair meldet Ergebnisse über das Prozessbanner
+- [x] Event-Bus & State-Digest implementiert (STATE_CHANGED/LOG_ADDED Events, gekürzte Autosave-Snapshots, Screenreader-Live-Status)

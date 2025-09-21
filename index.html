@@ -46,6 +46,22 @@
   .area-tag.accent-audio .area-dot{background:var(--accent-audio)}
   .area-tag.accent-library{border-color:var(--accent-library);background:var(--accent-library-soft)}
   .area-tag.accent-library .area-dot{background:var(--accent-library)}
+  .digest-panel{margin-top:12px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--panel-2);display:flex;flex-direction:column;gap:10px}
+  .digest-panel .title{font-size:1rem;margin:0}
+  .digest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
+  .digest-cell{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:10px;display:flex;flex-direction:column;gap:4px;box-shadow:var(--shadow)}
+  .digest-cell strong{font-size:1.4rem;font-variant-numeric:tabular-nums}
+  .digest-cell span{font-size:.85rem;color:var(--muted)}
+  .digest-cell[data-area="modules"]{border-left:4px solid var(--accent-modules)}
+  .digest-cell[data-area="plugins"]{border-left:4px solid var(--info)}
+  .digest-cell[data-area="playlist"]{border-left:4px solid var(--accent-audio)}
+  .digest-cell[data-area="archive"]{border-left:4px solid var(--accent-library)}
+  .digest-next{font-size:.9rem;color:var(--muted);margin:0}
+  .digest-history{border:1px dashed var(--border);border-radius:10px;padding:10px;background:var(--panel)}
+  .digest-history summary{cursor:pointer;font-weight:600}
+  .digest-history ul{margin:8px 0 0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+  .digest-history li{font-size:.85rem;color:var(--muted);line-height:1.5}
+  .digest-history li strong{color:var(--text);font-weight:600}
   .panel.accent-modules{border-left:4px solid var(--accent-modules);box-shadow:var(--shadow),0 0 0 2px var(--accent-modules-soft)}
   .panel.accent-workspace{border-left:4px solid var(--accent-workspace);box-shadow:var(--shadow),0 0 0 2px var(--accent-workspace-soft)}
   .panel.accent-audio{border-left:4px solid var(--accent-audio);box-shadow:var(--shadow),0 0 0 2px var(--accent-audio-soft)}
@@ -234,6 +250,7 @@
           <span class="chip" title="Playlist-Titel"><strong id="stat-tracks">0</strong> Tracks</span>
         </div>
         <p class="muted" id="statsSummary" aria-live="polite">Starte mit einem Modul oder importiere ein Backup – alles ist bereit.</p>
+        <p id="stateDigestLive" class="sr-only" aria-live="polite" aria-atomic="true">Status aktualisiert. Noch keine Daten vorhanden.</p>
         <div class="area-legend" aria-label="Farblegende der Bereiche">
           <div class="area-tag accent-modules">
             <span class="area-dot" aria-hidden="true"></span>
@@ -252,6 +269,35 @@
             <span class="area-text"><span>Archiv & Listen</span><span class="area-sub">unten • Sammlungen</span></span>
           </div>
         </div>
+        <section id="stateDigestPanel" class="digest-panel" aria-live="polite" aria-label="Status auf einen Blick">
+          <h3 class="title">Status auf einen Blick</h3>
+          <div class="digest-grid" role="list">
+            <div class="digest-cell" data-area="modules" role="listitem">
+              <strong id="digestModules">0</strong>
+              <span>Module bereit</span>
+            </div>
+            <div class="digest-cell" data-area="plugins" role="listitem">
+              <strong id="digestPlugins">0</strong>
+              <span>Plugins aktiv</span>
+            </div>
+            <div class="digest-cell" data-area="playlist" role="listitem">
+              <strong id="digestPlaylist">0</strong>
+              <span>Tracks in der Liste</span>
+            </div>
+            <div class="digest-cell" data-area="archive" role="listitem">
+              <strong id="digestArchive">0</strong>
+              <span>Archiv-Einträge</span>
+            </div>
+          </div>
+          <p id="digestSummaryText" class="muted" aria-live="polite">Noch keine Aktivitäten. Sobald du Module oder Musik hinzufügst, erscheint hier eine Zusammenfassung.</p>
+          <p id="digestNextStep" class="digest-next">Tipp: Lege ein Modul an oder importiere eine Sicherung, um zu starten.</p>
+          <details id="digestHistory" class="digest-history">
+            <summary>Letzte Änderungen anzeigen</summary>
+            <ul id="digestHistoryList">
+              <li id="digestHistoryEmpty">Noch keine Änderungen protokolliert.</li>
+            </ul>
+          </details>
+        </section>
       </div>
           <div class="col" style="min-width:220px;align-items:flex-end">
             <div class="clock" id="clock" aria-live="polite">--:--:--</div>
@@ -623,6 +669,43 @@
   const systemContrastDefault=(prefersContrastMedia&&typeof prefersContrastMedia.matches==='boolean'?prefersContrastMedia.matches:false)||(forcedColorsMedia&&typeof forcedColorsMedia.matches==='boolean'?forcedColorsMedia.matches:false);
   const isTestEnv=typeof window!=='undefined'&&window.__MODUL_TOOL_TEST__===true;
   const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
+  function createEventBus(){
+    const listeners=new Map();
+    return{
+      subscribe(event,handler){
+        if(!event||typeof handler!=='function') return ()=>{};
+        if(!listeners.has(event)) listeners.set(event,new Set());
+        const set=listeners.get(event);
+        set.add(handler);
+        return()=>{
+          set.delete(handler);
+          if(set.size===0){listeners.delete(event);}
+        };
+      },
+      publish(event,detail){
+        const handlers=listeners.get(event);
+        if(!handlers||handlers.size===0) return;
+        handlers.forEach(fn=>{
+          try{fn(detail);}catch(error){
+            if(typeof console!=='undefined'&&console&&typeof console.warn==='function'){
+              console.warn('EventBus-Handler-Fehler für',event,error);
+            }
+          }
+        });
+      },
+      clear(event){
+        if(event){listeners.delete(event);}else{listeners.clear();}
+      },
+      count(event){
+        if(event){return listeners.has(event)?listeners.get(event).size:0;}
+        let total=0;
+        listeners.forEach(set=>{total+=set.size;});
+        return total;
+      }
+    };
+  }
+  const eventBus=createEventBus();
+  const EVENT_NAMES=Object.freeze({STATE_CHANGED:'state:changed',LOG_ADDED:'log:added'});
   function createEmptyState(options={}){
     const cfg=Object.assign({icon:null,title:'Keine Einträge',description:'Füge Inhalte hinzu, damit hier etwas erscheint.',action:null},options);
     const wrap=document.createElement('div');
@@ -685,6 +768,15 @@
   const loglist=$('#loglist');
   const logSummaryLive=$('#logSummaryLive');
   const logSummaryText=$('#logSummaryText');
+  const stateDigestLive=$('#stateDigestLive');
+  const digestSummaryText=$('#digestSummaryText');
+  const digestNextStep=$('#digestNextStep');
+  const digestModules=$('#digestModules');
+  const digestPlugins=$('#digestPlugins');
+  const digestPlaylist=$('#digestPlaylist');
+  const digestArchive=$('#digestArchive');
+  const digestHistoryList=$('#digestHistoryList');
+  const digestHistoryEmpty=$('#digestHistoryEmpty');
   const liveRegion=$('#liveStatus');
   const liveText=$('#liveStatusText');
   const processLive=$('#processStatusLive');
@@ -1596,7 +1688,7 @@
         actions:[
           {label:'Backup exportieren',description:'Erstellt sofort eine Sicherungsdatei.',run:()=>{exportAll();return true;},closeAfter:false},
           {label:'Backup-Prüfung öffnen',description:'Springt direkt in das Prüfmodul.',run:()=>{openModule(backupCheckId);announceProcess('Backup-Prüfung geöffnet.','info');return true;},closeAfter:true},
-          {label:'Self-Repair jetzt ausführen',description:'Bereinigt Daten sofort und meldet die Anzahl der Korrekturen.',run:()=>{const fixes=selfRepair();renderAll();persist();announceProcess(`Self-Repair abgeschlossen (${fixes} Korrekturen).`,fixes>0?'ok':'info');addLog('info','Hilfe: Self-Repair ausgelöst.');return true;},closeAfter:false}
+          {label:'Self-Repair jetzt ausführen',description:'Bereinigt Daten sofort und meldet die Anzahl der Korrekturen.',run:()=>{const fixes=selfRepair();renderAll();persist({reason:'self-repair'});announceProcess(`Self-Repair abgeschlossen (${fixes} Korrekturen).`,fixes>0?'ok':'info');addLog('info','Hilfe: Self-Repair ausgelöst.');return true;},closeAfter:false}
         ],
         tips:[
           'Self-Repair meldet jede Änderung im Log. So erkennst du, was angepasst wurde.',
@@ -1765,7 +1857,134 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.2.0',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const DEFAULT_STATE_VERSION='1.2.0';
+  const LOG_MEMORY_LIMIT=300;
+  const LOG_PERSIST_LIMIT=200;
+  const STATE_DIGEST_HISTORY_LIMIT=8;
+  const stateDigestHistory=[];
+  const state={version:DEFAULT_STATE_VERSION,theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const STATE_REASON_TEXT={
+    'state-change':'Status aktualisiert',
+    'state-loaded':'Zustand geladen',
+    'state-imported':'Import abgeschlossen',
+    'manual-save':'Manuell gespeichert',
+    'layout-changed':'Layout gewechselt',
+    'module-registered':'Modul gespeichert',
+    'module-removed':'Modul entfernt',
+    'plugin-registered':'Plugin importiert',
+    'plugin-removed':'Plugin entfernt',
+    'playlist-added':'Playlist ergänzt',
+    'playlist-removed':'Playlist bereinigt',
+    'playlist-reordered':'Playlist sortiert',
+    'playlist-imported':'Playlist importiert',
+    'log-cleared':'Log bereinigt',
+    'log-filter-changed':'Log-Filter geändert',
+    'settings-changed':'Einstellung aktualisiert',
+    'genres-added':'Genres ergänzt',
+    'moods-added':'Stimmungen ergänzt',
+    'category-added':'Kategorie angelegt',
+    'category-removed':'Kategorie entfernt'
+  };
+  function pluralize(count,singular,plural){
+    const safeCount=Number.isFinite(count)?Number(count):0;
+    return `${safeCount} ${safeCount===1?singular:plural}`;
+  }
+  function buildStateDigest(){
+    return{
+      modules:Array.isArray(state.modules)?state.modules.length:0,
+      plugins:Array.isArray(state.plugins)?state.plugins.length:0,
+      categories:state.categories&&typeof state.categories==='object'?Object.keys(state.categories).length:0,
+      genres:Array.isArray(state.genres)?state.genres.length:0,
+      moods:Array.isArray(state.moods)?state.moods.length:0,
+      playlist:Array.isArray(state.playlist)?state.playlist.length:0,
+      log:Array.isArray(state.log)?state.log.length:0
+    };
+  }
+  function describeStateDigest(digest,reason){
+    if(!digest)return'Status aktualisiert.';
+    const archiveCount=(Number(digest.genres)||0)+(Number(digest.moods)||0);
+    const header=STATE_REASON_TEXT[reason]||STATE_REASON_TEXT['state-change'];
+    const fragments=[
+      pluralize(digest.modules,'Modul','Module'),
+      pluralize(digest.plugins,'Plugin','Plugins'),
+      pluralize(digest.categories,'Kategorie','Kategorien'),
+      pluralize(digest.playlist,'Track','Tracks'),
+      pluralize(archiveCount,'Archiv-Eintrag','Archiv-Einträge')
+    ];
+    return `${header}: ${fragments.join(' • ')}.`;
+  }
+  function buildStateDigestHint(digest){
+    if(!digest)return'Starte mit einem Modul oder importiere ein Backup.';
+    const suggestions=[];
+    if((Number(digest.modules)||0)===0){suggestions.push('Lege dein erstes Modul an');}
+    if((Number(digest.playlist)||0)===0){suggestions.push('Ziehe Musik in die Playlist oder nutze „Import“');}
+    if((Number(digest.plugins)||0)===0){suggestions.push('Installiere bei Bedarf ein Plugin über den Manager');}
+    if((Number(digest.categories)||0)===0&&(Number(digest.genres)||0)+(Number(digest.moods)||0)===0){suggestions.push('Baue dein Archiv mit Kategorien, Genres und Stimmungen auf');}
+    if(suggestions.length===0){return'Super! Sichere regelmäßig ein Backup, damit alles erhalten bleibt.';}
+    if(suggestions.length===1){return`Tipp: ${suggestions[0]}.`;}
+    const last=suggestions.pop();
+    return`Tipps: ${suggestions.join(', ')} und ${last}.`;
+  }
+  function renderStateDigestHistory(){
+    if(!digestHistoryList)return;
+    digestHistoryList.innerHTML='';
+    if(stateDigestHistory.length===0){
+      if(digestHistoryEmpty){
+        digestHistoryEmpty.textContent='Noch keine Änderungen protokolliert.';
+        digestHistoryList.appendChild(digestHistoryEmpty);
+      }
+      return;
+    }
+    if(digestHistoryEmpty&&digestHistoryEmpty.parentNode){
+      digestHistoryEmpty.parentNode.removeChild(digestHistoryEmpty);
+    }
+    stateDigestHistory.forEach(entry=>{
+      const item=document.createElement('li');
+      const time=new Date(entry.timestamp).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      item.innerHTML=`<strong>${time}</strong> – ${describeStateDigest(entry.digest,entry.reason)}`;
+      digestHistoryList.appendChild(item);
+    });
+  }
+  function renderStateDigestPanel(detail){
+    const digest=detail&&detail.digest?detail.digest:buildStateDigest();
+    if(digestModules)digestModules.textContent=Number(digest.modules)||0;
+    if(digestPlugins)digestPlugins.textContent=Number(digest.plugins)||0;
+    if(digestPlaylist)digestPlaylist.textContent=Number(digest.playlist)||0;
+    const archiveCount=(Number(digest.categories)||0)+(Number(digest.genres)||0)+(Number(digest.moods)||0);
+    if(digestArchive)digestArchive.textContent=archiveCount;
+    if(digestSummaryText){
+      digestSummaryText.textContent=describeStateDigest(digest,detail&&detail.reason);
+    }
+    if(digestNextStep){
+      digestNextStep.textContent=buildStateDigestHint(digest);
+    }
+  }
+  function recordStateDigest(detail){
+    const digest=detail&&detail.digest?detail.digest:buildStateDigest();
+    const entry={timestamp:Date.now(),reason:detail&&detail.reason?detail.reason:'state-change',digest};
+    stateDigestHistory.unshift(entry);
+    if(stateDigestHistory.length>STATE_DIGEST_HISTORY_LIMIT){
+      stateDigestHistory.length=STATE_DIGEST_HISTORY_LIMIT;
+    }
+    renderStateDigestHistory();
+  }
+  function resetStateDigestHistory(){
+    stateDigestHistory.length=0;
+    renderStateDigestHistory();
+  }
+  function notifyStateChange(reason='state-change',extra={}){
+    const digest=buildStateDigest();
+    const detail=Object.assign({reason,digest},extra||{});
+    eventBus.publish(EVENT_NAMES.STATE_CHANGED,detail);
+    updateStateDigestLive(detail);
+    recordStateDigest(detail);
+    renderStateDigestPanel(detail);
+  }
+  function updateStateDigestLive(detail){
+    if(!stateDigestLive)return;
+    const digest=detail&&detail.digest?detail.digest:buildStateDigest();
+    stateDigestLive.textContent=describeStateDigest(digest,detail&&detail.reason);
+  }
   function getPresetMeta(id){return CONFIG_PRESETS[id]||CONFIG_PRESETS.custom;}
   function findPresetMatch(snapshot){
     if(!snapshot)return null;
@@ -1894,7 +2113,7 @@
       else{document.body.removeAttribute('data-layout-stack');}
     }
     renderLayoutControls(meta);
-    if(persistChange) persist();
+    if(persistChange) persist({reason:'layout-changed',detail:{layout:meta.id}});
     if(announceSelection){
       announceProcess(`Layout „${meta.label}“ aktiviert.`,'info');
       addLog('ok','Layout gewählt: '+meta.label);
@@ -2330,11 +2549,15 @@
     const levelMeta=LOG_LEVELS[lvl];
     const time=new Date().toLocaleTimeString('de-DE',{hour12:false});
     const message=safeStr(msg).trim()||levelMeta.label;
-    state.log.push({id:uuid(),time,type:lvl,msg:message});
-    if(state.log.length>300)state.log.shift();
+    const entry={id:uuid(),time,type:lvl,msg:message};
+    state.log.push(entry);
+    if(state.log.length>LOG_MEMORY_LIMIT){
+      state.log.splice(0,state.log.length-LOG_MEMORY_LIMIT);
+    }
     announce(message,lvl);
     renderLog();
     refreshDebugPanel();
+    eventBus.publish(EVENT_NAMES.LOG_ADDED,{entry,digest:buildStateDigest()});
   }
   function renderLog(){loglist.innerHTML='';
     const rawFilter=safeLower(state.logFilter||'all');
@@ -2388,9 +2611,6 @@
     if(logSummaryText) logSummaryText.textContent=summary;
     if(logSummaryLive) logSummaryLive.textContent=summary;
   }
-  const LS_KEY='modultool_state_v1';
-  function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));addLog('ok','Gespeichert.')}catch(err){addLog('error','Speichern fehlgeschlagen: '+err.message)}}
-  function load(){try{const raw=localStorage.getItem(LS_KEY);if(!raw)return;Object.assign(state,JSON.parse(raw));addLog('ok','Zustand geladen.')}catch(err){addLog('error','Laden fehlgeschlagen: '+err.message)}}
   function selfRepair(){
     let fixes=0;
     if(!Array.isArray(state.modules)){state.modules=[];fixes++;}
@@ -2524,6 +2744,8 @@
       summary.textContent=buildStatsSummary();
     }
     updateHelpStats();
+    updateStateDigestLive({reason:'state-change'});
+    renderStateDigestPanel({reason:'state-change'});
   }
   function renderTheme(){
     if(docEl){docEl.setAttribute('data-theme',state.theme);}
@@ -2889,7 +3111,7 @@
     ensurePluginModule(plugin);
     renderModules();
     renderStats();
-    persist();
+    persist({reason:'plugin-registered',detail:{pluginId:plugin.id}});
     addLog('ok','Plugin importiert: '+plugin.name);
     return plugin;
   }
@@ -2906,7 +3128,7 @@
     renderModules();
     renderStats();
     ensureModuleRegistryMatchesState(state.activeModule||null);
-    persist();
+    persist({reason:'module-removed',detail:{moduleId:id}});
   }
   function removePlugin(id){
     const idx=state.plugins.findIndex(p=>p.id===id);
@@ -2914,7 +3136,7 @@
     const plugin=state.plugins[idx];
     state.plugins.splice(idx,1);
     if(plugin&&plugin.moduleId)removeModule(plugin.moduleId);
-    persist();
+    persist({reason:'plugin-removed',detail:{pluginId:id}});
     addLog('warn','Plugin entfernt: '+(plugin?plugin.name:'unbekannt'));
     if(state.activeModule===pluginOverviewId)openModule(pluginOverviewId);
   }
@@ -3196,7 +3418,7 @@
       addLog('ok','Modul registriert: '+safeName);
       renderModules();
       renderStats();
-      persist();
+      persist({reason:'module-registered',detail:{moduleId:id}});
     }
     moduleRegistry.set(id,typeof renderFn==='function'?renderFn:(el)=>{el.innerHTML=`<h2>${safeName}</h2><p>Kein Renderer definiert.</p>`});
     ensureModuleRegistryMatchesState(id);
@@ -3212,10 +3434,10 @@
   updateHelpStats();
   const splitInput=str=>safeStr(str).split(',').map(s=>s.trim()).filter(Boolean);
   function addToArchive(targetArr,items){const before=targetArr.length;items.forEach(x=>{if(!targetArr.includes(x))targetArr.push(x)});targetArr.sort((a,b)=>a.localeCompare(b));return targetArr.length-before}
-  function addGenres(){const items=splitInput($('#genreInput').value);if(items.length===0)return toast('Keine Genres erkannt.');const added=addToArchive(state.genres,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].genres,items)}$('#genreInput').value='';renderArchives();renderStats();persist();addLog(added>0?'ok':'warn',added>0?'Genres hinzugefügt: +'+added:'Keine neuen Genres (Duplikate)')}
-  function addMoods(){const items=splitInput($('#moodInput').value);if(items.length===0)return toast('Keine Moods erkannt.');const added=addToArchive(state.moods,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].moods,items)}$('#moodInput').value='';renderArchives();renderStats();persist();addLog(added>0?'ok':'warn',added>0?'Moods hinzugefügt: +'+added:'Keine neuen Moods (Duplikate)')}
-  function addCategory(){const name=safeStr($('#catName').value).trim();if(!name)return toast('Kategoriename fehlt.');if(state.categories[name]){toast('Kategorie existiert.');return}state.categories[name]={genres:[],moods:[]};$('#catName').value='';renderCategories();renderStats();persist();addLog('ok','Kategorie angelegt: '+name)}
-  function delCategory(){const c=$('#catSel').value;if(!c)return toast('Keine Kategorie gewählt.');if(!confirm('Kategorie „'+c+'“ wirklich löschen?'))return;delete state.categories[c];renderCategories();renderStats();persist();addLog('ok','Kategorie gelöscht: '+c)}
+  function addGenres(){const items=splitInput($('#genreInput').value);if(items.length===0)return toast('Keine Genres erkannt.');const added=addToArchive(state.genres,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].genres,items)}$('#genreInput').value='';renderArchives();renderStats();persist({reason:'genres-added',detail:{added}});addLog(added>0?'ok':'warn',added>0?'Genres hinzugefügt: +'+added:'Keine neuen Genres (Duplikate)')}
+  function addMoods(){const items=splitInput($('#moodInput').value);if(items.length===0)return toast('Keine Moods erkannt.');const added=addToArchive(state.moods,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].moods,items)}$('#moodInput').value='';renderArchives();renderStats();persist({reason:'moods-added',detail:{added}});addLog(added>0?'ok':'warn',added>0?'Moods hinzugefügt: +'+added:'Keine neuen Moods (Duplikate)')}
+  function addCategory(){const name=safeStr($('#catName').value).trim();if(!name)return toast('Kategoriename fehlt.');if(state.categories[name]){toast('Kategorie existiert.');return}state.categories[name]={genres:[],moods:[]};$('#catName').value='';renderCategories();renderStats();persist({reason:'category-added',detail:{category:name}});addLog('ok','Kategorie angelegt: '+name)}
+  function delCategory(){const c=$('#catSel').value;if(!c)return toast('Keine Kategorie gewählt.');if(!confirm('Kategorie „'+c+'“ wirklich löschen?'))return;delete state.categories[c];renderCategories();renderStats();persist({reason:'category-removed',detail:{category:c}});addLog('ok','Kategorie gelöscht: '+c)}
   function pickRandom(arr,n){const pool=[...new Set(arr)];const out=[];while(pool.length&&out.length<n){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0])}return out}
   function runRandom(custom=false){const c=$('#randCatSel').value;let gsrc=state.genres,msrc=state.moods;if(c&&state.categories[c]){const cc=state.categories[c];gsrc=cc.genres.length?cc.genres:gsrc;msrc=cc.moods.length?cc.moods:msrc}const gn=custom?Math.max(1,+$('#randG').value|0):+(this&&this.dataset?this.dataset.g:0)||3;const mn=custom?Math.max(1,+$('#randM').value|0):+(this&&this.dataset?this.dataset.m:0)||3;const g=pickRandom(gsrc,gn);const m=pickRandom(msrc,mn);const out=`${g.join(', ')}`+(m.length?`, ${m.join(', ')}`:'');$('#randOut').value=out;addLog('ok','Zufall bereitgestellt ('+g.length+'/'+m.length+').')}
   async function copyOutput(){try{const text=$('#randOut').value;if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{$('#randOut').select();document.execCommand('copy')}toast('In Zwischenablage kopiert.')}catch(e){addLog('error','Kopieren fehlgeschlagen: '+e.message)}}
@@ -3238,7 +3460,7 @@
         $('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`;
       }
       renderStats();
-      persist();
+      persist({reason:'playlist-added',detail:{tracks:tracks.length}});
       addLog('ok',tracks.length+' Track(s) hinzugefügt.');
       announceProcess(tracks.length===1?'1 Titel importiert.':tracks.length+' Titel importiert.','ok');
     }).catch(error=>{
@@ -3286,7 +3508,7 @@
     const nextTrack=state.playlist[Math.min(idx,state.playlist.length-1)];
     renderPlaylist();
     renderStats();
-    persist();
+    persist({reason:'playlist-removed',detail:{remaining:state.playlist.length}});
     addLog('ok','Track entfernt.');
     if(nextTrack) focusPlaylistItem(nextTrack.id);
   }
@@ -3300,7 +3522,7 @@
       else if(from>state._currentIndex&&to<=state._currentIndex) state._currentIndex++;
     }
     renderPlaylist();
-    persist();
+    persist({reason:'playlist-reordered',detail:{from,to}});
     addLog('ok','Playlist umsortiert.');
     focusPlaylistItem(moved&&moved.id);
   }
@@ -3339,7 +3561,7 @@
             state.playlist=arr.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:x.src}));
             renderPlaylist();
             renderStats();
-            persist();
+            persist({reason:'playlist-imported',detail:{count:state.playlist.length}});
             addLog('ok','Playlist importiert.');
             captureFeedback('Playlist importiert. Prüfe die Liste unten, ob alle Titel korrekt erscheinen.', 'ok', {source:'playlist'});
             return true;
@@ -3604,6 +3826,58 @@
       }
     };
   }
+  const LS_KEY='modultool_state_v1';
+  function createPersistableState(){
+    const reporter=createValidationReport();
+    const {state:cleanState}=sanitizeStateForExport(state,{logLimit:LOG_PERSIST_LIMIT,reporter});
+    cleanState.version=safeStr(state.version||DEFAULT_STATE_VERSION)||DEFAULT_STATE_VERSION;
+    cleanState.log=(Array.isArray(cleanState.log)?cleanState.log:[]).map(entry=>({
+      id:entry.id||uuid(),
+      time:safeStr(entry.time)||'--:--:--',
+      type:normalizeLogType(entry.type),
+      msg:safeStr(entry.msg)||''
+    }));
+    return cleanState;
+  }
+  function buildRestoredLogEntries(logInput){
+    if(!Array.isArray(logInput))return[];
+    return logInput.filter(Boolean).map(entry=>({
+      id:entry.id||uuid(),
+      time:safeStr(entry.time)||'--:--:--',
+      type:normalizeLogType(entry.type),
+      msg:safeStr(entry.msg)||''
+    })).slice(-LOG_MEMORY_LIMIT);
+  }
+  function applyLoadedState(saved){
+    const candidate=isPlainObject(saved)?saved:{};
+    const {state:cleaned}=sanitizeStateForExport(candidate);
+    cleaned.version=safeStr(candidate.version||state.version||DEFAULT_STATE_VERSION)||DEFAULT_STATE_VERSION;
+    cleaned.log=buildRestoredLogEntries(candidate.log||cleaned.log);
+    cleaned.logFilter=['all','info','ok','warn','error'].includes(cleaned.logFilter)?cleaned.logFilter:'all';
+    Object.assign(state,cleaned);
+    resetStateDigestHistory();
+  }
+  function save(){
+    try{
+      const snapshot=createPersistableState();
+      localStorage.setItem(LS_KEY,JSON.stringify(snapshot));
+      addLog('ok','Gespeichert.');
+    }catch(err){
+      addLog('error','Speichern fehlgeschlagen: '+safeStr(err&&err.message));
+    }
+  }
+  function load(){
+    try{
+      const raw=localStorage.getItem(LS_KEY);
+      if(!raw)return;
+      const parsed=JSON.parse(raw);
+      applyLoadedState(parsed);
+      addLog('ok','Zustand geladen.');
+      notifyStateChange('state-loaded',{source:'local-storage'});
+    }catch(err){
+      addLog('error','Laden fehlgeschlagen: '+safeStr(err&&err.message));
+    }
+  }
   function buildBackup(){
     const {state:sanitized}=sanitizeStateForExport(state,{logLimit:50});
     return{
@@ -3694,8 +3968,6 @@
         applyLayoutPreset(state.layoutPreset,{announceSelection:false});
         ensureAllPlugins();
         renderAll();
-        persist();
-        addLog('ok','Gesamtdaten importiert.');
         const corrections=[];
         if(report){
           if(report.fixes.length)corrections.push(`${report.fixes.length} Korrektur${report.fixes.length===1?'':'en'}`);
@@ -3704,6 +3976,8 @@
         if(corrections.length){
           addLog('warn','Import: '+corrections.join(' & ')+' automatisch umgesetzt.');
         }
+        persist({reason:'state-imported',detail:{layout:state.layoutPreset,corrections:corrections.length}});
+        addLog('ok','Gesamtdaten importiert.');
         announceProcess('Import abgeschlossen'+(corrections.length?` – ${corrections.join(' & ')}`:'.'),'ok');
       }catch(e){
         addLog('error','Import-Fehler: '+e.message);
@@ -3713,7 +3987,15 @@
     r.readAsText(file);
   }
   function download(name,content){const type=name.endsWith('.txt')?'text/plain':'application/json';const blob=new Blob([content],{type});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),2000);}
-  function persist(){if($('#autosaveChk').checked)save();}
+  function persist(options={}){
+    const {reason='state-change',detail={},forceSave=false}=options||{};
+    const autosaveCtrl=$('#autosaveChk');
+    const autosaveActive=!!(autosaveCtrl&&autosaveCtrl.checked);
+    if(forceSave||autosaveActive){
+      save();
+    }
+    notifyStateChange(reason,Object.assign({autosaveActive:forceSave||autosaveActive},detail||{}));
+  }
   function runSelfTests(){let pass=0,fail=0;announceProcess('Selbsttests gestartet.','info');function test(n,fn){try{fn();pass++;addLog('ok','TEST ✓ '+n)}catch(e){fail++;addLog('error','TEST ✗ '+n+': '+e.message)}}
     test('slugify(undefined)',()=>{slugify(undefined)});
     test('safeLower(null)',()=>{safeLower(null)});
@@ -3767,29 +4049,29 @@
     if(debugRefreshBtn){debugRefreshBtn.addEventListener('click',()=>{refreshDebugPanel();announceProcess('Debug-Daten aktualisiert.','info');});}
     if(debugCopyBtn){debugCopyBtn.addEventListener('click',copyDebugData);}
     if(debugDownloadBtn){debugDownloadBtn.addEventListener('click',downloadDebugData);}
-    if(smartErrorsChk){smartErrorsChk.addEventListener('change',()=>{state.smartErrors=!!smartErrorsChk.checked;attachGlobalErrorGuards();updateFeedbackBadge();persist();handleSettingChanged();});}
-    if(preventMistakesChk){preventMistakesChk.addEventListener('change',()=>{state.preventMistakes=!!preventMistakesChk.checked;updateFeedbackBadge();persist();handleSettingChanged();});}
-    if(debugModeChk){debugModeChk.addEventListener('change',()=>{state.debugMode=!!debugModeChk.checked;renderDebugPanel();persist();handleSettingChanged();});}
-    if(feedbackModeSel){feedbackModeSel.addEventListener('change',()=>{const mode=feedbackModeSel.value==='smart'?'smart':'full';state.feedbackMode=mode;renderFeedback();persist();handleSettingChanged();});}
-    $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme);handleSettingChanged();});
+    if(smartErrorsChk){smartErrorsChk.addEventListener('change',()=>{state.smartErrors=!!smartErrorsChk.checked;attachGlobalErrorGuards();updateFeedbackBadge();persist({reason:'settings-changed',detail:{setting:'smartErrors',value:state.smartErrors}});handleSettingChanged();});}
+    if(preventMistakesChk){preventMistakesChk.addEventListener('change',()=>{state.preventMistakes=!!preventMistakesChk.checked;updateFeedbackBadge();persist({reason:'settings-changed',detail:{setting:'preventMistakes',value:state.preventMistakes}});handleSettingChanged();});}
+    if(debugModeChk){debugModeChk.addEventListener('change',()=>{state.debugMode=!!debugModeChk.checked;renderDebugPanel();persist({reason:'settings-changed',detail:{setting:'debugMode',value:state.debugMode}});handleSettingChanged();});}
+    if(feedbackModeSel){feedbackModeSel.addEventListener('change',()=>{const mode=feedbackModeSel.value==='smart'?'smart':'full';state.feedbackMode=mode;renderFeedback();persist({reason:'settings-changed',detail:{setting:'feedbackMode',value:state.feedbackMode}});handleSettingChanged();});}
+    $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist({reason:'settings-changed',detail:{setting:'theme',value:state.theme}});addLog('ok','Theme: '+state.theme);handleSettingChanged();});
     $('#toggleLeft').addEventListener('click',()=>{const meta=getLayoutMeta(state.layoutPreset);const next=meta.showLeft===false?'balanced':'audio-only';applyLayoutPreset(next,{announceSelection:true});});
     $('#toggleRight').addEventListener('click',()=>{const meta=getLayoutMeta(state.layoutPreset);const next=meta.showRight===false?'balanced':'module-only';applyLayoutPreset(next,{announceSelection:true});});
-    $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist();handleSettingChanged();});
-    $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist();handleSettingChanged();});
-    $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist();handleSettingChanged();});
-    if(systemMotionChk){systemMotionChk.addEventListener('change',()=>{state.respectSystemMotion=systemMotionChk.checked;if(state.respectSystemMotion){addLog('info','System-Animationen aktiv.');}else{addLog('info','Eigene Animationseinstellung aktiv.');}applyMotionPreference();renderDisplaySettings();persist();handleSettingChanged();});}
-    if(reduceMotionChk){reduceMotionChk.addEventListener('change',()=>{state.reduceMotion=!!reduceMotionChk.checked;addLog('ok',state.reduceMotion?'Animationen reduziert.':'Animationen normal.');applyMotionPreference();renderDisplaySettings();persist();handleSettingChanged();});}
-    if(systemContrastChk){systemContrastChk.addEventListener('change',()=>{state.respectSystemContrast=systemContrastChk.checked;if(state.respectSystemContrast){addLog('info','System-Kontrast aktiv.');}else{addLog('info','Eigene Kontrasteinstellung aktiv.');}applyContrastPreference();renderDisplaySettings();persist();handleSettingChanged();});}
-    if(highContrastChk){highContrastChk.addEventListener('change',()=>{state.highContrast=!!highContrastChk.checked;addLog('ok',state.highContrast?'Hoher Kontrast aktiv.':'Normaler Kontrast aktiv.');applyContrastPreference();renderDisplaySettings();persist();handleSettingChanged();});}
-    if(fontScaleSel){fontScaleSel.addEventListener('change',()=>{const parsed=Math.round(Number(fontScaleSel.value)||systemFontDefault());state.fontScale=allowedFontScales.has(parsed)?parsed:systemFontDefault();addLog('ok','Schriftgröße auf '+state.fontScale+' px gesetzt.');applyFontScale();renderDisplaySettings();persist();handleSettingChanged();});}
+    $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist({reason:'settings-changed',detail:{setting:'autosave',value:state.autosave}});handleSettingChanged();});
+    $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist({reason:'settings-changed',detail:{setting:'selfrepair',value:state.selfrepair}});handleSettingChanged();});
+    $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist({reason:'settings-changed',detail:{setting:'toasts',value:state.toasts}});handleSettingChanged();});
+    if(systemMotionChk){systemMotionChk.addEventListener('change',()=>{state.respectSystemMotion=systemMotionChk.checked;if(state.respectSystemMotion){addLog('info','System-Animationen aktiv.');}else{addLog('info','Eigene Animationseinstellung aktiv.');}applyMotionPreference();renderDisplaySettings();persist({reason:'settings-changed',detail:{setting:'respectSystemMotion',value:state.respectSystemMotion}});handleSettingChanged();});}
+    if(reduceMotionChk){reduceMotionChk.addEventListener('change',()=>{state.reduceMotion=!!reduceMotionChk.checked;addLog('ok',state.reduceMotion?'Animationen reduziert.':'Animationen normal.');applyMotionPreference();renderDisplaySettings();persist({reason:'settings-changed',detail:{setting:'reduceMotion',value:state.reduceMotion}});handleSettingChanged();});}
+    if(systemContrastChk){systemContrastChk.addEventListener('change',()=>{state.respectSystemContrast=systemContrastChk.checked;if(state.respectSystemContrast){addLog('info','System-Kontrast aktiv.');}else{addLog('info','Eigene Kontrasteinstellung aktiv.');}applyContrastPreference();renderDisplaySettings();persist({reason:'settings-changed',detail:{setting:'respectSystemContrast',value:state.respectSystemContrast}});handleSettingChanged();});}
+    if(highContrastChk){highContrastChk.addEventListener('change',()=>{state.highContrast=!!highContrastChk.checked;addLog('ok',state.highContrast?'Hoher Kontrast aktiv.':'Normaler Kontrast aktiv.');applyContrastPreference();renderDisplaySettings();persist({reason:'settings-changed',detail:{setting:'highContrast',value:state.highContrast}});handleSettingChanged();});}
+    if(fontScaleSel){fontScaleSel.addEventListener('change',()=>{const parsed=Math.round(Number(fontScaleSel.value)||systemFontDefault());state.fontScale=allowedFontScales.has(parsed)?parsed:systemFontDefault();addLog('ok','Schriftgröße auf '+state.fontScale+' px gesetzt.');applyFontScale();renderDisplaySettings();persist({reason:'settings-changed',detail:{setting:'fontScale',value:state.fontScale}});handleSettingChanged();});}
     $('#exportAllBtn').addEventListener('click',exportAll);
     $('#manifestBtn').addEventListener('click',downloadManifest);
     $('#importAllFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f)});
-    $('#clearLogBtn').addEventListener('click',()=>{state.log=[];renderLog();persist()});
+    $('#clearLogBtn').addEventListener('click',()=>{state.log=[];renderLog();persist({reason:'log-cleared'});});
     $('#downloadLogBtn').addEventListener('click',()=>download('log.txt',state.log.map(l=>`[${l.time}] ${l.type}: ${l.msg}`).join('\n')));
     $('#aboutBtn').addEventListener('click',()=>openHelp('quickstart'));
     $('#selfTestBtn').addEventListener('click',runSelfTests);
-    $('#logFilterSel').addEventListener('change',e=>{state.logFilter=e.target.value;renderLog();persist()});
+    $('#logFilterSel').addEventListener('change',e=>{state.logFilter=e.target.value;renderLog();persist({reason:'log-filter-changed',detail:{filter:state.logFilter}});});
     document.addEventListener('keydown',e=>{
       const key=safeLower(e&&e.key);
       if(e.ctrlKey&&key==='k'){
@@ -3799,7 +4081,7 @@
       }
       if(e.ctrlKey&&key==='s'){
         e.preventDefault();
-        save();
+        persist({reason:'manual-save',detail:{manual:true},forceSave:true});
         toast('Gespeichert.');
         return;
       }
@@ -3931,7 +4213,7 @@
     updateConfigSummary();
   }
   function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}applyLayoutPreset(state.layoutPreset||'balanced',{announceSelection:false,persistChange:false});$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>stateDigestHistory.slice(),resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

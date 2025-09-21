@@ -1,3 +1,3 @@
-Release-Fortschritt: 73 %
-Stand: 2025-09-25
-Einschätzung: Logbuch und Self-Repair melden nun Klartext-Zusammenfassungen (sichtbar & Screenreader), das Backup-Prüfmodul passt seine Live-Region automatisch an und Prozessbanner informieren Laien über erfolgreiche Korrekturen. Schwergewichte wie Event-Bus, Transaktionskern und die Build-/Release-Toolchain stehen weiterhin aus.
+Release-Fortschritt: 78 %
+Stand: 2025-09-26
+Einschätzung: Das neue State-Digest-Dashboard visualisiert Module, Plugins, Playlist und Archiv als Karten, ergänzt Tipps für Laien und speichert die letzten acht Ereignisse; Tests sichern die Historienbegrenzung. Nächste Etappen: Statecharts, Build-Toolchain und Persistenz des Digest-Verlaufs in Backup/Manifest.

@@ -59,6 +59,7 @@ after(() => {
 beforeEach(() => {
   api.actions.clearPlugins();
   api.state.log = [];
+  api.events.resetDigestHistory();
   api.actions.activateConfigPreset('balanced', { announceSelection: false });
   api.actions.applyLayoutPreset('balanced', { announceSelection: false, persistChange: false });
 });
@@ -185,6 +186,48 @@ test('renderStats liefert laienfreundliche Zusammenfassung', () => {
   const summary = dom.window.document.querySelector('#statsSummary');
   assert.ok(summary, 'Zusammenfassungselement fehlt');
   assert.match(summary.textContent, /Noch alles leer/);
+});
+
+test('State-Digest-Panel zeigt Zahlen und kürzt die Historie', async () => {
+  api.events.resetDigestHistory();
+  api.state.modules = [];
+  api.state.categories = {};
+  api.state.genres = [];
+  api.state.moods = [];
+  api.state.playlist = [];
+  api.actions.renderStats();
+  const document = dom.window.document;
+  const digestSummary = document.querySelector('#digestSummaryText');
+  assert.ok(digestSummary, 'Digest-Zusammenfassung fehlt');
+  assert.match(digestSummary.textContent, /Status/);
+
+  for (let i = 0; i < 5; i += 1) {
+    api.actions.createUserModule(`Digest Modul ${i}`);
+  }
+  await flush();
+
+  const moduleCount = Number(document.querySelector('#digestModules').textContent);
+  assert.equal(moduleCount, api.state.modules.length);
+
+  const historyAfterCreate = api.events.getDigestHistory();
+  assert.ok(historyAfterCreate.length >= 1, 'es sollte mindestens einen Digest-Eintrag geben');
+  historyAfterCreate.forEach((entry) => {
+    assert.ok(entry.timestamp, 'Digest-Eintrag benötigt Zeitstempel');
+    assert.ok(entry.digest, 'Digest-Eintrag benötigt Zustand');
+  });
+
+  for (let i = 0; i < 12; i += 1) {
+    api.actions.createUserModule(`Digest Extra ${i}`);
+  }
+  await flush();
+
+  const trimmedHistory = api.events.getDigestHistory();
+  assert.ok(trimmedHistory.length <= 8, 'Digest-Historie sollte begrenzt sein');
+
+  api.state.modules = [];
+  api.actions.renderModules();
+  api.actions.renderStats();
+  api.events.resetDigestHistory();
 });
 
 test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
@@ -506,6 +549,45 @@ test('Plugin-Inhalte werden sanitisiert', async () => {
   assert.match(srcdoc, /target="_blank"/);
   assert.equal(frame.dataset.pluginName, 'Sicherheits-Plugin');
   assert.equal(frame.dataset.sectionTitle, 'Hinweis');
+});
+
+test('Event-Bus meldet Layout-Wechsel mit Digest', async () => {
+  const events = [];
+  const stopListening = api.events.bus.subscribe(api.events.names.STATE_CHANGED, (detail) => {
+    if (detail && detail.reason === 'layout-changed') {
+      events.push(detail);
+    }
+  });
+
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: false });
+  await flush();
+  api.actions.applyLayoutPreset('balanced', { announceSelection: false });
+  await flush();
+  stopListening();
+
+  assert.ok(events.length >= 1, 'es sollte mindestens ein Layout-Event geben');
+  const first = events[0];
+  assert.equal(first.layout, 'audio-only');
+  assert.equal(first.digest.modules, api.state.modules.length);
+  assert.equal(first.digest.playlist, api.state.playlist.length);
+});
+
+test('Persistenter Zustand kürzt Log und behält Version', () => {
+  api.state.version = '9.9.9';
+  api.state.log = Array.from({ length: 350 }, (_, index) => ({
+    id: `entry-${index}`,
+    time: `12:00:${index.toString().padStart(2, '0')}`,
+    type: 'info',
+    msg: `Nachricht ${index}`
+  }));
+
+  const snapshot = api.helpers.createPersistableState();
+
+  assert.equal(snapshot.version, '9.9.9');
+  assert.ok(snapshot.log.length <= 200, 'Log sollte für Speicherungen gekürzt werden');
+  const newest = snapshot.log[snapshot.log.length - 1];
+  assert.match(newest.msg, /Nachricht 349/);
+  assert.ok(snapshot.log.every((entry) => entry.id), 'Logeinträge besitzen IDs');
 });
 
 test('Konfigurations-Preset lässt sich anwenden und erkennt individuelle Änderung', async () => {
