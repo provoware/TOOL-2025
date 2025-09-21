@@ -168,3 +168,9 @@ test('removePlugin entfernt Plugin inkl. Modul', async () => {
   assert.ok(!api.state.modules.some((m) => m.id === moduleId));
   assert.equal(api.actions.moduleRendererExists(moduleId), false);
 });
+
+test('assertBackupSchema erkennt fehlende Modul-Liste', () => {
+  const backup = api.actions.buildBackup();
+  delete backup.state.modules;
+  assert.throws(() => api.actions.assertBackupSchema(backup), /state\.modules/);
+});

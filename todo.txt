@@ -13,5 +13,6 @@
 - [x] Backup-Schema formalisieren (JSON-Schema definieren & CI-Prüfung)
 - [x] Accessibility-Shortcuts erweitern (Playlist per Tastatur sortieren)
 - [x] Playlist-Shortcuts automatisiert testen (Playwright-Szenarien vorbereiten)
-- [ ] Backup-Schema direkt im Tool prüfen (AJV im Browser oder leichtgewichtiges Schema-Checking)
+- [x] Backup-Schema direkt im Tool prüfen (AJV im Browser oder leichtgewichtiges Schema-Checking)
+- [ ] Plugin-Module aus HTML-Inhalten gegen Skripte absichern (z. B. Sanitizer oder Render-Sandbox)
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)

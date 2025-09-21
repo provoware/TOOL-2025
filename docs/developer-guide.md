@@ -6,7 +6,7 @@ Dieses Handbuch hilft Entwicklern, das Projekt zu verstehen, lokal zu starten un
 ## Projektüberblick
 - **Typ:** Single-File-Webanwendung (HTML, CSS, JavaScript in `index.html`).
 - **Persistenz:** Browser `localStorage` mit Versionierung.
-- **Funktionalität:** Modulverwaltung, Archiv (Genres, Moods), Playlist mit Audio-Player, Zufallsgeneratoren, Logging, Selbsttests.
+- **Funktionalität:** Modulverwaltung, Archiv (Genres, Moods), Playlist mit Audio-Player, Zufallsgeneratoren, Logging, Selbsttests sowie eine integrierte Backup-Prüfung.
 
 ## Start & Nutzung
 1. Öffne `index.html` direkt im Browser (Doppelklick oder `file://`-Pfad).
@@ -52,6 +52,7 @@ TOOL-2025/
   - `validatePluginData` normalisiert Plugin-Dateien (Leerräume, ungültige Links, leere Abschnitte).
   - `registerPlugin` registriert Module und Renderer, doppelte Versionen werden abgefangen.
   - `removePlugin` löscht Plugin + Modul aus Zustand und Registry.
+  - `assertBackupSchema` stoppt defekte Sicherungen (z. B. ohne Modulliste) bevor sie importiert werden.
 - **JSON-Schema (`schemas/backup-schema.json`)** beschreibt jetzt das komplette Backup-Format. Die Tests validieren automatisch, ob `buildBackup()` dieses Schema erfüllt. Nutze `npm test`, um die Prüfungen lokal auszuführen.
 - **Vorbereitung für weitere Checks:** Das Testsetup kann um zusätzliche Szenarien (z. B. Import-Fehler, Modul-Registry) erweitert werden. Die exponierte Test-API `window.ModulToolTestAPI` stellt zentrale Funktionen (`renderPlaylist`, `reorderPlaylist`, `validateBackup`) sowie Plugin-Helfer (`validatePluginData`, `registerPlugin`, `removePlugin`, `clearPlugins`, `moduleRendererExists`) bereit.
 
@@ -66,7 +67,8 @@ TOOL-2025/
 ## Datenexport & Manifest
 - **Manifest-Button:** Exportiert eine schlanke Übersicht (Version, Theme, Modul-/Plugin-Anzahl, Archivgrößen, Einstellungen).
 - **Backup-Export:** Enthält Manifest + bereinigten Zustand (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter).
-- **Importprüfung:** Backups werden validiert (Arraytypen, Pflichtfelder, URL-Check). Playlisteinträge werden beim Import normalisiert (`id`, `title`, `artist`, `src`).
+- **Importprüfung:** Backups werden via `assertBackupSchema` strikt validiert (Schema, Pflichtfelder, URL-Check). Playlisteinträge werden beim Import normalisiert (`id`, `title`, `artist`, `src`).
+- **Backup-Prüfung im UI:** Das Modul „Backup-Prüfung“ erlaubt es, JSON-Dateien, Texteingaben oder den aktuellen Zustand gegen das Schema zu testen. Ergebnisse werden farblich markiert und mit Statistiken (Module, Plugins, Playlist-Länge, Archivgrößen) dargestellt.
 - **Log-Filter:** Nutzer können im Header zwischen `Alles`, `Erfolge`, `Hinweise`, `Fehler` wechseln. Einstellung wird im Backup gespeichert und beim Import wiederhergestellt.
 
 - **Datenmodelle (Ist-Zustand)**
