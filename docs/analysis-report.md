@@ -31,7 +31,7 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 - **Playlist-Handling:** `URL.revokeObjectURL` wird nur beim Entfernen genutzt; beim Import externer URLs fehlt Validierung.
 - **Self-Repair:** Entfernt dublette IDs, generiert aber ggf. neue IDs ohne Nutzerfeedback. Es gibt keine Möglichkeit, Konfliktberichte einzusehen.
 - **Barrierefreiheit:** Fokusreihenfolge, Tastaturnavigation und Screenreader-Texte sind nicht vollständig optimiert. Drag & Drop besitzt jetzt Alt+Pfeil-Kurzbefehle für die Playlist, weitere Bereiche benötigen jedoch Prüfung.
-- **Sicherheit:** Importierte JSON-Dateien wurden bislang kaum geprüft; das neue Schema-Gate (`assertBackupSchema`) reduziert Risiken. Plugin-Module bereinigen jetzt HTML-Inhalte (Whitelist), weitergehende CSP/Isolation fehlen noch.
+- **Sicherheit:** Importierte JSON-Dateien wurden bislang kaum geprüft; das neue Schema-Gate (`assertBackupSchema`) reduziert Risiken. Plugin-Module werden bereinigt und zusätzlich in eine Sandbox (Iframe ohne Same-Origin) ausgelagert. Eine globale CSP (`default-src 'self'`) schützt vor externen Skripten, dennoch fehlt langfristig ein Build, der Inline-Skripte überflüssig macht.
 - **Leistung:** Das gesamte UI wird häufig neu gerendert, was bei großen Datenmengen ineffizient sein kann.
 
 ## Optimierungspotenziale
@@ -49,7 +49,8 @@ ModulTool ist eine einzelne HTML-Datei, die ein umfassendes Offline-Dashboard be
 ## Umgesetzte Verbesserungen (aktuelle Iteration)
 - **Log-Filter & Manifest:** Das Dashboard zeigt jetzt nur relevante Logeinträge je nach Filter (`Alles`, `Erfolge`, `Hinweise`, `Fehler`). Zusätzlich lässt sich ein strukturielles Manifest inklusive Statistik als JSON exportieren.
 - **Gesicherter Datenexport:** Backups enthalten nun ein Manifest sowie bereinigte Nutzerdaten (Module, Kategorien, Playlist, Plugins). Der Import prüft Eingabedateien, saniert Playlisteinträge und respektiert den gespeicherten Log-Filter.
-- **Plugin-Manager:** Eine eigene Modulansicht erlaubt das Importieren, Anzeigen und Entfernen von Erweiterungen. Plugin-Inhalte werden geparst, validiert und per Sanitizer gereinigt (Whitelist für Format-Tags, automatische Link-Härtung).
+- **Plugin-Manager:** Eine eigene Modulansicht erlaubt das Importieren, Anzeigen und Entfernen von Erweiterungen. Plugin-Inhalte werden geparst, validiert, per Sanitizer gereinigt (Whitelist für Format-Tags, automatische Link-Härtung) und nun in ein Sandbox-Iframe mit `sandbox="allow-popups allow-popups-to-escape-sandbox"` ausgelagert.
+- **CSP & Sandbox:** Der Head-Bereich enthält jetzt eine Content-Security-Policy, die Standardquellen auf `self`/`data`/`blob` begrenzt. Plugin-Abschnitte werden im Sandbox-Iframe dargestellt, behalten Themefarben per dynamischem CSS-Snapshot und liefern damit eine zusätzliche Schutzschicht gegenüber Browser-XSS.
 - **Selbstheilung erweitert:** Die Self-Repair-Funktion normalisiert den Log-Filter und Plugins (IDs, Module, Abschnitte, Links). Fehlende Plug-in-Module werden automatisch erzeugt und im Modulverzeichnis sichtbar gemacht.
 - **Feedback & UX:** Playlist-Export protokolliert Erfolgsmeldungen, Genre-/Mood-Importe melden Duplikate als Hinweis (`warn`). Manifest-Download und Daten-Backup sind über Buttons erreichbar.
 - **Playlist-Zugänglichkeit:** Playlist-Einträge lassen sich per Tastatur steuern (Enter/Space für Play, Alt+Pfeile zum Sortieren, Entf zum Entfernen), inklusive Fokus- und Screenreader-Hinweisen.

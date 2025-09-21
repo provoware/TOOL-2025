@@ -191,16 +191,21 @@ test('Plugin-Inhalte werden sanitisiert', async () => {
   api.actions.openModule(plugin.moduleId);
   await flush();
   const canvas = dom.window.document.querySelector('#canvas');
-  const html = canvas.innerHTML;
-  assert.match(html, /<strong>Fett<\/strong>/);
-  assert.ok(!/script/i.test(html));
-  assert.ok(!/javascript:/i.test(html));
-  const anchors = Array.from(canvas.querySelectorAll('a'));
-  const safeAnchor = anchors.find((a) => a.getAttribute('href'));
-  assert.ok(safeAnchor);
-  assert.ok(safeAnchor.getAttribute('href').startsWith('https://example.com'));
-  assert.equal(safeAnchor.getAttribute('rel'), 'noopener noreferrer');
-  assert.equal(safeAnchor.getAttribute('target'), '_blank');
+  const frame = canvas.querySelector('.plugin-frame');
+  assert.ok(frame, 'Plugin-Inhalt wird in Sandbox-Iframe gerendert');
+  assert.equal(
+    frame.getAttribute('sandbox'),
+    'allow-popups allow-popups-to-escape-sandbox'
+  );
+  assert.equal(frame.getAttribute('referrerpolicy'), 'no-referrer');
+  const srcdoc = frame.getAttribute('srcdoc') || '';
+  assert.match(srcdoc, /<strong>Fett<\/strong>/);
+  assert.ok(!/script/i.test(srcdoc));
+  assert.ok(!/javascript:/i.test(srcdoc));
+  assert.match(srcdoc, /rel="noopener noreferrer"/);
+  assert.match(srcdoc, /target="_blank"/);
+  assert.equal(frame.dataset.pluginName, 'Sicherheits-Plugin');
+  assert.equal(frame.dataset.sectionTitle, 'Hinweis');
 });
 
 test('assertBackupSchema erkennt fehlende Modul-Liste', () => {

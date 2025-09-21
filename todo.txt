@@ -15,5 +15,7 @@
 - [x] Playlist-Shortcuts automatisiert testen (Playwright-Szenarien vorbereiten)
 - [x] Backup-Schema direkt im Tool prüfen (AJV im Browser oder leichtgewichtiges Schema-Checking)
 - [x] Plugin-Module aus HTML-Inhalten gegen Skripte absichern (z. B. Sanitizer oder Render-Sandbox)
-- [ ] CSP und Sandbox-Konzept für Plugins definieren (iframe/Web-Worker prüfen)
+- [x] CSP und Sandbox-Konzept für Plugins definieren (iframe/Web-Worker prüfen)
+- [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
+- [ ] Sandbox-Iframes dynamisch in der Höhe anpassen (Resize ohne Same-Origin, z. B. via `postMessage`)
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)

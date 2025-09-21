@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'" />
 <title>ModulTool – Singlefile Klick&Start</title>
 <style>
   :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px}
@@ -24,6 +25,8 @@
   .col{display:flex;flex-direction:column;gap:var(--gap)}
   .pad{padding:12px 14px}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .plugin-frame{width:100%;min-height:200px;border:0;border-radius:var(--radius);box-shadow:inset 0 0 0 1px var(--border);background:var(--panel-2);margin-top:12px}
+  .plugin-frame:focus{outline:2px solid var(--accent);outline-offset:2px}
   .title{font-weight:700;letter-spacing:.3px}
   .muted{color:var(--muted)}
   .chip{display:inline-flex;align-items:center;gap:6px;background:var(--badge);border:1px solid var(--border);padding:4px 8px;border-radius:999px;font-size:.85rem}
@@ -290,6 +293,59 @@
       });
     });
     return template.innerHTML;
+  }
+  const FALLBACK_THEME={
+    text:'#111827',
+    panel:'#ffffff',
+    panelSoft:'#f1f5fb',
+    accent:'#2563eb',
+    link:'#1d4ed8',
+    muted:'#6b7280',
+    font:'system-ui,-apple-system,"Segoe UI",Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,sans-serif'
+  };
+  function readThemeVar(styles,name,fallback){
+    if(!styles)return fallback;
+    const value=styles.getPropertyValue(name);
+    return value&&value.trim()?value.trim():fallback;
+  }
+  function getThemeTokens(){
+    if(typeof window==='undefined'||typeof window.getComputedStyle!=='function'){
+      return Object.assign({},FALLBACK_THEME);
+    }
+    const styles=getComputedStyle(document.documentElement);
+    return{
+      text:readThemeVar(styles,'--text',FALLBACK_THEME.text),
+      panel:readThemeVar(styles,'--panel',FALLBACK_THEME.panel),
+      panelSoft:readThemeVar(styles,'--panel-2',FALLBACK_THEME.panelSoft),
+      accent:readThemeVar(styles,'--accent',FALLBACK_THEME.accent),
+      link:readThemeVar(styles,'--link',FALLBACK_THEME.link),
+      muted:readThemeVar(styles,'--muted',FALLBACK_THEME.muted),
+      font:readThemeVar(styles,'--font',FALLBACK_THEME.font)
+    };
+  }
+  function buildPluginSandboxDocument(contentHtml,tokens){
+    const theme=tokens||getThemeTokens();
+    const bodyContent=contentHtml&&contentHtml.trim()?contentHtml:'<p class="muted">Keine Inhalte.</p>';
+    const fontFamily=theme.font||FALLBACK_THEME.font;
+    return`<!DOCTYPE html><html lang="de"><head><meta charset="utf-8"><style>`+
+      ':root{color-scheme:light dark;}'+
+      `body{margin:0;padding:16px;background:${theme.panel};color:${theme.text};font-family:${fontFamily};line-height:1.6;word-break:break-word;}`+
+      `a{color:${theme.link};text-decoration:underline;}`+
+      `blockquote{border-left:4px solid ${theme.accent};margin:12px 0;padding:4px 12px;background:${theme.panelSoft};}`+
+      `code,pre{background:${theme.panelSoft};color:${theme.text};border-radius:8px;padding:4px;}`+
+      'pre{overflow:auto;}' +
+      'ul,ol{padding-left:20px;}' +
+      `.muted{color:${theme.muted};}`+
+      'table{width:100%;border-collapse:collapse;}' +
+      `td,th{border:1px solid ${theme.panelSoft};padding:6px;text-align:left;}`+
+      '</style></head><body>'+bodyContent+'</body></html>';
+  }
+  function refreshPluginFrames(){
+    const theme=getThemeTokens();
+    $$('.plugin-frame').forEach(frame=>{
+      const content=frame.dataset&&frame.dataset.content?frame.dataset.content:'';
+      frame.setAttribute('srcdoc',buildPluginSandboxDocument(content,theme));
+    });
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
@@ -599,7 +655,7 @@
     if(fixes>0)addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
   }
   function renderStats(){$('#stat-modules').textContent=state.modules.length;$('#stat-cats').textContent=Object.keys(state.categories).length;$('#stat-genres').textContent=state.genres.length;$('#stat-moods').textContent=state.moods.length;$('#stat-tracks').textContent=state.playlist.length;$('#countGenres').textContent=state.genres.length;$('#countMoods').textContent=state.moods.length;$('#countCats').textContent=Object.keys(state.categories).length}
-  function renderTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('#themeSel').value=state.theme}
+  function renderTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('#themeSel').value=state.theme;refreshPluginFrames();}
   function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class=\"small\">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
   function renderArchives(){const gl=$('#genresList');gl.innerHTML='';const gfrag=document.createDocumentFragment();state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li)});gl.appendChild(gfrag);const ml=$('#moodsList');ml.innerHTML='';const mfrag=document.createDocumentFragment();state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li)});ml.appendChild(mfrag)}
   function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
@@ -726,13 +782,31 @@
     header.appendChild(meta);
     el.appendChild(header);
     if(plugin.sections&&plugin.sections.length){
-      plugin.sections.forEach(sec=>{
+      const themeSnapshot=getThemeTokens();
+      plugin.sections.forEach((sec,idx)=>{
         const box=document.createElement('section');
         box.className='panel pad';
         box.style.marginTop='12px';
-        const title=escapeHtml(sec.title);
-        const sanitizedContent=sanitizeHtml(safeStr(sec.content).replace(/\n/g,'<br>'))||'<span class="muted">Keine Inhalte.</span>';
-        box.innerHTML=`<h3>${title}</h3><div>${sanitizedContent}</div>`;
+        const rawTitle=safeStr(sec.title).trim();
+        const heading=document.createElement('h3');
+        heading.textContent=rawTitle||`Abschnitt ${idx+1}`;
+        box.appendChild(heading);
+        const sanitizedRaw=sanitizeHtml(safeStr(sec.content).replace(/\n/g,'<br>'));
+        const finalContent=sanitizedRaw&&sanitizedRaw.trim()?sanitizedRaw:'<p class="muted">Keine Inhalte.</p>';
+        const frame=document.createElement('iframe');
+        frame.className='plugin-frame';
+        frame.setAttribute('sandbox','allow-popups allow-popups-to-escape-sandbox');
+        frame.setAttribute('referrerpolicy','no-referrer');
+        frame.setAttribute('loading','lazy');
+        const safePluginName=safeStr(plugin.name).trim()||'Plugin';
+        const sectionLabel=rawTitle||'Inhalt';
+        frame.title=`${safePluginName} – ${sectionLabel}`;
+        frame.setAttribute('aria-label',`${safePluginName} – ${sectionLabel}`);
+        frame.dataset.content=finalContent;
+        frame.dataset.pluginName=safePluginName;
+        frame.dataset.sectionTitle=sectionLabel;
+        frame.setAttribute('srcdoc',buildPluginSandboxDocument(finalContent,themeSnapshot));
+        box.appendChild(frame);
         el.appendChild(box);
       });
     }else{
@@ -757,7 +831,7 @@
         if(!/^https?:/i.test(url))return;
         a.href=url;
         a.target='_blank';
-        a.rel='noopener';
+        a.rel='noopener noreferrer';
         a.textContent=`${safeStr(link.label)} →`;
         li.appendChild(a);
         list.appendChild(li);
