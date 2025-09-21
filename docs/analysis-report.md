@@ -33,7 +33,8 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - **Neu:** Autosave erzeugt sanitisierte Snapshots (max. 200 Logeinträge, stabile IDs) und meldet einen Screenreader-Digest über `stateDigestLive`.
 - **Neu:** State-Digest-Dashboard im Header fasst Module, Plugins, Playlist und Archivzahlen laienverständlich zusammen, gibt konkrete Tipps (z. B. „Lege dein erstes Modul an“) und führt ein begrenztes Verlaufsprotokoll (max. 8 Einträge) für Transparenz.
 - **Neu:** Backups und Manifest führen das Digest-Resümee samt Zeitstempel-Verlauf mit, sodass Importe den Dashboard-Status laienverständlich erklären.
-- **Empfohlene Maßnahmen:** Transaktionslog (append-only), Wiederherstellungsplan mit Migrationsliste, atomare Writes über temporäre Schlüssel, Undo/Redo-Stack, Dateinamens-Policy (`name_v001.json`).
+- **Neu:** Exportdateien erhalten automatisch sprechende Namen (`modultool-backup_YYYYMMDD-HHMMSS_vXYZ.ext`) samt fortlaufendem Zähler; das neue Feld `exportSequences` hält die Zählerstände für Manifest, Backup, Playlist, Plugins und Hilfetexte fest.
+- **Empfohlene Maßnahmen:** Transaktionslog (append-only), Wiederherstellungsplan mit Migrationsliste, atomare Writes über temporäre Schlüssel und Undo/Redo-Stack (Dateinamens-Policy ist abgedeckt).
 
 ## 5. Sicherheits- und Compliance-Status
 - **Import-Sicherheit:** `assertBackupSchema` + Sanitisierung von Plugin-HTML (Whitelist + `rel="noopener noreferrer"`). Sandbox-Iframes verhindern direkte DOM-Interaktion.

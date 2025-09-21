@@ -19,7 +19,7 @@
 - [ ] Stabile IDs (UUIDv4/ULID) für alle Entities einführen und Kollisionstests samt Index-Map aufsetzen
 - [ ] Transaktions-Log mit Undo/Redo auf Datenebene implementieren (append-only, mit vor/nachher-Werten)
 - [ ] Atomare Schreibstrategie mit Versionstempel und Migrationstracking etablieren (tmp-Datei → Commit)
-- [ ] Konfliktfreie Dateinamen-Strategie (z. B. `_v001`/Zeitstempel) für Exporte und Backups implementieren
+- [x] Konfliktfreie Dateinamen-Strategie (Zeitstempel + `_vXYZ`) für Exportdateien implementieren (State `exportSequences`, Sanitizer & Tests)
 - [ ] Validierungsreport zusätzlich als JSON-Datei exportieren und Undo-Pfade dokumentieren
 - [ ] State-Digest dauerhaft speichern (Event-Archiv, Verlauf für Module/Playlist/Plugins; UI-Historie aktiv, Persistenz/Export offen)
 - [ ] Start-Check-Bericht in Backups/Manifest aufnehmen und Speicher-Fallback im Export dokumentieren

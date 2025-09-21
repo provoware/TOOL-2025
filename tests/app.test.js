@@ -62,6 +62,7 @@ beforeEach(() => {
   api.events.resetDigestHistory();
   api.actions.activateConfigPreset('balanced', { announceSelection: false });
   api.actions.applyLayoutPreset('balanced', { announceSelection: false, persistChange: false });
+  api.state.exportSequences = {};
 });
 
 function seedPlaylist(ids) {
@@ -138,6 +139,17 @@ test('Backup erfüllt JSON-Schema', () => {
   if (!valid) {
     assert.fail(ajv.errorsText(validate.errors, { separator: '\n' }));
   }
+});
+
+test('Export-Dateien erhalten eindeutige Zeitstempel und Zähler', () => {
+  const first = api.helpers.generateExportFileName('modultool-backup', 'json', { key: 'backup' });
+  const second = api.helpers.generateExportFileName('modultool-backup', 'json', { key: 'backup' });
+  assert.match(first, /^modultool-backup_\d{8}-\d{6}_v001\.json$/);
+  assert.match(second, /^modultool-backup_\d{8}-\d{6}_v002\.json$/);
+  const sequences = api.helpers.getExportSequences();
+  assert.ok(sequences.backup, 'Backup-Sequenz fehlt');
+  assert.equal(sequences.backup.counter, 2);
+  assert.match(sequences.backup.stamp, /^\d{8}-\d{6}$/);
 });
 
 test('Backup übernimmt Fehlerfänger-, Datei- und Debug-Einstellungen', async () => {

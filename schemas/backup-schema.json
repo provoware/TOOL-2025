@@ -318,6 +318,19 @@
           "type": "string",
           "enum": ["all", "info", "ok", "warn", "error"]
         },
+        "exportSequences": {
+          "type": "object",
+          "default": {},
+          "additionalProperties": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["stamp", "counter"],
+            "properties": {
+              "stamp": { "type": "string", "pattern": "^\\d{8}-\\d{6}$" },
+              "counter": { "type": "integer", "minimum": 1, "maximum": 999 }
+            }
+          }
+        },
         "digestHistory": {
           "type": "array",
           "items": {

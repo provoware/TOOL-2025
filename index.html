@@ -1730,9 +1730,10 @@
   }
   function downloadHelpNotes(){
     const text=buildHelpPlainText();
-    download('modultool-hilfe.txt',text);
-    addLog('ok','Hilfe-Spickzettel gespeichert.');
-    announceProcess('Hilfe als Text gespeichert.','ok');
+    const fileName=generateExportFileName('modultool-hilfe','txt',{key:'help'});
+    download(fileName,text);
+    addLog('ok',`Hilfe-Spickzettel gespeichert (${fileName}).`);
+    announceProcess(`Hilfe als Text gespeichert: ${fileName}`,'ok');
   }
   function createHelpTopics(){
     return[
@@ -1979,6 +1980,40 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
+  function padNumber(value,length){
+    return String(Math.max(0,Number(value)||0)).padStart(length, '0');
+  }
+  function buildExportStamp(date){
+    const d=date||new Date();
+    return`${d.getFullYear()}${padNumber(d.getMonth()+1,2)}${padNumber(d.getDate(),2)}-${padNumber(d.getHours(),2)}${padNumber(d.getMinutes(),2)}${padNumber(d.getSeconds(),2)}`;
+  }
+  function ensureExportSequenceStore(){
+    if(!isPlainObject(state.exportSequences)){state.exportSequences={};}
+    return state.exportSequences;
+  }
+  function nextExportSequence(key){
+    const store=ensureExportSequenceStore();
+    const normalized=safeStr(key).trim()||'default';
+    const stamp=buildExportStamp(new Date());
+    const entry=store[normalized]&&isPlainObject(store[normalized])?store[normalized]:{stamp:'',counter:0};
+    let counter;
+    if(entry.stamp===stamp){
+      counter=Math.min(999,Number(entry.counter)||0)+1;
+    }else{
+      counter=1;
+    }
+    store[normalized]={stamp,counter};
+    return{stamp,counter,key:normalized};
+  }
+  function generateExportFileName(base,extension,options={}){
+    const normalizedBase=safeStr(base).trim()||'export';
+    const normalizedExt=safeStr(extension).trim().replace(/^\./,'')||'json';
+    const key=options.key||normalizedBase;
+    const {stamp,counter}=nextExportSequence(key);
+    const printableBase=slugify(normalizedBase)||'export';
+    const suffix=`_v${String(counter).padStart(3,'0')}`;
+    return`${printableBase}_${stamp}${suffix}.${normalizedExt}`;
+  }
   const DEFAULT_STATE_VERSION='1.2.0';
   const LOG_MEMORY_LIMIT=300;
   const LOG_PERSIST_LIMIT=200;
@@ -1989,7 +2024,7 @@
   let storageAdapter=null;
   let storageMeta={type:'unknown',status:'info',message:'Prüfung läuft …',hint:''};
   let storageWarningShown=false;
-  const state={version:DEFAULT_STATE_VERSION,theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null,digestHistory:[]};
+  const state={version:DEFAULT_STATE_VERSION,theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null,digestHistory:[],exportSequences:{}};
   const STATE_REASON_TEXT={
     'state-change':'Status aktualisiert',
     'state-loaded':'Zustand geladen',
@@ -3845,9 +3880,10 @@
   function exportPlaylist(){
     const ok=guardAction('Playlist exportieren',()=>{
       const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);
-      download('playlist.json',data);
-      addLog('ok','Playlist exportiert.');
-      captureFeedback('Playlist exportiert. Die Datei speichert nur Titel, Künstler und Quelle.', 'ok', {source:'playlist'});
+      const fileName=generateExportFileName('playlist','json',{key:'playlist'});
+      download(fileName,data);
+      addLog('ok',`Playlist exportiert (${fileName}).`);
+      captureFeedback(`Playlist exportiert. Die Datei heißt ${fileName} und enthält Titel, Künstler und Quelle.`, 'ok', {source:'playlist'});
       return true;
     },{level:'error',hint:'playlist-export'});
     if(ok){
@@ -4103,6 +4139,31 @@
     if(sanitized.logFilter!==rawFilter&&rawFilter){
       reporter.fix('Logfilter wurde auf „Alle“ zurückgesetzt.');
     }
+    const rawSequences=isPlainObject(input.exportSequences)?input.exportSequences:{};
+    const sanitizedSequences={};
+    Object.keys(rawSequences).forEach(key=>{
+      const cleanKey=safeStr(key).trim();
+      if(!cleanKey){
+        reporter.fix('Export-Sequenz ohne Namen wurde entfernt.');
+        return;
+      }
+      const entry=rawSequences[key];
+      if(!isPlainObject(entry)){
+        reporter.fix(`Export-Sequenz „${cleanKey}“ war ungültig und wurde verworfen.`);
+        return;
+      }
+      const rawStamp=safeStr(entry.stamp).trim();
+      const stamp=/^\d{8}-\d{6}$/.test(rawStamp)?rawStamp:buildExportStamp();
+      const counterValue=Math.max(1,Math.min(999,Number(entry.counter)||1));
+      if(stamp!==rawStamp){
+        reporter.note(`Export-Sequenz „${cleanKey}“ erhielt einen neuen Zeitstempel.`);
+      }
+      if(counterValue!==(Number(entry.counter)||0)){
+        reporter.note(`Export-Sequenz „${cleanKey}“ wurde auf Zähler ${counterValue} gesetzt.`);
+      }
+      sanitizedSequences[cleanKey]={stamp,counter:counterValue};
+    });
+    sanitized.exportSequences=sanitizedSequences;
     const presetKey=safeLower(input.configPreset||'');
     sanitized.configPreset=CONFIG_PRESETS[presetKey]?presetKey:(findPresetMatch(sanitized)||'custom');
     const historyLimit=Math.max(1,STATE_DIGEST_HISTORY_LIMIT);
@@ -4211,6 +4272,7 @@
       type:normalizeLogType(entry.type),
       msg:safeStr(entry.msg)||''
     }));
+    if(!isPlainObject(cleanState.exportSequences)){cleanState.exportSequences={};}
     return cleanState;
   }
   function buildRestoredLogEntries(logInput){
@@ -4228,6 +4290,7 @@
     cleaned.version=safeStr(candidate.version||state.version||DEFAULT_STATE_VERSION)||DEFAULT_STATE_VERSION;
     cleaned.log=buildRestoredLogEntries(candidate.log||cleaned.log);
     cleaned.logFilter=['all','info','ok','warn','error'].includes(cleaned.logFilter)?cleaned.logFilter:'all';
+    if(!isPlainObject(cleaned.exportSequences)){cleaned.exportSequences={};}
     Object.assign(state,cleaned);
     if(!Array.isArray(state.digestHistory)){state.digestHistory=[];}
     renderStateDigestHistory();
@@ -4298,9 +4361,10 @@
   }
   function downloadManifest(){
     const ok=guardAction('Manifest exportieren',()=>{
-      download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));
-      addLog('ok','Manifest exportiert.');
-      captureFeedback('Manifest exportiert. Die Datei findest du im Download-Ordner.', 'ok', {source:'export'});
+      const fileName=generateExportFileName('modultool-manifest','json',{key:'manifest'});
+      download(fileName,JSON.stringify(generateManifest(),null,2));
+      addLog('ok',`Manifest exportiert (${fileName}).`);
+      captureFeedback(`Manifest exportiert. Die Datei heißt ${fileName} und liegt im Download-Ordner.`, 'ok', {source:'export'});
       return true;
     },{level:'error',hint:'manifest-export'});
     if(ok){
@@ -4309,9 +4373,10 @@
   }
   function exportAll(){
     const ok=guardAction('Backup exportieren',()=>{
-      download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));
-      addLog('ok','Backup exportiert (Manifest + Daten).');
-      captureFeedback('Backup exportiert. Bewahre die Datei an einem sicheren Ort auf.', 'ok', {source:'export'});
+      const fileName=generateExportFileName('modultool-backup','json',{key:'backup'});
+      download(fileName,JSON.stringify(buildBackup(),null,2));
+      addLog('ok',`Backup exportiert (Manifest + Daten) – ${fileName}.`);
+      captureFeedback(`Backup exportiert. Bewahre ${fileName} an einem sicheren Ort auf.`, 'ok', {source:'export'});
       return true;
     },{level:'error',hint:'backup-export'});
     if(ok){
@@ -4348,11 +4413,11 @@
     const succeeded=guardAction('Plugin exportieren',()=>{
       const data=pluginToSerializable(plugin);
       if(!data.name){toast('Plugin hat keinen Namen.');return false;}
-      const fileName=`${slugify(data.name)||'plugin'}-${safeStr(plugin.id).slice(-6)||'export'}.json`;
+      const fileName=generateExportFileName(slugify(data.name)||'plugin','json',{key:`plugin:${safeStr(plugin.id).slice(-6)||'export'}`});
       download(fileName,JSON.stringify(data,null,2));
       const pluginLabel=safeStr(data.name)||'Plugin';
-      addLog('ok','Plugin exportiert: '+pluginLabel);
-      captureFeedback(`Plugin „${pluginLabel}“ exportiert.`, 'ok', {source:'plugin'});
+      addLog('ok',`Plugin exportiert: ${pluginLabel} (${fileName}).`);
+      captureFeedback(`Plugin „${pluginLabel}“ exportiert. Die Datei heißt ${fileName}.`, 'ok', {source:'plugin'});
       return true;
     },{level:'error',hint:'plugin-export'});
     if(succeeded){
@@ -4661,7 +4726,7 @@
       addLog('info','Dashboard geladen. Viel Erfolg!');
     }
   }
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,validateJsonFile,validateJsonContent,validateAudioFile,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport, getStorageMeta:()=>Object.assign({},storageMeta)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,validateJsonFile,validateJsonContent,validateAudioFile,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport,getStorageMeta:()=>Object.assign({},storageMeta),generateExportFileName:(base,ext,options)=>generateExportFileName(base,ext,options||{}),getExportSequences:()=>JSON.parse(JSON.stringify(state.exportSequences||{}))},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();
