@@ -50,6 +50,65 @@
           }
         },
         "playlist": { "type": "integer", "minimum": 0 },
+        "digest": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "modules",
+            "plugins",
+            "categories",
+            "genres",
+            "moods",
+            "playlist",
+            "log"
+          ],
+          "properties": {
+            "modules": { "type": "integer", "minimum": 0 },
+            "plugins": { "type": "integer", "minimum": 0 },
+            "categories": { "type": "integer", "minimum": 0 },
+            "genres": { "type": "integer", "minimum": 0 },
+            "moods": { "type": "integer", "minimum": 0 },
+            "playlist": { "type": "integer", "minimum": 0 },
+            "log": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "digestHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["timestamp", "reason", "summary"],
+            "properties": {
+              "timestamp": { "type": "string", "format": "date-time" },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "state-change",
+                  "state-loaded",
+                  "state-imported",
+                  "manual-save",
+                  "layout-changed",
+                  "module-registered",
+                  "module-removed",
+                  "plugin-registered",
+                  "plugin-removed",
+                  "playlist-added",
+                  "playlist-removed",
+                  "playlist-reordered",
+                  "playlist-imported",
+                  "log-cleared",
+                  "log-filter-changed",
+                  "settings-changed",
+                  "genres-added",
+                  "moods-added",
+                  "category-added",
+                  "category-removed"
+                ]
+              },
+              "summary": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
         "settings": {
           "type": "object",
           "additionalProperties": false,
@@ -258,6 +317,64 @@
         "logFilter": {
           "type": "string",
           "enum": ["all", "info", "ok", "warn", "error"]
+        },
+        "digestHistory": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["timestamp", "reason", "digest"],
+            "properties": {
+              "timestamp": { "type": "number" },
+              "reason": {
+                "type": "string",
+                "enum": [
+                  "state-change",
+                  "state-loaded",
+                  "state-imported",
+                  "manual-save",
+                  "layout-changed",
+                  "module-registered",
+                  "module-removed",
+                  "plugin-registered",
+                  "plugin-removed",
+                  "playlist-added",
+                  "playlist-removed",
+                  "playlist-reordered",
+                  "playlist-imported",
+                  "log-cleared",
+                  "log-filter-changed",
+                  "settings-changed",
+                  "genres-added",
+                  "moods-added",
+                  "category-added",
+                  "category-removed"
+                ]
+              },
+              "digest": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "modules",
+                  "plugins",
+                  "categories",
+                  "genres",
+                  "moods",
+                  "playlist",
+                  "log"
+                ],
+                "properties": {
+                  "modules": { "type": "integer", "minimum": 0 },
+                  "plugins": { "type": "integer", "minimum": 0 },
+                  "categories": { "type": "integer", "minimum": 0 },
+                  "genres": { "type": "integer", "minimum": 0 },
+                  "moods": { "type": "integer", "minimum": 0 },
+                  "playlist": { "type": "integer", "minimum": 0 },
+                  "log": { "type": "integer", "minimum": 0 }
+                }
+              }
+            }
+          }
         }
       }
     }

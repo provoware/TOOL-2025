@@ -1884,14 +1884,13 @@
   const LOG_MEMORY_LIMIT=300;
   const LOG_PERSIST_LIMIT=200;
   const STATE_DIGEST_HISTORY_LIMIT=8;
-  const stateDigestHistory=[];
   const dependencyEntries=[];
   const DEPENDENCY_ICONS=Object.freeze({info:'ℹ️',ok:'✅',warn:'⚠️',error:'❌'});
   const STORAGE_TEST_KEY='modultool:storage:probe';
   let storageAdapter=null;
   let storageMeta={type:'unknown',status:'info',message:'Prüfung läuft …',hint:''};
   let storageWarningShown=false;
-  const state={version:DEFAULT_STATE_VERSION,theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:DEFAULT_STATE_VERSION,theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null,digestHistory:[]};
   const STATE_REASON_TEXT={
     'state-change':'Status aktualisiert',
     'state-loaded':'Zustand geladen',
@@ -2086,15 +2085,16 @@
     const safeCount=Number.isFinite(count)?Number(count):0;
     return `${safeCount} ${safeCount===1?singular:plural}`;
   }
-  function buildStateDigest(){
+  function buildStateDigest(source){
+    const snapshot=isPlainObject(source)?source:state;
     return{
-      modules:Array.isArray(state.modules)?state.modules.length:0,
-      plugins:Array.isArray(state.plugins)?state.plugins.length:0,
-      categories:state.categories&&typeof state.categories==='object'?Object.keys(state.categories).length:0,
-      genres:Array.isArray(state.genres)?state.genres.length:0,
-      moods:Array.isArray(state.moods)?state.moods.length:0,
-      playlist:Array.isArray(state.playlist)?state.playlist.length:0,
-      log:Array.isArray(state.log)?state.log.length:0
+      modules:Array.isArray(snapshot.modules)?snapshot.modules.length:0,
+      plugins:Array.isArray(snapshot.plugins)?snapshot.plugins.length:0,
+      categories:snapshot.categories&&typeof snapshot.categories==='object'?Object.keys(snapshot.categories).length:0,
+      genres:Array.isArray(snapshot.genres)?snapshot.genres.length:0,
+      moods:Array.isArray(snapshot.moods)?snapshot.moods.length:0,
+      playlist:Array.isArray(snapshot.playlist)?snapshot.playlist.length:0,
+      log:Array.isArray(snapshot.log)?snapshot.log.length:0
     };
   }
   function describeStateDigest(digest,reason){
@@ -2125,7 +2125,8 @@
   function renderStateDigestHistory(){
     if(!digestHistoryList)return;
     digestHistoryList.innerHTML='';
-    if(stateDigestHistory.length===0){
+    const history=Array.isArray(state.digestHistory)?state.digestHistory:[];
+    if(history.length===0){
       if(digestHistoryEmpty){
         digestHistoryEmpty.textContent='Noch keine Änderungen protokolliert.';
         digestHistoryList.appendChild(digestHistoryEmpty);
@@ -2135,7 +2136,7 @@
     if(digestHistoryEmpty&&digestHistoryEmpty.parentNode){
       digestHistoryEmpty.parentNode.removeChild(digestHistoryEmpty);
     }
-    stateDigestHistory.forEach(entry=>{
+    history.forEach(entry=>{
       const item=document.createElement('li');
       const time=new Date(entry.timestamp).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
       item.innerHTML=`<strong>${time}</strong> – ${describeStateDigest(entry.digest,entry.reason)}`;
@@ -2158,15 +2159,16 @@
   }
   function recordStateDigest(detail){
     const digest=detail&&detail.digest?detail.digest:buildStateDigest();
+    if(!Array.isArray(state.digestHistory)){state.digestHistory=[];}
     const entry={timestamp:Date.now(),reason:detail&&detail.reason?detail.reason:'state-change',digest};
-    stateDigestHistory.unshift(entry);
-    if(stateDigestHistory.length>STATE_DIGEST_HISTORY_LIMIT){
-      stateDigestHistory.length=STATE_DIGEST_HISTORY_LIMIT;
+    state.digestHistory.unshift(entry);
+    if(state.digestHistory.length>STATE_DIGEST_HISTORY_LIMIT){
+      state.digestHistory.length=STATE_DIGEST_HISTORY_LIMIT;
     }
     renderStateDigestHistory();
   }
   function resetStateDigestHistory(){
-    stateDigestHistory.length=0;
+    state.digestHistory=[];
     renderStateDigestHistory();
   }
   function notifyStateChange(reason='state-change',extra={}){
@@ -3981,6 +3983,45 @@
     }
     const presetKey=safeLower(input.configPreset||'');
     sanitized.configPreset=CONFIG_PRESETS[presetKey]?presetKey:(findPresetMatch(sanitized)||'custom');
+    const historyLimit=Math.max(1,STATE_DIGEST_HISTORY_LIMIT);
+    const rawHistory=Array.isArray(input.digestHistory)?input.digestHistory:[];
+    const digestHistory=[];
+    rawHistory.forEach((entry,idx)=>{
+      if(!isPlainObject(entry)){
+        reporter.fix(`Digest-Verlauf ${idx+1} war ungültig und wurde entfernt.`);
+        return;
+      }
+      const digestInput=isPlainObject(entry.digest)?entry.digest:{};
+      const normalizedDigest={
+        modules:Math.max(0,Number(digestInput.modules)||0),
+        plugins:Math.max(0,Number(digestInput.plugins)||0),
+        categories:Math.max(0,Number(digestInput.categories)||0),
+        genres:Math.max(0,Number(digestInput.genres)||0),
+        moods:Math.max(0,Number(digestInput.moods)||0),
+        playlist:Math.max(0,Number(digestInput.playlist)||0),
+        log:Math.max(0,Number(digestInput.log)||0)
+      };
+      let timestamp=entry.timestamp;
+      if(typeof timestamp==='string'&&timestamp.trim()){
+        const parsed=Date.parse(timestamp);
+        if(!Number.isNaN(parsed)){
+          timestamp=parsed;
+        }
+      }
+      let normalizedTs=Number(timestamp);
+      if(!Number.isFinite(normalizedTs)){
+        normalizedTs=Date.now();
+        reporter.fix(`Digest-Verlauf ${idx+1} erhielt einen aktuellen Zeitstempel.`);
+      }
+      const rawReason=safeStr(entry.reason).trim();
+      const normalizedReason=Object.prototype.hasOwnProperty.call(STATE_REASON_TEXT,rawReason)?rawReason:'state-change';
+      if(normalizedReason!==rawReason&&rawReason){
+        reporter.note(`Digest-Verlauf ${idx+1} nutzt jetzt den Grund „${normalizedReason}“.`);
+      }
+      digestHistory.push({timestamp:normalizedTs,reason:normalizedReason,digest:normalizedDigest});
+    });
+    digestHistory.sort((a,b)=>b.timestamp-a.timestamp);
+    sanitized.digestHistory=digestHistory.slice(0,historyLimit);
     return{state:sanitized,report:reporter.summary};
   }
   function generateManifest(snapshot){
@@ -3997,6 +4038,18 @@
     const layoutId=getLayoutMeta(source.layoutPreset).id;
     const reduceMotionActive=snapshot?(source.respectSystemMotion?systemReduceDefault:!!source.reduceMotion):isReduceMotionActive();
     const highContrastActive=snapshot?(source.respectSystemContrast?systemContrastDefault:!!source.highContrast):isHighContrastActive();
+    const digest=buildStateDigest(source);
+    const digestHistoryEntries=Array.isArray(source.digestHistory)?source.digestHistory.slice(0,STATE_DIGEST_HISTORY_LIMIT).map(entry=>{
+      const ts=Number(entry&&entry.timestamp);
+      const reasonKey=safeStr(entry&&entry.reason).trim();
+      const validReason=Object.prototype.hasOwnProperty.call(STATE_REASON_TEXT,reasonKey)?reasonKey:'state-change';
+      const iso=Number.isFinite(ts)?new Date(ts).toISOString():new Date().toISOString();
+      return{
+        timestamp:iso,
+        reason:validReason,
+        summary:describeStateDigest(entry&&entry.digest?entry.digest:digest,validReason)
+      };
+    }):[];
     return{
       generatedAt:new Date().toISOString(),
       version:safeStr(source.version||state.version||'1.0.0'),
@@ -4005,6 +4058,8 @@
       plugins,
       archives,
       playlist:playlistCount,
+      digest,
+      digestHistory:digestHistoryEntries,
       settings:{
         autosave:!!source.autosave,
         selfrepair:!!source.selfrepair,
@@ -4052,7 +4107,8 @@
     cleaned.log=buildRestoredLogEntries(candidate.log||cleaned.log);
     cleaned.logFilter=['all','info','ok','warn','error'].includes(cleaned.logFilter)?cleaned.logFilter:'all';
     Object.assign(state,cleaned);
-    resetStateDigestHistory();
+    if(!Array.isArray(state.digestHistory)){state.digestHistory=[];}
+    renderStateDigestHistory();
   }
   function storageSetItem(key,value){
     const store=ensureStorageAdapter();
@@ -4478,7 +4534,7 @@
       addLog('info','Dashboard geladen. Viel Erfolg!');
     }
   }
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>stateDigestHistory.slice(),resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport, getStorageMeta:()=>Object.assign({},storageMeta)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport, getStorageMeta:()=>Object.assign({},storageMeta)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

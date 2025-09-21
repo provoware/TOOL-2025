@@ -1,3 +1,3 @@
-Release-Fortschritt: 80 %
-Stand: 2025-09-27
-Einschätzung: Der Start-Check prüft beim Laden automatisch Speicher, Import/Download, ID-Generierung, Audio und Clipboard, aktiviert bei Bedarf einen Memory-Fallback und dokumentiert die Hinweise laienfreundlich im Dashboard; ein neuer Node-Test deckt den Report ab. Nächste Etappen: Statecharts, Build-Toolchain und Persistenz des Digest- und Dependency-Protokolls in Backup/Manifest.
+Release-Fortschritt: 82 %
+Stand: 2025-09-28
+Einschätzung: State-Digest-Verlauf wird jetzt zusammen mit dem Manifest und dem Backup gespeichert; laienfreundliche Klartextzusammenfassungen reisen damit in jede Sicherung und Importe spiegeln sofort die letzten Änderungen wider. Nächste Etappen: Event-Statecharts, Build-Toolchain und weitere Sicherheitsprüfungen.

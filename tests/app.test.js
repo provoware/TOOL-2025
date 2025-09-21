@@ -169,6 +169,41 @@ test('Backup übernimmt Fehlerfänger-, Datei- und Debug-Einstellungen', async (
   assert.equal(backup.manifest.settings.feedbackMode, 'smart');
 });
 
+test('Backup und Manifest enthalten Digest-Verlauf für Laienberichte', async () => {
+  api.events.resetDigestHistory();
+  const created = api.actions.createUserModule('Digest-Demo', { announce: false });
+  await flush();
+  const backup = api.actions.buildBackup();
+
+  assert.ok(Array.isArray(backup.state.digestHistory), 'State-Digest-Historie fehlt');
+  assert.ok(backup.state.digestHistory.length > 0, 'Digest-Historie sollte Einträge haben');
+  const firstEntry = backup.state.digestHistory[0];
+  assert.ok(Number.isFinite(Number(firstEntry.timestamp)), 'Zeitstempel muss numerisch sein');
+  assert.ok(firstEntry.digest, 'Digest-Daten fehlen');
+  assert.equal(
+    firstEntry.digest.modules,
+    backup.state.modules.length,
+    'Digest muss Modul-Anzahl widerspiegeln'
+  );
+
+  assert.ok(backup.manifest.digest, 'Manifest-Digest fehlt');
+  assert.equal(
+    backup.manifest.digest.modules,
+    backup.state.modules.length,
+    'Manifest-Digest nutzt Modul-Anzahl'
+  );
+  assert.ok(Array.isArray(backup.manifest.digestHistory), 'Manifest-Historie fehlt');
+  assert.ok(
+    backup.manifest.digestHistory[0].summary.includes('Modul'),
+    'Manifest fasst die Änderung laienverständlich zusammen'
+  );
+
+  if (created && created.id) {
+    api.actions.removeModule(created.id);
+    await flush();
+  }
+});
+
 test('renderModules zeigt leeren Hinweis für Laien', () => {
   api.state.modules = [];
   api.actions.renderModules();

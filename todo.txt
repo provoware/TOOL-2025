@@ -59,7 +59,7 @@
 - [ ] Layout-Anpassung per Drag/Resize ermöglichen (Seitenleistenbreite stufenlos, Speicher je Preset) und mobile Breakpoints dokumentieren
 - [ ] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
 - [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen
-- [ ] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (UI-Historie existiert, Persistenz fehlt)
+- [x] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (Manifest & Backup speichern Digest + Verlauf, UI-Historie synchronisiert)
 - [ ] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
 
 ## Performance & Robustheit

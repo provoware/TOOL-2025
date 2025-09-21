@@ -5,7 +5,7 @@
   "scripts": {
     "pretest": "npm run lint",
     "test": "node --test tests",
-    "lint": "eslint --ext .js,.html index.html tests",
+    "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .js,.html index.html tests",
     "verify": "npm test"
   },
   "devDependencies": {

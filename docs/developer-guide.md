@@ -111,9 +111,9 @@ TOOL-2025/
 - **Weiterentwicklung:** SDK definieren (Lifecycle-Hooks, Capability-Check, Messaging über Event-Bus, Versionierung, Kompatibilitätsmatrix).
 
 ## 11. Datenexport, Manifest & Backup
-- **Manifest:** Zusammenfassung des Zustands (Version, Theme, Statistiken) via Button; `downloadManifest()` nutzt `guardAction` und liefert Erfolgs-Feedback + Präventionstipp.
-- **Backup:** Enthält Manifest + bereinigte Daten (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter, Layout-Preset). Export nutzt `sanitizeStateForExport(state,{logLimit:50})`, läuft über `guardAction` und erinnert Nutzer:innen daran, das Backup sicher abzulegen.
-- **Import & Validierung:** `validateBackup(raw,{collect:true})` ruft dieselbe Normalisierung auf, liefert ein Report-Objekt (`fixes`, `warnings`, `notes`) und wird im Backup-Prüfmodul sowie beim Import-Log ausgegeben. `Object.assign(state, validState)` übernimmt die Sanitizergebnisse, danach laufen Self-Repair, Layout-Synchronisierung und Plugin-Registry.
+- **Manifest:** Zusammenfassung des Zustands (Version, Theme, Statistiken) plus Digest-Resümee und Verlauf (Zeitstempel + Klartext) via Button; `downloadManifest()` nutzt `guardAction` und liefert Erfolgs-Feedback + Präventionstipp.
+- **Backup:** Enthält Manifest + bereinigte Daten (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter, Layout-Preset) sowie das Digest-Resümee inklusive Verlaufseinträge (Zeitstempel, Reason, Zählwerte). Export nutzt `sanitizeStateForExport(state,{logLimit:50})`, läuft über `guardAction` und erinnert Nutzer:innen daran, das Backup sicher abzulegen.
+- **Import & Validierung:** `validateBackup(raw,{collect:true})` ruft dieselbe Normalisierung auf, liefert ein Report-Objekt (`fixes`, `warnings`, `notes`) und wird im Backup-Prüfmodul sowie beim Import-Log ausgegeben. `Object.assign(state, validState)` übernimmt die Sanitizergebnisse (inklusive Digest-Verlauf), danach laufen Self-Repair, Layout-Synchronisierung und Plugin-Registry.
 - **Backup-Prüfmodul:** UI-Modul mit Schema-Validierung, Fehlerlisten, Statistiken und Statusmeldungen über `aria-live`; Ergebnisse werden fokussiert und `announceProcess()` kündigt Start/Erfolg/Fehler an.
 - **Dateinamenspolitik:** Noch offen – empfohlen sind inkrementelle Suffixe (`_v001`) und Signaturen.
 
