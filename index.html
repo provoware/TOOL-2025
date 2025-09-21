@@ -47,6 +47,16 @@
   .area-tag.accent-library{border-color:var(--accent-library);background:var(--accent-library-soft)}
   .area-tag.accent-library .area-dot{background:var(--accent-library)}
   .digest-panel{margin-top:12px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--panel-2);display:flex;flex-direction:column;gap:10px}
+  .dependency-panel{margin-top:12px;padding:12px;border-radius:12px;border:1px solid var(--border);background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
+  .dependency-panel .title{margin:0;font-size:1rem}
+  .dependency-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+  .dependency-list li{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:8px 10px;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+  .dependency-list li .dependency-icon{font-size:1.1rem;line-height:1}
+  .dependency-list li .dependency-text{font-weight:600;line-height:1.4}
+  .dependency-list li .dependency-hint{grid-column:1/3;color:var(--muted);font-size:.85rem;line-height:1.4}
+  .dependency-list li[data-status="ok"]{border-color:var(--ok)}
+  .dependency-list li[data-status="warn"]{border-color:var(--warn)}
+  .dependency-list li[data-status="error"]{border-color:var(--err)}
   .digest-panel .title{font-size:1rem;margin:0}
   .digest-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:8px}
   .digest-cell{border:1px solid var(--border);border-radius:10px;background:var(--panel);padding:10px;display:flex;flex-direction:column;gap:4px;box-shadow:var(--shadow)}
@@ -297,6 +307,17 @@
               <li id="digestHistoryEmpty">Noch keine Änderungen protokolliert.</li>
             </ul>
           </details>
+        </section>
+        <section id="dependencyPanel" class="dependency-panel" aria-live="polite" aria-label="Start-Check">
+          <h3 class="title">Start-Check</h3>
+          <p id="dependencyIntro" class="muted">Wir prüfen automatisch, ob dein Browser alle Funktionen unterstützt.</p>
+          <ul id="dependencyList" class="dependency-list" role="list">
+            <li data-status="info">
+              <span class="dependency-icon" aria-hidden="true">⏳</span>
+              <span class="dependency-text">Prüfung läuft …</span>
+              <span class="dependency-hint">Der Start-Check aktualisiert sich beim Laden.</span>
+            </li>
+          </ul>
         </section>
       </div>
           <div class="col" style="min-width:220px;align-items:flex-end">
@@ -777,6 +798,8 @@
   const digestArchive=$('#digestArchive');
   const digestHistoryList=$('#digestHistoryList');
   const digestHistoryEmpty=$('#digestHistoryEmpty');
+  const dependencyList=$('#dependencyList');
+  const dependencyIntro=$('#dependencyIntro');
   const liveRegion=$('#liveStatus');
   const liveText=$('#liveStatusText');
   const processLive=$('#processStatusLive');
@@ -1862,6 +1885,12 @@
   const LOG_PERSIST_LIMIT=200;
   const STATE_DIGEST_HISTORY_LIMIT=8;
   const stateDigestHistory=[];
+  const dependencyEntries=[];
+  const DEPENDENCY_ICONS=Object.freeze({info:'ℹ️',ok:'✅',warn:'⚠️',error:'❌'});
+  const STORAGE_TEST_KEY='modultool:storage:probe';
+  let storageAdapter=null;
+  let storageMeta={type:'unknown',status:'info',message:'Prüfung läuft …',hint:''};
+  let storageWarningShown=false;
   const state={version:DEFAULT_STATE_VERSION,theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],loadingPlaylist:false,log:[],logFilter:'all',plugins:[],_currentIndex:null};
   const STATE_REASON_TEXT={
     'state-change':'Status aktualisiert',
@@ -1885,6 +1914,174 @@
     'category-added':'Kategorie angelegt',
     'category-removed':'Kategorie entfernt'
   };
+  function createMemoryStorageAdapter(){
+    const store=new Map();
+    return{
+      get length(){return store.size;},
+      key:index=>Array.from(store.keys())[index]||null,
+      getItem:key=>store.has(String(key))?store.get(String(key)):null,
+      setItem:(key,value)=>{store.set(String(key),String(value));},
+      removeItem:key=>{store.delete(String(key));},
+      clear:()=>{store.clear();}
+    };
+  }
+  function detectStorageAdapter(){
+    const meta={
+      type:'local-storage',
+      status:'ok',
+      message:'Lokaler Speicher aktiv – deine Daten werden automatisch gesichert.',
+      hint:'Du musst nichts weiter tun. Backups lassen sich zusätzlich exportieren.'
+    };
+    if(typeof window==='undefined'||!window.localStorage){
+      meta.type='memory';
+      meta.status='warn';
+      meta.message='Lokaler Speicher nicht verfügbar – wir sichern nur temporär.';
+      meta.hint='Aktiviere Browser-Speicher oder exportiere regelmäßig Backups.';
+      return{adapter:createMemoryStorageAdapter(),meta};
+    }
+    try{
+      const storage=window.localStorage;
+      const probe=`${STORAGE_TEST_KEY}-${Math.random().toString(16).slice(2)}`;
+      storage.setItem(probe,'ok');
+      storage.removeItem(probe);
+      return{adapter:storage,meta};
+    }catch(err){
+      const fallback=createMemoryStorageAdapter();
+      meta.type='memory';
+      meta.status='warn';
+      meta.message='Lokaler Speicher blockiert – Daten bleiben nur bis zum Schließen dieses Tabs.';
+      meta.hint=`Bitte Browser-Speicher freigeben oder Backups exportieren. (${safeStr(err&&err.message)})`;
+      return{adapter:fallback,meta};
+    }
+  }
+  function ensureStorageAdapter(){
+    if(storageAdapter)return storageAdapter;
+    const {adapter,meta}=detectStorageAdapter();
+    storageAdapter=adapter;
+    storageMeta=meta;
+    return storageAdapter;
+  }
+  function switchToMemoryStorage(reason){
+    storageAdapter=createMemoryStorageAdapter();
+    storageMeta={
+      type:'memory',
+      status:'warn',
+      message:'Lokaler Speicher blockiert – wir speichern nur temporär in diesem Tab.',
+      hint:`Bitte Speicherberechtigungen prüfen oder Backups häufiger exportieren. ${safeStr(reason||'')}`.trim()
+    };
+    storageWarningShown=false;
+  }
+  function renderDependencyList(entries){
+    if(!dependencyList)return;
+    dependencyList.innerHTML='';
+    const list=Array.isArray(entries)?entries:[];
+    if(list.length===0){
+      const li=document.createElement('li');
+      li.dataset.status='info';
+      const icon=document.createElement('span');
+      icon.className='dependency-icon';
+      icon.setAttribute('aria-hidden','true');
+      icon.textContent=DEPENDENCY_ICONS.info;
+      const text=document.createElement('span');
+      text.className='dependency-text';
+      text.textContent='Noch keine Prüfungen durchgeführt.';
+      const hint=document.createElement('span');
+      hint.className='dependency-hint';
+      hint.textContent='Der Start-Check läuft automatisch beim Laden.';
+      li.append(icon,text,hint);
+      dependencyList.appendChild(li);
+      return;
+    }
+    list.forEach(entry=>{
+      const status=safeStr(entry&&entry.status).trim()||'info';
+      const li=document.createElement('li');
+      li.dataset.status=status;
+      const icon=document.createElement('span');
+      icon.className='dependency-icon';
+      icon.setAttribute('aria-hidden','true');
+      icon.textContent=DEPENDENCY_ICONS[status]||DEPENDENCY_ICONS.info;
+      const text=document.createElement('span');
+      text.className='dependency-text';
+      text.textContent=safeStr(entry&&entry.message)||'Prüfung';
+      li.append(icon,text);
+      const hintText=safeStr(entry&&entry.hint).trim();
+      if(hintText){
+        const hint=document.createElement('span');
+        hint.className='dependency-hint';
+        hint.textContent=hintText;
+        li.appendChild(hint);
+      }
+      dependencyList.appendChild(li);
+    });
+  }
+  function autoResolveDependencies(){
+    ensureStorageAdapter();
+    const entries=[];
+    const storageStatus=storageMeta.status==='warn'? 'warn':(storageMeta.status==='error'?'error':'ok');
+    entries.push({
+      id:'storage',
+      status:storageStatus,
+      message:storageStatus==='ok'? 'Speicher bereit – Daten werden automatisch gesichert.':'Speichern nur temporär möglich – Browser blockiert den Dauer-Speicher.',
+      hint:storageMeta.hint||'Exportiere regelmäßig Backups, um auf Nummer sicher zu gehen.'
+    });
+    const fileReaderOk=typeof FileReader==='function';
+    entries.push({
+      id:'files',
+      status:fileReaderOk?'ok':'error',
+      message:fileReaderOk? 'Datei-Import bereit – Drag & Drop und Datei-Auswahl funktionieren.':'Datei-Import nicht verfügbar – Browser unterstützt kein Dateilesen.',
+      hint:fileReaderOk? 'Sicherungen kannst du jederzeit über Import hinzufügen.':'Bitte nutze einen aktuellen Browser oder aktiviere den Dateizugriff.'
+    });
+    const blobOk=typeof Blob!=='undefined'&&typeof URL!=='undefined'&&typeof URL.createObjectURL==='function';
+    entries.push({
+      id:'download',
+      status:blobOk?'ok':'warn',
+      message:blobOk? 'Downloads funktionieren – Backups, Manifest und Debug-Datei lassen sich speichern.':'Downloads eingeschränkt – automatische Datei-Erstellung ist blockiert.',
+      hint:blobOk? 'Nutze die Export-Buttons für regelmäßige Sicherungen.':'Bitte erlaube Browser-Downloads oder speichere Inhalte über Kopieren/Einfügen.'
+    });
+    const cryptoOk=typeof crypto!=='undefined'&&(typeof crypto.randomUUID==='function'||typeof crypto.getRandomValues==='function');
+    entries.push({
+      id:'ids',
+      status:cryptoOk?'ok':'warn',
+      message:cryptoOk? 'Eindeutige IDs werden stabil erzeugt.':'IDs basieren auf Datum/Zufall – sorge für zusätzliche Backups.',
+      hint:cryptoOk? 'Module und Plugins behalten ihre Kennungen.':'Bei älteren Browsern können IDs doppelt vorkommen – bitte öfter sichern.'
+    });
+    const audioOk=typeof window!=='undefined'&&('Audio'in window||typeof window.AudioContext==='function'||typeof window.webkitAudioContext==='function');
+    entries.push({
+      id:'audio',
+      status:audioOk?'ok':'warn',
+      message:audioOk? 'Audio-Wiedergabe kann gestartet werden.':'Audio-Funktionen sind eingeschränkt – Browser erlaubt ggf. keine Wiedergabe.',
+      hint:audioOk? 'Playlist-Steuerung funktioniert mit Maus und Tastatur.':'Bitte prüfe Browser-Berechtigungen oder verwende einen anderen Browser für Audio.'
+    });
+    const clipboardOk=typeof navigator!=='undefined'&&navigator.clipboard&&typeof navigator.clipboard.writeText==='function';
+    entries.push({
+      id:'clipboard',
+      status:clipboardOk?'ok':'warn',
+      message:clipboardOk? 'Kopierfunktionen (Spickzettel, Debug) funktionieren automatisch.':'Kopierfunktionen arbeiten nur eingeschränkt – bitte nutze Strg+C.',
+      hint:clipboardOk? 'Du kannst Inhalte mit einem Klick kopieren.':'Bei Bedarf Text markieren und manuell kopieren.'
+    });
+    dependencyEntries.length=0;
+    entries.forEach(entry=>{
+      dependencyEntries.push({
+        id:safeStr(entry.id),
+        status:safeStr(entry.status||'info'),
+        message:safeStr(entry.message),
+        hint:safeStr(entry.hint),
+        resolved:entry.status==='ok'
+      });
+    });
+    renderDependencyList(dependencyEntries);
+    if(dependencyIntro){
+      const hasWarnings=dependencyEntries.some(item=>item.status==='warn'||item.status==='error');
+      dependencyIntro.textContent=hasWarnings?
+        'Der Start-Check meldet Hinweise – folge den Tipps in der Liste, damit alles zuverlässig läuft.':
+        'Start-Check erledigt: Alle benötigten Funktionen sind einsatzbereit.';
+    }
+    const warnings=dependencyEntries.filter(item=>item.status==='warn'||item.status==='error');
+    return{entries:dependencyEntries.slice(),warnings};
+  }
+  function getDependencyReport(){
+    return dependencyEntries.map(entry=>Object.assign({},entry));
+  }
   function pluralize(count,singular,plural){
     const safeCount=Number.isFinite(count)?Number(count):0;
     return `${safeCount} ${safeCount===1?singular:plural}`;
@@ -3427,7 +3624,7 @@
   function openModule(id){const renderFn=moduleRegistry.get(id);if(!renderFn){addLog('error','Modul nicht vorhanden: '+id);return}state.activeModule=id;const el=$('#canvas');el.innerHTML='';renderFn(el);addLog('ok','Modul geöffnet: '+id)}
   const startId=registerModule('Start – Hinweise',(el)=>{el.innerHTML=`<h2>Start – Hinweise</h2><p>Dieses Modul erklärt die Bedienung. Links: Module, Rechts: Audio, Unten: Archiv & Zufall. Alles persistiert automatisch.</p><ul><li>Drag&Drop Audio in die rechte Dropzone.</li><li>Genres/Moods eingeben und per Enter übernehmen.</li><li>Kategorien anlegen und oben im Zufallsbereich auswählen.</li></ul>`});
   const pluginOverviewId=registerModule('Plugin-Manager',renderPluginOverview);
-  registerModule('Notiz-Editor',(el)=>{const ta=document.createElement('textarea');ta.style.width='100%';ta.style.height='50vh';ta.placeholder='Deine Notizen…';ta.value=localStorage.getItem('modultool_notes')||'';ta.addEventListener('input',()=>localStorage.setItem('modultool_notes',ta.value));el.appendChild(ta)});
+  registerModule('Notiz-Editor',(el)=>{const ta=document.createElement('textarea');ta.style.width='100%';ta.style.height='50vh';ta.placeholder='Deine Notizen…';ta.value=storageGetItem('modultool_notes')||'';ta.addEventListener('input',()=>{storageSetItem('modultool_notes',ta.value);});el.appendChild(ta)});
   const backupCheckId=registerModule('Backup-Prüfung',renderBackupInspector);
   helpTopics=createHelpTopics();
   renderHelpTopics();
@@ -3857,23 +4054,59 @@
     Object.assign(state,cleaned);
     resetStateDigestHistory();
   }
+  function storageSetItem(key,value){
+    const store=ensureStorageAdapter();
+    if(!store||typeof store.setItem!=='function')return false;
+    try{
+      store.setItem(key,String(value));
+      return true;
+    }catch(err){
+      if(storageMeta.type!=='memory'){
+        switchToMemoryStorage(err&&err.message);
+        autoResolveDependencies();
+        const message='Speichern nur temporär möglich – Browser blockiert den dauerhaften Speicher.';
+        addLog('warn',message);
+        announceProcess(message,'warn');
+        if(!storageWarningShown){toast('Hinweis: Daten werden nur temporär gespeichert.');storageWarningShown=true;}
+      }
+      try{
+        storageAdapter.setItem(key,String(value));
+        return true;
+      }catch{return false;}
+    }
+  }
+  function storageGetItem(key){
+    const store=ensureStorageAdapter();
+    if(!store||typeof store.getItem!=='function')return null;
+    try{
+      const value=store.getItem(key);
+      return value===undefined?null:value;
+    }catch(err){
+      addLog('warn','Speicher konnte nicht gelesen werden: '+safeStr(err&&err.message));
+      return null;
+    }
+  }
   function save(){
     try{
       const snapshot=createPersistableState();
-      localStorage.setItem(LS_KEY,JSON.stringify(snapshot));
-      addLog('ok','Gespeichert.');
+      const ok=storageSetItem(LS_KEY,JSON.stringify(snapshot));
+      if(ok){
+        addLog('ok','Gespeichert.');
+      }else{
+        addLog('error','Speichern fehlgeschlagen – bitte exportiere ein Backup.');
+      }
     }catch(err){
       addLog('error','Speichern fehlgeschlagen: '+safeStr(err&&err.message));
     }
   }
   function load(){
     try{
-      const raw=localStorage.getItem(LS_KEY);
+      const raw=storageGetItem(LS_KEY);
       if(!raw)return;
       const parsed=JSON.parse(raw);
       applyLoadedState(parsed);
       addLog('ok','Zustand geladen.');
-      notifyStateChange('state-loaded',{source:'local-storage'});
+      notifyStateChange('state-loaded',{source:storageMeta.type});
     }catch(err){
       addLog('error','Laden fehlgeschlagen: '+safeStr(err&&err.message));
     }
@@ -4212,8 +4445,40 @@
     updateConfigPresetState({skipLog:true});
     updateConfigSummary();
   }
-  function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}applyLayoutPreset(state.layoutPreset||'balanced',{announceSelection:false,persistChange:false});$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>stateDigestHistory.slice(),resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  function init(){
+    const dependencyReport=autoResolveDependencies();
+    load();
+    if(state.selfrepair)selfRepair();
+    if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}
+    if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}
+    applyLayoutPreset(state.layoutPreset||'balanced',{announceSelection:false,persistChange:false});
+    $('#autosaveChk').checked=!!state.autosave;
+    $('#selfrepairChk').checked=!!state.selfrepair;
+    $('#toastsChk').checked=state.toasts!==false;
+    renderAll();
+    bindEvents();
+    bindMediaListeners();
+    openModule(state.activeModule||startId);
+    if(clockTimer)clearInterval(clockTimer);
+    if(!isTestEnv){clockTimer=setInterval(tick,1000);}
+    tick();
+    if(Array.isArray(dependencyReport.entries)){
+      dependencyReport.entries.forEach(entry=>{
+        const level=entry.status==='error'?'error':(entry.status==='warn'?'warn':(entry.status==='ok'?'ok':'info'));
+        addLog(level,'Start-Check: '+safeStr(entry.message));
+      });
+    }
+    const hasWarnings=dependencyReport.warnings&&dependencyReport.warnings.length>0;
+    const level=hasWarnings?'warn':'ok';
+    const summary=hasWarnings?
+      'Start-Check abgeschlossen mit Hinweisen – siehe die Tipps im Start-Check oben.':
+      'Start-Check abgeschlossen – alles bereit für deine Aktionen.';
+    announceProcess(summary,level,hasWarnings?'assertive':'polite');
+    if(!hasWarnings){
+      addLog('info','Dashboard geladen. Viel Erfolg!');
+    }
+  }
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>stateDigestHistory.slice(),resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport, getStorageMeta:()=>Object.assign({},storageMeta)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

@@ -77,6 +77,17 @@ function seedPlaylist(ids) {
 
 const flush = () => new Promise((resolve) => setTimeout(resolve, 0));
 
+test('Start-Check meldet Speicher- und Importstatus laienverständlich', () => {
+  const report = api.helpers.getDependencyReport();
+  assert.ok(Array.isArray(report), 'Report sollte ein Array sein');
+  assert.ok(report.length > 0, 'Report sollte mindestens einen Eintrag enthalten');
+  const storageEntry = report.find((item) => item.id === 'storage');
+  assert.ok(storageEntry, 'Speicher-Eintrag fehlt im Start-Check');
+  assert.match(storageEntry.message, /Speicher/, 'Speicherhinweis fehlt');
+  const rerun = api.actions.runDependencyCheck();
+  assert.ok(Array.isArray(rerun.entries), 'Rerun liefert keine Einträge');
+});
+
 test('Alt+Pfeil Sortierung verschiebt Eintrag und aktualisiert Fokusindex', async () => {
   seedPlaylist(['a', 'b', 'c']);
   api.actions.reorderPlaylist(1, 0);
