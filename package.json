@@ -8,6 +8,7 @@
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .js,.html index.html tests",
     "verify": "npm test",
     "start": "node tools/start-tool.js"
+    "test": "node --test tests"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

@@ -2,6 +2,7 @@ const path = require('node:path');
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const { test, before, after, beforeEach } = require('node:test');
+const { test, before, after } = require('node:test');
 const { JSDOM } = require('jsdom');
 const Ajv2020 = require('ajv/dist/2020');
 const addFormats = require('ajv-formats');

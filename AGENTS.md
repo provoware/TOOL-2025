@@ -7,7 +7,7 @@
 - optimiere barrierefreiheit
 - best practices und gängige standards anwenden, Prüf und Startroutine mit intellugentem Fehlerhandling mit SDelfrepair
 - StandardToolverzeichnisse verwenden und bei start vorhandensein prüfen ansonsten erstellen
-- globale Standards CRUD-Funktionalität und Drag&Drop, Tastaturnavigation, extrem detailierte und Laientaugliche Hilfe, Beschreibung und optimale optionale Vorgaben in Eingabefeldern, Input und Outputvallidierung, Extrem ausführliche Dokumentation zu Strukturen oder Parameter des Tools und auflistung aller funktionen mit erklärung und informationen, Duplikateprüfung, Tooltiphilfe
+- globale Standards CRUD-Funktionalität und Drag&Drop, Tastaturnavigation, extrem detailierte und Laientaugliche Hilfe, Beschreibung und optimale optionale Vorgaben in Eingabefeldern, Input und Outputvallidierung, Duplikateprüfung, Tooltiphilfe
 - Codeformater und automatische tests und prüfungen einrichten
 - 5 optimale Farbthemes mit perfekten Kontrasten, auch funktionsbereiche farblich unterscheiden, schrift hintergrundkontraste beachten
 - zwei weiterführende hilfreiche Empfehlungen zum nächsten schritt abschließend angeben
