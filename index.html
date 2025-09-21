@@ -1800,6 +1800,50 @@
         ]
       },
       {
+        id:'configSafety',
+        title:'Einstellungen sichern & teilen',
+        description:'So bewahrst du Farben, Layout und Sicherheitsschalter dauerhaft auf.',
+        steps:[
+          {text:'Öffne den Konfigurations-Assistenten (Zahnrad) über das Dashboard.',hint:'Der Assistent zeigt alle Schalter als Buttons und erklärt Fachbegriffe in Klammern.'},
+          {text:'Klicke auf „Konfiguration speichern“, um eine JSON-Datei (Textdatei mit Einstellungen) herunterzuladen.',hint:'Dateien tragen automatisch einen klaren Namen wie „modultool-konfiguration_…“. '},
+          {text:'Zum Wiederherstellen klickst du auf „Konfiguration laden“ und wählst deine gespeicherte Datei aus.',hint:'Das Tool prüft die Datei, meldet Fehler laienfreundlich und übernimmt sichere Werte sofort.'}
+        ],
+        actions:[
+          {label:'Konfigurations-Assistent öffnen',description:'Schließt die Hilfe und zeigt alle Einstellungs-Buttons.',run:()=>{
+            setTimeout(()=>{
+              openConfigAssistant();
+              announceProcess('Konfigurations-Assistent geöffnet.','info');
+            },50);
+            return true;
+          },closeAfter:true},
+          {label:'Konfiguration speichern',description:'Lädt eine JSON-Datei (Textdatei) mit allen Schaltern herunter.',run:()=>{
+            setTimeout(()=>{
+              openConfigAssistant();
+              setTimeout(()=>{exportConfigSettings();},140);
+            },50);
+            return true;
+          },closeAfter:true},
+          {label:'Konfiguration laden',description:'Öffnet den Dateidialog zum Import einer gespeicherten JSON-Datei.',run:()=>{
+            setTimeout(()=>{
+              openConfigAssistant();
+              setTimeout(()=>{
+                if(configImportBtn){
+                  configImportBtn.click();
+                  announceProcess('Wähle jetzt deine Konfigurationsdatei aus.','info');
+                }else{
+                  announceProcess('Import-Button nicht gefunden. Bitte Konfiguration manuell öffnen.','warn');
+                }
+              },140);
+            },50);
+            return true;
+          },closeAfter:true}
+        ],
+        tips:[
+          'Bewahre Konfigurationen zusammen mit Backups auf – so stellst du Anzeige und Sicherheit schnell wieder her.',
+          'Teile JSON-Dateien nur mit vertrauten Personen. Sie enthalten deine persönlichen Voreinstellungen.'
+        ]
+      },
+      {
         id:'audio',
         title:'Audio & Playlist bedienen',
         description:'Steuere Musik komplett per Maus oder Tastatur.',

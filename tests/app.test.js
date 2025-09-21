@@ -810,9 +810,11 @@ test('help center liefert Themenliste und Plaintext', async () => {
   const topics = api.actions.getHelpTopics();
   assert.ok(topics.includes('quickstart'));
   assert.ok(topics.includes('audio'));
+  assert.ok(topics.includes('configSafety'));
   const plain = api.actions.buildHelpPlainText();
   assert.match(plain, /Hilfe-Center/);
   assert.match(plain, /Schnell loslegen/);
+  assert.match(plain, /Einstellungen sichern & teilen/);
   api.actions.closeHelp();
   await flush();
   assert.equal(api.actions.isHelpOpen(), false);

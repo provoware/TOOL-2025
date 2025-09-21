@@ -17,5 +17,5 @@ TOOL-2025/
 ├─ schemas/
 │  └─ backup-schema.json   # JSON-Schema für Backups
 ├─ tests/
-│  └─ app.test.js          # Node-basierte Tests (Playlist, Plugins, Backup, Guard-Hinweise, Start-Check-Report)
+│  └─ app.test.js          # Node-basierte Tests (Playlist, Plugins, Backup, Hilfe-Center, Guard-Hinweise, Start-Check-Report)
 └─ todo.txt                # Backlog mit priorisierten Verbesserungen
