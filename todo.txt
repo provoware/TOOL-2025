@@ -1,6 +1,7 @@
 # TOOL-2025 ToDo
 
 ## Offene Basisarbeiten
+- [x] ESLint-Linting (`npm run lint`) und kombinierte Qualitätsprüfung (`npm run verify`) anlegen
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
@@ -22,11 +23,14 @@
 - [ ] Validierungsreport zusätzlich als JSON-Datei exportieren und Undo-Pfade dokumentieren
 
 ## Sicherheit & Sanitizing
+- [x] Smart-Error-Guard einführen (globale Fehlerfänger, JSON-/Audio-Dateiprüfung, Feedback-Panel, Debug-Snapshot)
 - [ ] Eingaben härten und Sanitizing für HTML/Clipboard-Inhalte mit Whitelisting ergänzen (z. B. DOMPurify-Äquivalent offline)
 - [ ] MIME- und Signaturprüfung bei Drag & Drop/Import ergänzen (Header-Sniffing + Endungsabgleich mit Nutzerhinweis)
 - [ ] Lokales Rechte-/Berechtigungsmodell mit Schreibschutz-Flag, Bestätigungen und Papierkorb (TTL) einführen
 - [ ] Trusted Types, CSP-Reporting und Reporting-API integrieren, um Inline-Skripte dauerhaft zu blocken
 - [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen
+- [ ] `guardAction` auf alle kritischen Datenpfade (Import, Export, Module, Playlist) ausweiten und Fehlerkategorien für Auswertungen erfassen (Exporte + Plugin/Playlist-Importe erledigt; Modul-Operationen & Backup-Dialog offen)
+- [ ] Plugin-Import um Signatur-/Prüfsummen-Checks und laienfreundliche Lösungsvorschläge im Fehlerfall erweitern
 
 ## Barrierefreiheit (A11y) – Advanced
 - [x] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten (Statusbanner & Checkboxen aktiv)
@@ -50,6 +54,8 @@
 - [x] Konfigurations-Assistent mit Presets, Klartext-Zusammenfassung und Button-Steuerung integrieren
 - [ ] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen
 - [ ] Layout-Anpassung per Drag/Resize ermöglichen (Seitenleistenbreite stufenlos, Speicher je Preset) und mobile Breakpoints dokumentieren
+- [ ] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
+- [ ] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
 
 ## Performance & Robustheit
 - [ ] Rechenintensive Aufgaben (JSON-Validierung, Datei-Scans, Wellenformen) in Web-Worker auslagern
@@ -74,6 +80,7 @@
 - [ ] Pa11y/axe A11y-Regressionen in CI einhängen
 - [ ] Performance-Smoke-Test in CI mit Budget-Grenzen (Lighthouse, Web Vitals) verankern
 - [ ] Playwright-Szenario für Anzeigeeinstellungen (Motion/Kontrast/Schrift) und Statusbanner automatisieren
+- [ ] Automatisierte Tests für `guardAction`-Pfad (Node + Playwright) erweitern und Fehlerfeedback visuell verifizieren (Node-Test vorhanden, Playwright offen)
 
 ## Build/Release & Offline-Verteilung
 - [ ] Reproduzierbare Builds mit deterministischer Minifizierung und Build-Hash im Footer erzeugen
@@ -123,3 +130,4 @@
 - [x] Sichtbarkeits-Assistent für Bereiche & Fenster (Mini-Vorschau, Klartextstatus, Schnellbuttons) ergänzt
 - [x] Layout-Presets inklusive Backup-/Manifest-Unterstützung und Statusmeldungen implementiert (Buttons für Ausgewogen, Module/Audio-Fokus, Arbeitsfläche, Stapeln)
 - [x] Validierungsreport für Backup/Import eingeführt (sanitizeStateForExport, Report-Anzeige im Prüfmodul, Import-Log-Hinweise)
+- [x] Feedback-Badge mit Zeitstempel, `guardAction`-Helper, Plugin-Vorprüfung und Debug-Download ergänzt; `npm test` läuft jetzt automatisch mit `npm run lint` (pretest)

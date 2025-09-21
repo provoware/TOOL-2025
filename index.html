@@ -88,6 +88,20 @@
   .status-banner[data-type="ok"]{color:var(--ok)}
   .status-banner[data-type="warn"]{color:var(--warn)}
   .status-banner[data-type="error"]{color:var(--err)}
+  .feedback-panel{margin-top:10px;padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
+  .feedback-header{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .feedback-header .title{font-size:.95rem;margin:0}
+  .feedback-header .badge{font-size:.75rem;color:var(--muted)}
+  .feedback-list{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:.9rem;color:var(--muted)}
+  .feedback-list li{line-height:1.5}
+  .feedback-list li[data-type="error"]{color:var(--err)}
+  .feedback-list li[data-type="warn"]{color:var(--warn)}
+  .feedback-list li[data-type="ok"]{color:var(--ok)}
+  .feedback-empty{font-size:.85rem;color:var(--muted)}
+  .debug-panel{margin-top:10px;padding:10px;border:1px dashed var(--border);border-radius:12px;background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
+  .debug-panel[hidden]{display:none}
+  .debug-panel .debug-title{display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:.9rem}
+  .debug-panel pre{margin:0;padding:10px;background:var(--bg-soft);border-radius:8px;border:1px solid var(--border);max-height:160px;overflow:auto;font-family:"Fira Mono",Consolas,monospace;font-size:.8rem}
   .collapsed-left aside#left{display:none}
   .collapsed-left .app{grid-template-columns:0 1fr var(--right-col)}
   .collapsed-right aside#right{display:none}
@@ -266,10 +280,44 @@
             <option value="20">20 px</option>
           </select>
         </div>
+        <div class="row" style="margin-top:6px">
+          <label><input type="checkbox" id="smartErrorsChk" checked> Fehlerfänger aktiv</label>
+          <label><input type="checkbox" id="preventMistakesChk" checked> Datei-Prüfung aktiv</label>
+          <label><input type="checkbox" id="debugModeChk"> Debug-Modus</label>
+          <label for="feedbackModeSel">Feedback-Menge</label>
+          <select id="feedbackModeSel" title="Wie viele Hinweise sollen angezeigt werden?">
+            <option value="full">Alle Hinweise</option>
+            <option value="smart">Nur Warnungen</option>
+          </select>
+        </div>
         <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
         <div id="configSummary" class="config-summary" aria-live="polite">Paket: Allround (Standard) • Autospeichern aktiv • Animationen folgen der Systemeinstellung</div>
         <div id="processStatusLive" class="sr-only" aria-live="polite" aria-atomic="true">Prozessstatus bereit.</div>
         <div id="processStatusText" class="status-banner" data-type="info">Prozessstatus: bereit.</div>
+        <div id="feedbackPanel" class="feedback-panel" aria-live="polite">
+          <div class="feedback-header">
+            <h3 class="title" style="margin:0;font-size:1rem;">Aktuelle Hinweise</h3>
+            <div class="row" style="gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+              <span id="feedbackBadge" class="chip" title="Status der automatischen Prüfer">Prüfungen aktiv</span>
+              <button type="button" class="btn inline" id="clearFeedbackBtn">Alles gelesen</button>
+            </div>
+          </div>
+          <ul id="feedbackList" class="feedback-list" aria-live="polite">
+            <li class="feedback-empty">Noch keine Hinweise. Aktionen erscheinen hier automatisch.</li>
+          </ul>
+        </div>
+        <div id="debugPanel" class="debug-panel" hidden>
+          <div class="debug-title">
+            <strong>Debug-Modus aktiv</strong>
+            <div class="row" style="gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+              <button type="button" class="btn inline" id="debugRefreshBtn">Ansicht aktualisieren</button>
+              <button type="button" class="btn inline" id="debugCopyBtn">Debug-Daten kopieren</button>
+              <button type="button" class="btn inline" id="debugDownloadBtn">Debug-Datei speichern</button>
+            </div>
+          </div>
+          <p class="muted" id="debugSummary" style="margin:0;font-size:.85rem;">Zeigt eine Kurzfassung vom aktuellen Zustand, um Fehler leichter zu finden.</p>
+          <pre id="debugContent" aria-live="polite">Debug-Daten werden hier angezeigt.</pre>
+        </div>
       </div>
       <div class="panel header-block pad" aria-label="Bereichsanordnung">
         <div class="title">Bereiche &amp; Fenster</div>
@@ -522,6 +570,18 @@
           <label><input type="checkbox" id="configSystemContrast"> System-Kontrast übernehmen</label>
           <label><input type="checkbox" id="configHighContrast"> Hoher Kontrast erzwingen</label>
         </div>
+        <div class="config-card" aria-label="Fehlerhilfe und Debugging">
+          <h4 class="title" style="margin:0;font-size:1rem;">Fehlerhilfe &amp; Debugging</h4>
+          <p>Automatische Prüfer stoppen häufige Fehler und der Debug-Modus zeigt Profidaten.</p>
+          <label><input type="checkbox" id="configSmartErrors"> Intelligentes Fehlerfangen (erklärt Probleme)</label>
+          <label><input type="checkbox" id="configPreventMistakes"> Datei-Prüfung vor Importen</label>
+          <label><input type="checkbox" id="configDebugMode"> Debug-Modus sichtbar</label>
+          <label for="configFeedbackMode">Feedback-Menge</label>
+          <select id="configFeedbackMode" title="Wie viele Hinweise sollen angezeigt werden?">
+            <option value="full">Alle Hinweise</option>
+            <option value="smart">Nur wichtige Warnungen</option>
+          </select>
+        </div>
       </div>
     </section>
     <section class="config-section" aria-label="Aktuelle Auswahl">
@@ -572,6 +632,10 @@
   const configReduceMotion=$('#configReduceMotion');
   const configSystemContrast=$('#configSystemContrast');
   const configHighContrast=$('#configHighContrast');
+  const configSmartErrors=$('#configSmartErrors');
+  const configPreventMistakes=$('#configPreventMistakes');
+  const configDebugMode=$('#configDebugMode');
+  const configFeedbackMode=$('#configFeedbackMode');
   const configSummary=$('#configSummary');
   const configSummaryList=$('#configSummaryList');
   const configApplyBtn=$('#configApplyBtn');
@@ -587,6 +651,19 @@
   const systemContrastChk=$('#systemContrastChk');
   const highContrastChk=$('#highContrastChk');
   const fontScaleSel=$('#fontScaleSel');
+  const smartErrorsChk=$('#smartErrorsChk');
+  const preventMistakesChk=$('#preventMistakesChk');
+  const debugModeChk=$('#debugModeChk');
+  const feedbackModeSel=$('#feedbackModeSel');
+  const feedbackBadge=$('#feedbackBadge');
+  const feedbackList=$('#feedbackList');
+  const clearFeedbackBtn=$('#clearFeedbackBtn');
+  const debugPanel=$('#debugPanel');
+  const debugSummary=$('#debugSummary');
+  const debugContent=$('#debugContent');
+  const debugRefreshBtn=$('#debugRefreshBtn');
+  const debugCopyBtn=$('#debugCopyBtn');
+  const debugDownloadBtn=$('#debugDownloadBtn');
   let lastConfigFocus=null;
   let isApplyingPreset=false;
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
@@ -641,6 +718,25 @@
   });
   const DEFAULT_LOG_LEVEL='info';
   const KNOWN_LOG_LEVELS=new Set(Object.keys(LOG_LEVELS));
+  const FEEDBACK_LIMIT=6;
+  const FEEDBACK_TYPE_LABELS=Object.freeze({info:'Info',ok:'Erfolg',warn:'Hinweis',error:'Fehler'});
+  const ACCEPTED_JSON_TYPES=new Set(['application/json','text/json','application/ld+json','']);
+  const AUDIO_TYPE_PREFIX='audio/';
+  const DEFAULT_MAX_JSON_SIZE=5*1024*1024;
+  const DEFAULT_MAX_AUDIO_SIZE=25*1024*1024;
+  const feedbackEntries=[];
+  const shownFeedbackHints=new Set();
+  const PREVENTIVE_HINTS=Object.freeze({
+    'plugin-import':'Tipp: Nutze Plugin-Dateien, die du vorher im ModulTool exportiert hast (JSON-Datei). Dann passen Name, Version und Inhalte garantiert zusammen.',
+    'plugin-export':'Tipp: Die exportierte Plugin-Datei landet im Download-Ordner. Teile sie nur mit Personen, denen du vertraust.',
+    'debug-export':'Tipp: Die Debug-Datei enthält Statusdaten. Teile sie nur mit Personen, die dir beim Fehlerfinden helfen sollen.',
+    'backup-export':'Tipp: Benenne dein Backup direkt um, zum Beispiel „Backup-2025-01-01.json“. So findest du es später schnell wieder.',
+    'manifest-export':'Tipp: Das Manifest (`modultool-manifest.json`) enthält deine Einstellungen. Für komplette Sicherungen nutze zusätzlich den Backup-Export.',
+    'playlist-export':'Tipp: Die Playlist-Datei (`playlist.json`) speichert Titel, Künstler und Quellen. Die Audiodateien bleiben in deinem Musikordner.',
+    'playlist-import':'Tipp: Importiere nur Playlist-Dateien, die du vorher über „Playlist exportieren“ erstellt hast. Dann stimmt das Format sicher.',
+    'enable-prevent-mistakes':'Schalte unten die Option „Datei-Prüfung aktiv“ ein. Dann kontrolliert das Tool jede Datei automatisch bevor sie geladen wird.'
+  });
+  const globalGuardDisposers=[];
   const THEME_LABELS=Object.freeze({neo:'Neo',paper:'Paper',night:'Night HighContrast',forest:'Forest',aurora:'Aurora'});
   const LAYOUT_PRESETS=Object.freeze({
     balanced:{id:'balanced',label:'Ausgewogen',description:'Alle Bereiche sichtbar und gleichmäßig verteilt.',left:'280px',right:'360px',showLeft:true,showRight:true,stack:false},
@@ -666,7 +762,11 @@
         reduceMotion:false,
         respectSystemContrast:true,
         highContrast:false,
-        fontScale:16
+        fontScale:16,
+        smartErrors:true,
+        preventMistakes:true,
+        debugMode:false,
+        feedbackMode:'full'
       }
     },
     accessibility:{
@@ -682,7 +782,11 @@
         reduceMotion:true,
         respectSystemContrast:false,
         highContrast:true,
-        fontScale:18
+        fontScale:18,
+        smartErrors:true,
+        preventMistakes:true,
+        debugMode:false,
+        feedbackMode:'full'
       }
     },
     focus:{
@@ -698,7 +802,11 @@
         reduceMotion:true,
         respectSystemContrast:false,
         highContrast:true,
-        fontScale:18
+        fontScale:18,
+        smartErrors:true,
+        preventMistakes:true,
+        debugMode:false,
+        feedbackMode:'smart'
       }
     },
     performance:{
@@ -714,7 +822,11 @@
         reduceMotion:true,
         respectSystemContrast:false,
         highContrast:false,
-        fontScale:16
+        fontScale:16,
+        smartErrors:true,
+        preventMistakes:true,
+        debugMode:false,
+        feedbackMode:'smart'
       }
     },
     custom:{
@@ -751,6 +863,294 @@
       processText.dataset.type=statusType;
       processText.textContent='Prozessstatus: '+text;
     }
+    if(state.feedbackMode!=='smart'||statusType!=='info'){
+      captureFeedback(text,statusType,{source:'process'});
+    }
+  }
+  function getVisibleFeedbackEntries(){
+    if(state.feedbackMode==='full'){return feedbackEntries.slice();}
+    return feedbackEntries.filter(entry=>entry&& (entry.type!=='info'||entry.source==='guard'));
+  }
+  function collectFeedbackStats(){
+    const visible=getVisibleFeedbackEntries();
+    const stats={
+      total:feedbackEntries.length,
+      visible:visible.length,
+      hidden:Math.max(0,feedbackEntries.length-visible.length),
+      byType:{info:0,ok:0,warn:0,error:0}
+    };
+    visible.forEach(entry=>{
+      const key=entry&&entry.type&&Object.prototype.hasOwnProperty.call(stats.byType,entry.type)?entry.type:'info';
+      stats.byType[key]++;
+    });
+    return stats;
+  }
+  function updateFeedbackBadge(){
+    if(!feedbackBadge)return;
+    const guardsActive=state.smartErrors!==false||state.preventMistakes!==false;
+    const stats=collectFeedbackStats();
+    const guardText=guardsActive?'Prüfungen aktiv':'Prüfungen pausiert';
+    if(stats.visible>0){
+      feedbackBadge.textContent=`${guardText} • ${stats.visible} Hinweise`;
+      const ariaParts=[`${guardText}.`,`Sichtbare Hinweise: ${stats.visible}.`];
+      if(stats.byType.error)ariaParts.push(`${stats.byType.error} Fehler.`);
+      if(stats.byType.warn)ariaParts.push(`${stats.byType.warn} Hinweise.`);
+      if(stats.byType.ok)ariaParts.push(`${stats.byType.ok} Erfolge.`);
+      if(stats.byType.info)ariaParts.push(`${stats.byType.info} Infos.`);
+      if(stats.hidden>0)ariaParts.push(`${stats.hidden} Info-Hinweise sind ausgeblendet, weil der Modus „Nur Warnungen“ aktiv ist.`);
+      feedbackBadge.setAttribute('aria-label',ariaParts.join(' '));
+    }else{
+      feedbackBadge.textContent=guardText;
+      feedbackBadge.setAttribute('aria-label',`${guardText}. Noch keine Hinweise gespeichert.`);
+    }
+    feedbackBadge.dataset.state=guardsActive?'on':'off';
+  }
+  function renderFeedback(){
+    if(!feedbackList)return;
+    feedbackList.innerHTML='';
+    const entries=getVisibleFeedbackEntries();
+    if(!entries.length){
+      const li=document.createElement('li');
+      li.className='feedback-empty';
+      li.textContent='Noch keine Hinweise. Aktionen erscheinen hier automatisch.';
+      feedbackList.appendChild(li);
+      updateFeedbackBadge();
+      return;
+    }
+    const frag=document.createDocumentFragment();
+    entries.slice().reverse().forEach(entry=>{
+      const li=document.createElement('li');
+      li.dataset.type=entry.type;
+      const label=FEEDBACK_TYPE_LABELS[entry.type]||FEEDBACK_TYPE_LABELS.info;
+      const timestamp=entry.timestamp||Date.now();
+      const time=new Date(timestamp).toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      li.textContent=`${time} • ${label}: ${entry.message}`;
+      li.setAttribute('aria-label',`${label}: ${entry.message} (um ${time})`);
+      frag.appendChild(li);
+    });
+    feedbackList.appendChild(frag);
+    updateFeedbackBadge();
+  }
+  function captureFeedback(message,type='info',options={}){
+    const text=safeStr(message).trim();
+    if(!text)return;
+    const normalized=normalizeLogType(type);
+    feedbackEntries.push({id:uuid(),message:text,type:normalized,source:options.source||'system',timestamp:Date.now()});
+    if(feedbackEntries.length>FEEDBACK_LIMIT){feedbackEntries.splice(0,feedbackEntries.length-FEEDBACK_LIMIT);}
+    renderFeedback();
+  }
+  function offerPreventiveHint(key){
+    const id=safeStr(key).trim();
+    if(!id||shownFeedbackHints.has(id))return;
+    const hint=PREVENTIVE_HINTS[id];
+    if(!hint)return;
+    shownFeedbackHints.add(id);
+    captureFeedback(hint,'info',{source:'hint'});
+  }
+  function clearFeedback(){
+    feedbackEntries.length=0;
+    renderFeedback();
+    toast('Hinweise geleert.');
+    addLog('info','Feedback-Liste geleert.');
+  }
+  function buildDebugSnapshot(){
+    const last=state.log.length?state.log[state.log.length-1]:null;
+    return{
+      version:safeStr(state.version||'n/a'),
+      theme:safeStr(state.theme||'neo'),
+      layout:safeStr(state.layoutPreset||'balanced'),
+      modules:Array.isArray(state.modules)?state.modules.length:0,
+      plugins:Array.isArray(state.plugins)?state.plugins.length:0,
+      playlist:Array.isArray(state.playlist)?state.playlist.length:0,
+      guards:{smartErrors:state.smartErrors!==false,preventMistakes:state.preventMistakes!==false},
+      feedback:collectFeedbackStats(),
+      lastLog:last?{time:last.time,type:last.type,msg:last.msg}:null,
+      timestamp:new Date().toISOString()
+    };
+  }
+  function renderDebugPanel(){
+    if(!debugPanel)return;
+    if(!state.debugMode){
+      debugPanel.setAttribute('hidden','');
+      return;
+    }
+    debugPanel.removeAttribute('hidden');
+    const snapshot=buildDebugSnapshot();
+    if(debugSummary){
+      const date=new Date(snapshot.timestamp);
+      const time=date.toLocaleTimeString('de-DE',{hour12:false});
+      const feedbackVisible=snapshot.feedback&&typeof snapshot.feedback.visible==='number'?snapshot.feedback.visible:0;
+      debugSummary.textContent=`Stand ${time} – Module: ${snapshot.modules} • Plugins: ${snapshot.plugins} • Playlist: ${snapshot.playlist} • Hinweise: ${feedbackVisible}`;
+    }
+    if(debugContent){
+      debugContent.textContent=JSON.stringify(snapshot,null,2);
+    }
+  }
+  function refreshDebugPanel(){
+    if(state.debugMode){
+      renderDebugPanel();
+    }
+  }
+  async function copyDebugData(){
+    if(!state.debugMode){
+      toast('Debug-Modus ist aus.');
+      return;
+    }
+    const snapshotText=debugContent&&debugContent.textContent?debugContent.textContent:JSON.stringify(buildDebugSnapshot(),null,2);
+    try{
+      if(navigator.clipboard&&navigator.clipboard.writeText){
+        await navigator.clipboard.writeText(snapshotText);
+      }else{
+        const ta=document.createElement('textarea');
+        ta.value=snapshotText;
+        ta.setAttribute('aria-hidden','true');
+        ta.style.position='fixed';
+        ta.style.opacity='0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        ta.remove();
+      }
+      toast('Debug-Daten kopiert.');
+      addLog('ok','Debug-Daten kopiert.');
+    }catch(err){
+      toast('Kopieren nicht möglich. Bitte Text manuell markieren.');
+      addLog('warn','Debug-Kopie fehlgeschlagen: '+safeStr(err&&err.message||'unbekannt'));
+    }
+  }
+  function downloadDebugData(){
+    if(!state.debugMode){
+      toast('Debug-Modus ist aus.');
+      return;
+    }
+    const result=guardAction('Debug-Datei speichern',()=>{
+      const snapshotText=debugContent&&debugContent.textContent?debugContent.textContent:JSON.stringify(buildDebugSnapshot(),null,2);
+      const blob=new Blob([snapshotText],{type:'application/json'});
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement('a');
+      link.href=url;
+      const timestamp=new Date().toISOString().replace(/[.:]/g,'-');
+      link.download=`modultool-debug-${timestamp}.json`;
+      document.body.appendChild(link);
+      link.click();
+      requestAnimationFrame(()=>{
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      });
+      toast('Debug-Datei gespeichert.');
+      addLog('ok','Debug-Datei gespeichert.');
+      captureFeedback('Debug-Daten gespeichert. Du findest die Datei im Download-Ordner.', 'ok', {source:'debug'});
+      return true;
+    },{level:'error',hint:'debug-export'});
+    if(result){
+      announceProcess('Debug-Daten exportiert.','ok');
+    }
+  }
+  function detachGlobalErrorGuards(){
+    while(globalGuardDisposers.length){
+      const dispose=globalGuardDisposers.pop();
+      try{dispose();}catch{/* ignore */}
+    }
+  }
+  function reportGuardedIssue(level,message,detail,{announce=true}={}){
+    const normalized=normalizeLogType(level);
+    const parts=[safeStr(message).trim()];
+    if(detail){parts.push(safeStr(detail).trim());}
+    const summary=parts.filter(Boolean).join(' – ');
+    addLog(normalized,'Schutz: '+summary);
+    captureFeedback(summary,normalized,{source:'guard'});
+    if(normalized==='error'){toast('Fehler abgefangen: '+safeStr(message));}
+    else if(normalized==='warn'){toast('Hinweis: '+safeStr(message));}
+    if(announce&&typeof announceProcess==='function'){
+      const priority=normalized==='error'?'assertive':'polite';
+      announceProcess(summary,normalized,priority);
+    }
+    refreshDebugPanel();
+  }
+  function guardAction(label,fn,{level='error',rethrow=false,hint,requirePreventMistakes=false}={}){
+    if(typeof fn!=='function'){return undefined;}
+    try{
+      return fn();
+    }catch(error){
+      const detail=safeStr(error&&error.message||error||'Unbekannt');
+      const baseLabel=safeStr(label).trim()||'Aktion';
+      if(state.smartErrors!==false){
+        if(typeof console!=='undefined'&&console&&typeof console.error==='function'){console.error(error);} 
+        reportGuardedIssue(level,baseLabel+' fehlgeschlagen',detail);
+        if(hint)offerPreventiveHint(hint);
+        if(requirePreventMistakes&&state.preventMistakes===false){offerPreventiveHint('enable-prevent-mistakes');}
+        if(rethrow){throw error;}
+        return undefined;
+      }
+      if(hint)offerPreventiveHint(hint);
+      if(requirePreventMistakes&&state.preventMistakes===false){offerPreventiveHint('enable-prevent-mistakes');}
+      throw error;
+    }
+  }
+  function attachGlobalErrorGuards(){
+    if(typeof window==='undefined'){return;}
+    detachGlobalErrorGuards();
+    if(state.smartErrors===false){return;}
+    const onError=event=>{
+      if(state.smartErrors===false)return;
+      const locationParts=[];
+      if(event&&event.filename){locationParts.push(event.filename);}
+      if(event&&event.lineno){locationParts.push('Zeile '+event.lineno);}
+      const detail=locationParts.join(' • ');
+      const message=safeStr(event&&event.message||event&&event.error&&event.error.message||'Unbekannter Fehler');
+      reportGuardedIssue('error','Fehler abgefangen',detail?message+' @ '+detail:message);
+      if(event&&typeof event.preventDefault==='function'){event.preventDefault();}
+    };
+    const onRejection=event=>{
+      if(state.smartErrors===false)return;
+      const reason=event&&event.reason;
+      const detail=reason&&reason.stack?safeStr(reason.stack).split('\n')[0]:safeStr(reason);
+      reportGuardedIssue('warn','Promise wurde abgefangen',detail);
+      if(event&&typeof event.preventDefault==='function'){event.preventDefault();}
+    };
+    window.addEventListener('error',onError);
+    window.addEventListener('unhandledrejection',onRejection);
+    globalGuardDisposers.push(()=>window.removeEventListener('error',onError));
+    globalGuardDisposers.push(()=>window.removeEventListener('unhandledrejection',onRejection));
+  }
+  function handleValidationResult(result,{context,level='warn',announce=true}={}){
+    if(!result||result.ok)return true;
+    const finalLevel=result.level||level;
+    const baseMessage=context?`${context}: ${result.message}`:result.message;
+    reportGuardedIssue(finalLevel,baseMessage,result.detail,{announce:false});
+    if(announce){announceProcess(baseMessage,finalLevel==='error'?'error':'warn','assertive');}
+    return false;
+  }
+  function validateJsonFile(file,{maxSize=DEFAULT_MAX_JSON_SIZE}={}){
+    if(!file){return{ok:false,level:'warn',message:'Keine Datei ausgewählt.'};}
+    if(state.preventMistakes===false){return{ok:true};}
+    if(file.size>maxSize){
+      const sizeMb=(file.size/1024/1024).toFixed(1);
+      const limitMb=(maxSize/1024/1024).toFixed(1);
+      return{ok:false,level:'warn',message:`Datei zu groß (${sizeMb} MB)`,detail:`Maximal ${limitMb} MB erlaubt.`};
+    }
+    const type=safeLower(file.type||'');
+    if(type&&!ACCEPTED_JSON_TYPES.has(type)){
+      return{ok:false,level:'error',message:'Keine JSON-Datei erkannt.',detail:`Gelieferter Typ: ${type||'unbekannt'}`};
+    }
+    if(!safeLower(file.name||'').endsWith('.json')){
+      return{ok:false,level:'warn',message:'Datei endet nicht auf .json',detail:'Bitte JSON-Datei wählen.'};
+    }
+    return{ok:true};
+  }
+  function validateAudioFile(file,{maxSize=DEFAULT_MAX_AUDIO_SIZE}={}){
+    if(!file){return{ok:false,level:'warn',message:'Keine Datei ausgewählt.'};}
+    if(state.preventMistakes===false){return{ok:true};}
+    const type=safeLower(file.type||'');
+    if(!type.startsWith(AUDIO_TYPE_PREFIX)){
+      return{ok:false,level:'warn',message:'Keine Audiodatei erkannt.',detail:`Gelieferter Typ: ${type||'unbekannt'}`};
+    }
+    if(file.size>maxSize){
+      const sizeMb=(file.size/1024/1024).toFixed(1);
+      const limitMb=(maxSize/1024/1024).toFixed(1);
+      return{ok:false,level:'warn',message:`Audiodatei zu groß (${sizeMb} MB)`,detail:`Maximal ${limitMb} MB erlaubt.`};
+    }
+    return{ok:true};
   }
   function highlightElement(el){
     if(!el||!el.classList)return;
@@ -762,7 +1162,7 @@
     if(!target)return false;
     highlightElement(target);
     if(typeof target.focus==='function'){
-      try{target.focus({preventScroll:true});}catch{}
+      try{target.focus({preventScroll:true});}catch(error){void error;}
     }
     if(message) announceProcess(message,'info');
     return true;
@@ -804,13 +1204,15 @@
       helpOverlay.removeAttribute('hidden');
       helpDialog.setAttribute('aria-hidden','false');
       document.body.classList.add('help-open');
-      requestAnimationFrame(()=>{try{helpDialog.focus({preventScroll:true});}catch{}});
+      requestAnimationFrame(()=>{try{helpDialog.focus({preventScroll:true});}catch(error){void error;}});
       updateHelpStats();
       announceProcess('Hilfe geöffnet. Folge den einfachen Schritt-für-Schritt-Erklärungen.','info');
       addLog('info','Hilfe geöffnet.');
     }
     if(topicId&&helpTopicList){
-      const safeId=typeof CSS!=='undefined'&&CSS.escape?CSS.escape(topicId):String(topicId).replace(/"/g,'\\"');
+      const rawId=String(topicId);
+      const fallbackId=rawId.replace(/[^a-zA-Z0-9_-]/g,'');
+      const safeId=typeof CSS!=='undefined'&&CSS.escape?CSS.escape(rawId):fallbackId||'topic';
       const selector=`[data-topic-id="${safeId}"]`;
       const card=helpTopicList.querySelector(selector);
       if(card){
@@ -820,7 +1222,7 @@
         const heading=card.querySelector('h3');
         if(heading){
           heading.setAttribute('tabindex','-1');
-          try{heading.focus({preventScroll:true});}catch{}
+          try{heading.focus({preventScroll:true});}catch(error){void error;}
           setTimeout(()=>heading.removeAttribute('tabindex'),250);
         }
       }
@@ -836,7 +1238,7 @@
     const focusTarget=lastHelpFocus;
     lastHelpFocus=null;
     if(focusTarget&&typeof focusTarget.focus==='function'){
-      try{focusTarget.focus({preventScroll:true});}catch{}
+      try{focusTarget.focus({preventScroll:true});}catch(error){void error;}
     }
   }
   function renderHelpTopics(){
@@ -1125,6 +1527,14 @@
       const value=allowedFontScales.has(Number(state.fontScale))?String(Number(state.fontScale)):String(systemFontDefault());
       fontScaleSel.value=value;
     }
+    if(smartErrorsChk){smartErrorsChk.checked=state.smartErrors!==false;}
+    if(preventMistakesChk){preventMistakesChk.checked=state.preventMistakes!==false;}
+    if(debugModeChk){debugModeChk.checked=!!state.debugMode;}
+    if(feedbackModeSel){feedbackModeSel.value=state.feedbackMode==='smart'?'smart':'full';}
+    updateFeedbackBadge();
+    renderFeedback();
+    renderDebugPanel();
+    attachGlobalErrorGuards();
     syncConfigOverlay();
   }
   function systemFontDefault(){
@@ -1210,7 +1620,7 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:'1.2.0',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',smartErrors:true,preventMistakes:true,debugMode:false,feedbackMode:'full',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
   function getPresetMeta(id){return CONFIG_PRESETS[id]||CONFIG_PRESETS.custom;}
   function findPresetMatch(snapshot){
     if(!snapshot)return null;
@@ -1223,7 +1633,11 @@
       reduceMotion:snapshot.reduceMotion===undefined?systemReduceDefault:!!snapshot.reduceMotion,
       respectSystemContrast:snapshot.respectSystemContrast===undefined?true:!!snapshot.respectSystemContrast,
       highContrast:snapshot.highContrast===undefined?systemContrastDefault:!!snapshot.highContrast,
-      fontScale:allowedFontScales.has(Math.round(Number(snapshot.fontScale)||0))?Math.round(Number(snapshot.fontScale)||0):systemFontDefault()
+      fontScale:allowedFontScales.has(Math.round(Number(snapshot.fontScale)||0))?Math.round(Number(snapshot.fontScale)||0):systemFontDefault(),
+      smartErrors:snapshot.smartErrors===undefined?true:!!snapshot.smartErrors,
+      preventMistakes:snapshot.preventMistakes===undefined?true:!!snapshot.preventMistakes,
+      debugMode:!!snapshot.debugMode,
+      feedbackMode:snapshot.feedbackMode==='smart'?'smart':'full'
     };
     for(const id of CONFIG_PRESET_SEQUENCE){
       const preset=CONFIG_PRESETS[id];
@@ -1361,6 +1775,10 @@
     const toastText=state.toasts!==false?'Hinweis-Popups an':'Hinweis-Popups aus';
     const motionText=state.respectSystemMotion?'Animationen folgen dem System':(state.reduceMotion?'Animationen reduziert':'Animationen normal');
     const contrastText=state.respectSystemContrast?'Kontrast folgt dem System':(state.highContrast?'Hoher Kontrast aktiv':'Normaler Kontrast');
+    const guardText=state.smartErrors!==false?'Fehlerfänger aktiv':'Fehlerfänger aus';
+    const preventText=state.preventMistakes!==false?'Datei-Prüfung aktiv':'Datei-Prüfung aus';
+    const debugText=state.debugMode?'Debug-Modus aktiv':'Debug-Modus aus';
+    const feedbackText=state.feedbackMode==='smart'?'Feedback: nur Warnungen':'Feedback: alle Hinweise';
     return[
       `Paket: ${presetMeta.label}`,
       `Farbschema: ${themeLabel}`,
@@ -1370,7 +1788,11 @@
       selfrepairText,
       toastText,
       motionText,
-      contrastText
+      contrastText,
+      guardText,
+      preventText,
+      debugText,
+      feedbackText
     ];
   }
   function updateConfigSummary(){
@@ -1401,6 +1823,10 @@
       configHighContrast.disabled=!!state.respectSystemContrast;
       configHighContrast.setAttribute('aria-disabled',state.respectSystemContrast?'true':'false');
     }
+    if(configSmartErrors) configSmartErrors.checked=state.smartErrors!==false;
+    if(configPreventMistakes) configPreventMistakes.checked=state.preventMistakes!==false;
+    if(configDebugMode) configDebugMode.checked=!!state.debugMode;
+    if(configFeedbackMode) configFeedbackMode.value=state.feedbackMode==='smart'?'smart':'full';
     updateThemeButtons(state.theme);
     updateFontButtons(state.fontScale);
     updateConfigPresetHint();
@@ -1487,6 +1913,16 @@
           fontScaleSel.dispatchEvent(new Event('change',{bubbles:true}));
         }
       }
+      if('smartErrors' in settings){applyCheckbox('#smartErrorsChk',settings.smartErrors);}
+      if('preventMistakes' in settings){applyCheckbox('#preventMistakesChk',settings.preventMistakes);}
+      if('debugMode' in settings){applyCheckbox('#debugModeChk',settings.debugMode);}
+      if('feedbackMode' in settings&&feedbackModeSel){
+        const desired=settings.feedbackMode==='smart'?'smart':'full';
+        if(feedbackModeSel.value!==desired){
+          feedbackModeSel.value=desired;
+          feedbackModeSel.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      }
     }finally{
       isApplyingPreset=false;
     }
@@ -1569,6 +2005,13 @@
           const size=Number(manifest.settings.fontScale);
           if(!allowedFontScales.has(size)){errors.push('manifest.settings.fontScale muss 14, 16, 18 oder 20 sein.');}
         }
+        if(hasOwn(manifest.settings,'smartErrors')){ensureBoolean(manifest.settings.smartErrors,'manifest.settings.smartErrors',errors);}
+        if(hasOwn(manifest.settings,'preventMistakes')){ensureBoolean(manifest.settings.preventMistakes,'manifest.settings.preventMistakes',errors);}
+        if(hasOwn(manifest.settings,'debugMode')){ensureBoolean(manifest.settings.debugMode,'manifest.settings.debugMode',errors);}
+        if(hasOwn(manifest.settings,'feedbackMode')){
+          const mode=safeLower(manifest.settings.feedbackMode);
+          if(!['full','smart'].includes(mode)){errors.push('manifest.settings.feedbackMode muss full oder smart sein.');}
+        }
         if(hasOwn(manifest.settings,'configPreset')){
           const presetKey=safeLower(manifest.settings.configPreset);
           if(!CONFIG_PRESETS[presetKey]){errors.push('manifest.settings.configPreset ist unbekannt.');}
@@ -1593,6 +2036,10 @@
         statePart.respectSystemContrast===undefined||typeof statePart.respectSystemContrast==='boolean'?null:'state.respectSystemContrast muss ein Wahr/Falsch-Wert sein.',
         statePart.highContrast===undefined||typeof statePart.highContrast==='boolean'?null:'state.highContrast muss ein Wahr/Falsch-Wert sein.',
         statePart.fontScale===undefined||allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?null:'state.fontScale muss 14, 16, 18 oder 20 sein.',
+        statePart.smartErrors===undefined||typeof statePart.smartErrors==='boolean'?null:'state.smartErrors muss ein Wahr/Falsch-Wert sein.',
+        statePart.preventMistakes===undefined||typeof statePart.preventMistakes==='boolean'?null:'state.preventMistakes muss ein Wahr/Falsch-Wert sein.',
+        statePart.debugMode===undefined||typeof statePart.debugMode==='boolean'?null:'state.debugMode muss ein Wahr/Falsch-Wert sein.',
+        statePart.feedbackMode===undefined||['full','smart'].includes(safeLower(statePart.feedbackMode))?null:'state.feedbackMode muss full oder smart sein.',
         statePart.configPreset===undefined||CONFIG_PRESETS[safeLower(statePart.configPreset)]?null:'state.configPreset ist unbekannt.'
         ,statePart.layoutPreset===undefined||LAYOUT_PRESETS[safeLower(statePart.layoutPreset)]?null:'state.layoutPreset ist unbekannt.'
       ].filter(Boolean);
@@ -1740,6 +2187,7 @@
     if(state.log.length>300)state.log.shift();
     announce(message,lvl);
     renderLog();
+    refreshDebugPanel();
   }
   function renderLog(){loglist.innerHTML='';
     const rawFilter=safeLower(state.logFilter||'all');
@@ -1793,6 +2241,10 @@
     if(typeof state.reduceMotion!=='boolean'){state.reduceMotion=systemReduceDefault;fixes++;}
     if(typeof state.respectSystemContrast!=='boolean'){state.respectSystemContrast=true;fixes++;}
     if(typeof state.highContrast!=='boolean'){state.highContrast=systemContrastDefault;fixes++;}
+    if(typeof state.smartErrors!=='boolean'){state.smartErrors=true;fixes++;}
+    if(typeof state.preventMistakes!=='boolean'){state.preventMistakes=true;fixes++;}
+    if(typeof state.debugMode!=='boolean'){state.debugMode=false;fixes++;}
+    if(state.feedbackMode!=='smart'&&state.feedbackMode!=='full'){state.feedbackMode='full';fixes++;}
     if(!LAYOUT_PRESETS[safeLower(state.layoutPreset)]){state.layoutPreset='balanced';fixes++;}
     const numericFont=Math.round(Number(state.fontScale)||0);
     if(!allowedFontScales.has(numericFont)){state.fontScale=systemFontDefault();fixes++;}
@@ -1888,7 +2340,7 @@
     applyDisplayPreferences();
     refreshPluginFrames();
   }
-  function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class=\"small\">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
+  function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class="small">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
   function renderArchives(){const gl=$('#genresList');gl.innerHTML='';const gfrag=document.createDocumentFragment();state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li)});gl.appendChild(gfrag);const ml=$('#moodsList');ml.innerHTML='';const mfrag=document.createDocumentFragment();state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li)});ml.appendChild(mfrag)}
   function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
   function renderPlaylist(){
@@ -2252,19 +2704,37 @@
     file.addEventListener('change',e=>{
       const f=e.target.files[0];
       if(!f)return;
+      const validation=validateJsonFile(f);
+      if(!validation.ok){
+        handleValidationResult(validation,{context:'Plugin-Import',level:validation.level||'warn'});
+        file.value='';
+        return;
+      }
       const reader=new FileReader();
       reader.onload=()=>{
+        let imported;
         try{
-          const json=JSON.parse(reader.result||'{}');
-          const pluginData=validatePluginData(json);
-          const plugin=registerPlugin(pluginData);
-          openModule(plugin.moduleId);
+          imported=guardAction('Plugin importieren',()=>{
+            const json=JSON.parse(reader.result||'{}');
+            const pluginData=validatePluginData(json);
+            const plugin=registerPlugin(pluginData);
+            openModule(plugin.moduleId);
+            toast('Plugin importiert.');
+            const pluginName=safeStr(plugin.name)||'Plugin';
+            captureFeedback(`Plugin „${pluginName}“ importiert.`, 'ok', {source:'plugin'});
+            announceProcess('Plugin importiert.','ok');
+            return plugin;
+          },{level:'error',hint:'plugin-import',requirePreventMistakes:true});
         }catch(err){
-          addLog('error','Plugin-Import: '+err.message);
-          toast('Plugin konnte nicht geladen werden.');
-        }finally{
-          file.value='';
+          const message=safeStr(err&&err.message||'unbekannt');
+          addLog('error','Plugin-Import: '+message);
+          handleValidationResult({ok:false,message:'Plugin konnte nicht geladen werden.',detail:message},{context:'Plugin-Import',level:'error',announce:false});
+          toast('Plugin konnte nicht geladen werden: '+message);
         }
+        if(!imported&&state.smartErrors!==false){
+          captureFeedback('Plugin konnte nicht geladen werden. Siehe die automatische Schutzmeldung oben.', 'warn', {source:'plugin'});
+        }
+        file.value='';
       };
       reader.readAsText(f);
     });
@@ -2448,7 +2918,7 @@
   async function copyOutput(){try{const text=$('#randOut').value;if(navigator.clipboard&&window.isSecureContext){await navigator.clipboard.writeText(text)}else{$('#randOut').select();document.execCommand('copy')}toast('In Zwischenablage kopiert.')}catch(e){addLog('error','Kopieren fehlgeschlagen: '+e.message)}}
   const audio=$('#player');
   function fileToTrack(file){return new Promise(res=>{const url=URL.createObjectURL(file);const base=safeStr(file.name).replace(/\.[^.]+$/,'');let title=base,artist='';const parts=base.split(' - ');if(parts.length>=2){artist=parts[0];title=parts.slice(1).join(' - ')}res({id:uuid(),title,artist,src:url,_blob:true})})}
-  function addFiles(files){const arr=Array.from(files||[]);if(!arr.length)return;const first=state.playlist.length===0;Promise.all(arr.map(fileToTrack)).then(tracks=>{state.playlist.push(...tracks);if(first){state._currentIndex=0;const t=state.playlist[0];$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`}renderPlaylist();renderStats();persist();addLog('ok',tracks.length+' Track(s) hinzugefügt.')})}
+  function addFiles(files){const arr=Array.from(files||[]);if(!arr.length)return;const accepted=[];arr.forEach(file=>{const validation=validateAudioFile(file);if(!validation.ok){handleValidationResult(validation,{context:`Audio ${safeStr(file&&file.name||'ohne Namen')}`,level:validation.level||'warn'});return;}accepted.push(file);});if(!accepted.length){announceProcess('Keine Audiodatei übernommen.','warn');return;}const first=state.playlist.length===0;Promise.all(accepted.map(fileToTrack)).then(tracks=>{state.playlist.push(...tracks);if(first){state._currentIndex=0;const t=state.playlist[0];$('#nowMeta').textContent=`${safeStr(t.artist)||''} ${t.artist?'– ':''}${safeStr(t.title)||'Unbenannt'}`}renderPlaylist();renderStats();persist();addLog('ok',tracks.length+' Track(s) hinzugefügt.')})}
   function playIndex(i){
     if(i<0||i>=state.playlist.length){toast('Keine Tracks.');return}
     const track=state.playlist[i];
@@ -2456,7 +2926,7 @@
     renderPlaylist();
     focusPlaylistItem(track.id);
     audio.src=track.src;
-    try{audio.currentTime=0;}catch{}
+    try{audio.currentTime=0;}catch(error){void error;}
     const meta=`${safeStr(track.artist)||''} ${track.artist?'– ':''}${safeStr(track.title)||'Unbenannt'}`;
     $('#nowMeta').textContent=meta;
     const playPromise=audio.play();
@@ -2473,7 +2943,7 @@
   }
   function next(){if(typeof state._currentIndex!=="number")return;if(state.playlist.length===0)return;playIndex((state._currentIndex+1)%state.playlist.length)}
   function prev(){if(typeof state._currentIndex!=="number")return;if(state.playlist.length===0)return;playIndex((state._currentIndex-1+state.playlist.length)%state.playlist.length)}
-  function revokeIfBlob(track){try{if(track&&track._blob&&track.src){URL.revokeObjectURL(track.src);track.src=''}}catch{}}
+  function revokeIfBlob(track){try{if(track&&track._blob&&track.src){URL.revokeObjectURL(track.src);track.src=''}}catch(error){void error;}}
   function removeTrackAt(idx){
     if(idx<0||idx>=state.playlist.length)return;
     const [t]=state.playlist.splice(idx,1);
@@ -2503,8 +2973,60 @@
     addLog('ok','Playlist umsortiert.');
     focusPlaylistItem(moved&&moved.id);
   }
-  function exportPlaylist(){const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);download('playlist.json',data);addLog('ok','Playlist manifestiert.')}
-  function importPlaylist(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json';inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state.playlist.forEach(revokeIfBlob);const arr=JSON.parse(r.result||'[]');if(!Array.isArray(arr))throw new Error('Kein Array');state.playlist=arr.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:x.src}));renderPlaylist();renderStats();persist();addLog('ok','Playlist importiert.')}catch(e){addLog('error','Import-Fehler: '+e.message)}};r.readAsText(f)});inp.click()}
+  function exportPlaylist(){
+    const ok=guardAction('Playlist exportieren',()=>{
+      const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);
+      download('playlist.json',data);
+      addLog('ok','Playlist exportiert.');
+      captureFeedback('Playlist exportiert. Die Datei speichert nur Titel, Künstler und Quelle.', 'ok', {source:'playlist'});
+      return true;
+    },{level:'error',hint:'playlist-export'});
+    if(ok){
+      announceProcess('Playlist exportiert.','ok');
+    }
+  }
+  function importPlaylist(){
+    const inp=document.createElement('input');
+    inp.type='file';
+    inp.accept='application/json';
+    inp.addEventListener('change',()=>{
+      const f=inp.files[0];
+      if(!f)return;
+      const validation=validateJsonFile(f);
+      if(!validation.ok){
+        handleValidationResult(validation,{context:'Playlist-Import'});
+        return;
+      }
+      const r=new FileReader();
+      r.onload=()=>{
+        let success=false;
+        try{
+          success=guardAction('Playlist importieren',()=>{
+            state.playlist.forEach(revokeIfBlob);
+            const arr=JSON.parse(r.result||'[]');
+            if(!Array.isArray(arr))throw new Error('Kein Array');
+            state.playlist=arr.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:x.src}));
+            renderPlaylist();
+            renderStats();
+            persist();
+            addLog('ok','Playlist importiert.');
+            captureFeedback('Playlist importiert. Prüfe die Liste unten, ob alle Titel korrekt erscheinen.', 'ok', {source:'playlist'});
+            return true;
+          },{level:'error',hint:'playlist-import',requirePreventMistakes:true});
+        }catch(e){
+          const detail=safeStr(e&&e.message||'unbekannt');
+          addLog('error','Playlist-Import gescheitert: '+detail);
+          handleValidationResult({ok:false,message:'Playlist konnte nicht gelesen werden.',detail},{context:'Playlist-Import',level:'error'});
+          toast('Playlist konnte nicht geladen werden: '+detail);
+        }
+        if(!success&&state.smartErrors!==false){
+          captureFeedback('Playlist konnte nicht geladen werden. Prüfe die Hinweise im rechten Bereich.', 'warn', {source:'playlist'});
+        }
+      };
+      r.readAsText(f);
+    });
+    inp.click();
+  }
   function createValidationReport(){
     const summary={fixes:[],warnings:[],notes:[]};
     return{
@@ -2539,7 +3061,11 @@
       reduceMotion:toBoolean(input.reduceMotion,systemReduceDefault),
       respectSystemContrast:toBoolean(input.respectSystemContrast,true),
       highContrast:toBoolean(input.highContrast,systemContrastDefault),
-      fontScale:allowedFontScales.has(Math.round(Number(input.fontScale)||0))?Math.round(Number(input.fontScale)||0):systemFontDefault()
+      fontScale:allowedFontScales.has(Math.round(Number(input.fontScale)||0))?Math.round(Number(input.fontScale)||0):systemFontDefault(),
+      smartErrors:toBoolean(input.smartErrors,true),
+      preventMistakes:toBoolean(input.preventMistakes,true),
+      debugMode:toBoolean(input.debugMode,false),
+      feedbackMode:input.feedbackMode==='smart'?'smart':'full'
     };
     const layoutMeta=getLayoutMeta(input.layoutPreset);
     if(layoutMeta.id!==safeLower(input.layoutPreset)){
@@ -2738,6 +3264,10 @@
         respectSystemContrast:!!source.respectSystemContrast,
         highContrast:highContrastActive,
         fontScale:allowedFontScales.has(Number(source.fontScale))?Number(source.fontScale):systemFontDefault(),
+        smartErrors:source.smartErrors!==false,
+        preventMistakes:source.preventMistakes!==false,
+        debugMode:!!source.debugMode,
+        feedbackMode:source.feedbackMode==='smart'?'smart':'full',
         configPreset,
         layoutPreset:layoutId
       }
@@ -2750,8 +3280,28 @@
       state:sanitized
     };
   }
-  function downloadManifest(){download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));addLog('ok','Manifest exportiert.');announceProcess('Manifest exportiert.','ok');}
-  function exportAll(){download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));addLog('ok','Backup exportiert (Manifest + Daten).');announceProcess('Backup exportiert (Manifest + Daten).','ok');}
+  function downloadManifest(){
+    const ok=guardAction('Manifest exportieren',()=>{
+      download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));
+      addLog('ok','Manifest exportiert.');
+      captureFeedback('Manifest exportiert. Die Datei findest du im Download-Ordner.', 'ok', {source:'export'});
+      return true;
+    },{level:'error',hint:'manifest-export'});
+    if(ok){
+      announceProcess('Manifest exportiert.','ok');
+    }
+  }
+  function exportAll(){
+    const ok=guardAction('Backup exportieren',()=>{
+      download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));
+      addLog('ok','Backup exportiert (Manifest + Daten).');
+      captureFeedback('Backup exportiert. Bewahre die Datei an einem sicheren Ort auf.', 'ok', {source:'export'});
+      return true;
+    },{level:'error',hint:'backup-export'});
+    if(ok){
+      announceProcess('Backup exportiert (Manifest + Daten).','ok');
+    }
+  }
   function validateBackup(obj,options){
     if(!obj||typeof obj!=='object')throw new Error('Backup hat kein Objekt');
     const statePart=obj.state;
@@ -2779,13 +3329,26 @@
     };
   }
   function exportPlugin(plugin){
-    const data=pluginToSerializable(plugin);
-    if(!data.name){toast('Plugin hat keinen Namen.');return;}
-    const fileName=`${slugify(data.name)||'plugin'}-${safeStr(plugin.id).slice(-6)||'export'}.json`;
-    download(fileName,JSON.stringify(data,null,2));
-    addLog('ok','Plugin exportiert: '+data.name);
+    const succeeded=guardAction('Plugin exportieren',()=>{
+      const data=pluginToSerializable(plugin);
+      if(!data.name){toast('Plugin hat keinen Namen.');return false;}
+      const fileName=`${slugify(data.name)||'plugin'}-${safeStr(plugin.id).slice(-6)||'export'}.json`;
+      download(fileName,JSON.stringify(data,null,2));
+      const pluginLabel=safeStr(data.name)||'Plugin';
+      addLog('ok','Plugin exportiert: '+pluginLabel);
+      captureFeedback(`Plugin „${pluginLabel}“ exportiert.`, 'ok', {source:'plugin'});
+      return true;
+    },{level:'error',hint:'plugin-export'});
+    if(succeeded){
+      announceProcess('Plugin exportiert.','ok');
+    }
   }
   function importAll(file){
+    const validation=validateJsonFile(file);
+    if(!validation.ok){
+      handleValidationResult(validation,{context:'Import'});
+      return;
+    }
     announceProcess('Import gestartet – Daten werden geprüft.','info');
     const r=new FileReader();
     r.onload=()=>{
@@ -2856,8 +3419,27 @@
     relayCheckbox(configReduceMotion,'#reduceMotionChk');
     relayCheckbox(configSystemContrast,'#systemContrastChk');
     relayCheckbox(configHighContrast,'#highContrastChk');
+    relayCheckbox(configSmartErrors,'#smartErrorsChk');
+    relayCheckbox(configPreventMistakes,'#preventMistakesChk');
+    relayCheckbox(configDebugMode,'#debugModeChk');
+    if(configFeedbackMode){
+      configFeedbackMode.addEventListener('change',()=>{
+        if(feedbackModeSel){
+          feedbackModeSel.value=configFeedbackMode.value;
+          feedbackModeSel.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      });
+    }
     if(helpCopyBtn){helpCopyBtn.addEventListener('click',copyHelpNotes);}
     if(helpDownloadBtn){helpDownloadBtn.addEventListener('click',downloadHelpNotes);}
+    if(clearFeedbackBtn){clearFeedbackBtn.addEventListener('click',clearFeedback);}
+    if(debugRefreshBtn){debugRefreshBtn.addEventListener('click',()=>{refreshDebugPanel();announceProcess('Debug-Daten aktualisiert.','info');});}
+    if(debugCopyBtn){debugCopyBtn.addEventListener('click',copyDebugData);}
+    if(debugDownloadBtn){debugDownloadBtn.addEventListener('click',downloadDebugData);}
+    if(smartErrorsChk){smartErrorsChk.addEventListener('change',()=>{state.smartErrors=!!smartErrorsChk.checked;attachGlobalErrorGuards();updateFeedbackBadge();persist();handleSettingChanged();});}
+    if(preventMistakesChk){preventMistakesChk.addEventListener('change',()=>{state.preventMistakes=!!preventMistakesChk.checked;updateFeedbackBadge();persist();handleSettingChanged();});}
+    if(debugModeChk){debugModeChk.addEventListener('change',()=>{state.debugMode=!!debugModeChk.checked;renderDebugPanel();persist();handleSettingChanged();});}
+    if(feedbackModeSel){feedbackModeSel.addEventListener('change',()=>{const mode=feedbackModeSel.value==='smart'?'smart':'full';state.feedbackMode=mode;renderFeedback();persist();handleSettingChanged();});}
     $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme);handleSettingChanged();});
     $('#toggleLeft').addEventListener('click',()=>{const meta=getLayoutMeta(state.layoutPreset);const next=meta.showLeft===false?'balanced':'audio-only';applyLayoutPreset(next,{announceSelection:true});});
     $('#toggleRight').addEventListener('click',()=>{const meta=getLayoutMeta(state.layoutPreset);const next=meta.showRight===false?'balanced':'module-only';applyLayoutPreset(next,{announceSelection:true});});
@@ -2968,7 +3550,7 @@
     updateConfigSummary();
   }
   function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}applyLayoutPreset(state.layoutPreset||'balanced',{announceSelection:false,persistChange:false});$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

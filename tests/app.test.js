@@ -105,6 +105,35 @@ test('Backup erfüllt JSON-Schema', () => {
   }
 });
 
+test('Backup übernimmt Fehlerfänger-, Datei- und Debug-Einstellungen', async () => {
+  const { document } = dom.window;
+  const smartToggle = document.querySelector('#smartErrorsChk');
+  const preventToggle = document.querySelector('#preventMistakesChk');
+  const debugToggle = document.querySelector('#debugModeChk');
+  const feedbackSelect = document.querySelector('#feedbackModeSel');
+
+  smartToggle.checked = false;
+  smartToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  preventToggle.checked = false;
+  preventToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  debugToggle.checked = true;
+  debugToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  feedbackSelect.value = 'smart';
+  feedbackSelect.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+
+  await flush();
+
+  const backup = api.actions.buildBackup();
+  assert.equal(backup.state.smartErrors, false);
+  assert.equal(backup.state.preventMistakes, false);
+  assert.equal(backup.state.debugMode, true);
+  assert.equal(backup.state.feedbackMode, 'smart');
+  assert.equal(backup.manifest.settings.smartErrors, false);
+  assert.equal(backup.manifest.settings.preventMistakes, false);
+  assert.equal(backup.manifest.settings.debugMode, true);
+  assert.equal(backup.manifest.settings.feedbackMode, 'smart');
+});
+
 test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
   const dirtyBackup = {
     state: {
@@ -155,7 +184,11 @@ test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
         { time: '12:00:00', type: 'warn', msg: 'Warnung' },
         null
       ],
-      logFilter: 'all'
+      logFilter: 'all',
+      smartErrors: true,
+      preventMistakes: true,
+      debugMode: false,
+      feedbackMode: 'full'
     }
   };
 
@@ -174,7 +207,77 @@ test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
   assert.match(sanitized.plugins[0].links[0].url, /^https?:/);
   assert.equal(sanitized.activeModule, null);
   assert.equal(sanitized.log.length, 2);
+  assert.equal(sanitized.smartErrors, true);
+  assert.equal(sanitized.preventMistakes, true);
+  assert.equal(sanitized.debugMode, false);
+  assert.equal(sanitized.feedbackMode, 'full');
   assert.ok(report.fixes.length >= 1);
+});
+
+test('Feedback-Panel sammelt Prozessmeldungen und lässt sich leeren', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: true, persistChange: false });
+  await flush();
+  const itemsAfterLayout = Array.from(list.querySelectorAll('li'));
+  assert.ok(itemsAfterLayout.some((li) => /Audio/.test(li.textContent)), 'Audio-Hinweis sichtbar');
+  const clearBtn = document.querySelector('#clearFeedbackBtn');
+  clearBtn.click();
+  await flush();
+  const resetItems = Array.from(list.querySelectorAll('li'));
+  assert.equal(resetItems.length, 1);
+  assert.match(resetItems[0].textContent, /Noch keine Hinweise/);
+});
+
+test('Smart Errors fangen globale Fehler ab und loggen Meldung', async () => {
+  const initialLogLength = api.state.log.length;
+  const errorEvent = new dom.window.ErrorEvent('error', {
+    message: 'Testfehler',
+    filename: 'test.js',
+    lineno: 42
+  });
+  dom.window.dispatchEvent(errorEvent);
+  await flush();
+  assert.ok(api.state.log.length > initialLogLength, 'Logeintrag wurde ergänzt');
+  const lastEntry = api.state.log[api.state.log.length - 1];
+  assert.equal(lastEntry.type, 'error');
+  assert.match(lastEntry.msg, /Schutz: Fehler abgefangen/);
+});
+
+test('guardAction fängt Fehler ab und liefert Feedback für Laien', async () => {
+  const list = dom.window.document.querySelector('#feedbackList');
+  const badge = dom.window.document.querySelector('#feedbackBadge');
+  api.actions.guardAction('Testaktion', () => {
+    throw new Error('Absichtlicher Fehler');
+  });
+  await flush();
+  const items = Array.from(list.querySelectorAll('li'));
+  assert.ok(items.some((item) => /Testaktion/.test(item.textContent)), 'Hinweis für Testaktion sichtbar');
+  const lastLog = api.state.log[api.state.log.length - 1];
+  assert.equal(lastLog.type, 'error');
+  assert.match(lastLog.msg, /Testaktion/);
+  if (badge) {
+    assert.match(badge.textContent, /Hinweise/, 'Badge zeigt Hinweisanzahl an');
+  }
+});
+
+test('guardAction blendet Präventionshinweise nur einmal ein', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  api.actions.guardAction('Plugin-Test', () => {
+    throw new Error('Fehlerhafte Plugin-Datei');
+  }, { hint: 'plugin-import' });
+  await flush();
+  const firstTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  const initialHints = firstTexts.filter((text) => /Tipp:/.test(text));
+  assert.ok(initialHints.length >= 1, 'Mindestens ein Tipp-Hinweis sichtbar');
+  api.actions.guardAction('Plugin-Test erneut', () => {
+    throw new Error('Fehlerhafte Plugin-Datei');
+  }, { hint: 'plugin-import' });
+  await flush();
+  const secondTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  const hintsAfterSecondRun = secondTexts.filter((text) => /Tipp:/.test(text));
+  assert.equal(hintsAfterSecondRun.length, initialHints.length, 'Hinweis erscheint nur einmal');
 });
 
 test('Layout-Preset steuert Seitenleisten und landet im Backup', async () => {

@@ -5,12 +5,15 @@ TOOL-2025/
 │  ├─ analysis-report.md   # Detaillierter Analysebericht (Professional Edition)
 │  ├─ developer-guide.md   # Entwicklerhandbuch (Professional Edition)
 │  └─ structure.txt        # Diese Strukturübersicht
-├─ index.html              # Monolithische App (UI, Styles, Logik, Plugin-Manager, Backup-Prüfung, Layout-/Konfigurations-Assistent)
+├─ .eslintrc.json          # ESLint-Konfiguration für HTML/JS-Linting
+├─ fortschritt-info.txt    # Aktuelle Release-Fortschrittsmeldung
+├─ info-you-need.txt       # Kurzreferenz mit Setup-/Befehlsübersicht
+├─ index.html              # Monolithische App (UI, Styles, Logik, Plugin-Manager, Backup-Prüfung, Layout-/Konfigurations-Assistent, Smart-Error-Guard + `guardAction` mit Präventionshinweisen, Feedback-Badge, Guard-gestützte Exporte & Debug-Download)
 ├─ node_modules/           # Installierte Abhängigkeiten (npm)
 ├─ package.json            # Scripts, Abhängigkeiten, Projekt-Metadaten
 ├─ package-lock.json       # Lockfile für reproduzierbare Installationen
 ├─ schemas/
 │  └─ backup-schema.json   # JSON-Schema für Backups
 ├─ tests/
-│  └─ app.test.js          # Node-basierte Tests (Playlist, Plugins, Backup)
+│  └─ app.test.js          # Node-basierte Tests (Playlist, Plugins, Backup, Guard-Hinweise)
 └─ todo.txt                # Backlog mit priorisierten Verbesserungen

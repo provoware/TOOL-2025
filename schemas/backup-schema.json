@@ -53,7 +53,7 @@
         "settings": {
           "type": "object",
           "additionalProperties": false,
-          "required": ["autosave", "selfrepair", "toasts"],
+          "required": ["autosave", "selfrepair", "toasts", "smartErrors", "preventMistakes", "debugMode", "feedbackMode"],
           "properties": {
             "autosave": { "type": "boolean" },
             "selfrepair": { "type": "boolean" },
@@ -63,6 +63,10 @@
             "respectSystemContrast": { "type": "boolean" },
             "highContrast": { "type": "boolean" },
             "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
+            "smartErrors": { "type": "boolean" },
+            "preventMistakes": { "type": "boolean" },
+            "debugMode": { "type": "boolean" },
+            "feedbackMode": { "type": "string", "enum": ["full", "smart"] },
             "configPreset": {
               "type": "string",
               "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
@@ -88,18 +92,22 @@
       "additionalProperties": false,
       "required": [
         "theme",
-        "autosave", 
-        "selfrepair", 
-        "toasts", 
-        "modules", 
-        "categories", 
+        "autosave",
+        "selfrepair",
+        "toasts",
+        "modules",
+        "categories",
         "genres",
         "moods",
         "playlist",
         "plugins",
         "activeModule",
         "log",
-        "logFilter"
+        "logFilter",
+        "smartErrors",
+        "preventMistakes",
+        "debugMode",
+        "feedbackMode"
       ],
       "properties": {
         "theme": { "type": "string", "minLength": 1 },
@@ -111,6 +119,10 @@
         "respectSystemContrast": { "type": "boolean" },
         "highContrast": { "type": "boolean" },
         "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
+        "smartErrors": { "type": "boolean" },
+        "preventMistakes": { "type": "boolean" },
+        "debugMode": { "type": "boolean" },
+        "feedbackMode": { "type": "string", "enum": ["full", "smart"] },
         "configPreset": {
           "type": "string",
           "enum": ["balanced", "accessibility", "focus", "performance", "custom"]

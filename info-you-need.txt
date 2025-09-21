@@ -9,9 +9,19 @@
 npm install
 ```
 
-## Tests ausführen
+## Tests ausführen (führt automatisch `npm run lint` via `pretest` aus)
 ```bash
 npm test
+```
+
+## Code-Qualität prüfen
+```bash
+npm run lint
+```
+
+## Alles prüfen (Alias für `npm test`)
+```bash
+npm run verify
 ```
 
 ## Empfohlene Zusatztools (optional, für spätere Ausbaustufen)
