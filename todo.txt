@@ -1,4 +1,5 @@
 # TOOL-2025 ToDo
+Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und rechts auf und zuklappbare sidebars und teile alles neu auf. analysiere dafür die perfekteste methode
 1. **Architektur & Modularisierung**
    1.1 Zerschneidung des Inline-Monolithen (`/index.html`) in klar abgegrenzte Module: `src/app/bootstrap.js`, `src/app/state.js`, `src/app/ui/*.js`, `src/app/services/*.js`.
    1.2 Einführung einer sauberen **Composition-Root** (`src/main.js`), die exakt eine `init()` ausführt und DI-ähnlich Abhängigkeiten injiziert.
