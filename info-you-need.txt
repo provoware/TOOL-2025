@@ -1,0 +1,20 @@
+# Info you need
+
+## Voraussetzungen
+- Node.js (>= 20.x) installieren und im Pfad verfügbar machen.
+- npm (wird mit Node ausgeliefert).
+
+## Projekt vorbereiten
+```bash
+npm install
+```
+
+## Tests ausführen
+```bash
+npm test
+```
+
+## Empfohlene Zusatztools (optional, für spätere Ausbaustufen)
+```bash
+npm install --save-dev vite typescript eslint prettier
+```

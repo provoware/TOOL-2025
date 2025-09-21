@@ -6,14 +6,16 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'" />
 <title>ModulTool – Singlefile Klick&Start</title>
 <style>
-  :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px}
+  :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px;--font-size:16px;--max-line:75ch}
+  html{font-size:var(--font-size)}
   [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045}
   [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb}
   [data-theme="night"]{--bg:#000;--bg-soft:#0d0d0d;--panel:#111;--panel-2:#161616;--text:#fff;--muted:#d1d1d1;--accent:#00c2ff;--ok:#00ff99;--warn:#ffd000;--err:#ff4d4d;--input:#0a0a0a;--border:#2a2a2a;--link:#66d9ff;--badge:#1a1a1a}
   [data-theme="forest"]{--bg:#0e1a14;--bg-soft:#13241b;--panel:#162a21;--panel-2:#1d3429;--text:#e9fff5;--muted:#b7d8c9;--accent:#34d399;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--input:#0f1f19;--border:#2c4b3e;--link:#6ee7b7;--badge:#163428}
   [data-theme="aurora"]{--bg:#0b1020;--bg-soft:#101636;--panel:#121a3f;--panel-2:#192456;--text:#ecf2ff;--muted:#bfc8f2;--accent:#7cdbff;--ok:#6ee7b7;--warn:#ffd166;--err:#ff6b6b;--input:#0d1433;--border:#2a3a78;--link:#9ae6ff;--badge:#1a2160}
   html,body{height:100%}
-  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font)}
+  body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;letter-spacing:.01em}
+  body.font-large{line-height:1.7}
   a{color:var(--link)}
   .app{display:grid;grid-template-areas:"header header header" "left   main   right" "footer footer footer";grid-template-columns:280px 1fr 360px;grid-template-rows:auto 1fr auto;min-height:100vh}
   header{grid-area:header;background:var(--panel);box-shadow:var(--shadow);position:sticky;top:0;z-index:5}
@@ -25,6 +27,7 @@
   .col{display:flex;flex-direction:column;gap:var(--gap)}
   .pad{padding:12px 14px}
   .panel{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow)}
+  .panel p,.panel ul,.panel ol,.panel pre{max-width:var(--max-line)}
   .plugin-frame{width:100%;min-height:200px;border:0;border-radius:var(--radius);box-shadow:inset 0 0 0 1px var(--border);background:var(--panel-2);margin-top:12px}
   .plugin-frame:focus{outline:2px solid var(--accent);outline-offset:2px}
   .title{font-weight:700;letter-spacing:.3px}
@@ -49,6 +52,10 @@
   .loglist li:last-child{border-bottom:0}
   .log-empty{font-size:.9rem;color:var(--muted);padding:4px 0}
   .log-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
+  .status-banner{margin-top:8px;font-size:.85rem}
+  .status-banner[data-type="ok"]{color:var(--ok)}
+  .status-banner[data-type="warn"]{color:var(--warn)}
+  .status-banner[data-type="error"]{color:var(--err)}
   .collapsed-left aside#left{display:none}
   .collapsed-left .app{grid-template-columns:0 1fr 360px}
   .collapsed-right aside#right{display:none}
@@ -70,6 +77,10 @@
   .listbox{max-height:140px;overflow:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px}
   .listbox li{list-style:none;border-bottom:1px dashed var(--border);padding:4px 0}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  [data-motion="reduced"] *,[data-motion="reduced"] *::before,[data-motion="reduced"] *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
+  [data-contrast="high"] .panel,[data-contrast="high"] .btn{border-width:2px}
+  [data-contrast="high"] .panel{box-shadow:0 0 0 2px var(--accent)}
+  [data-contrast="high"] .btn{box-shadow:0 0 0 2px rgba(0,0,0,.2)}
   @media (max-width:1100px){.app{grid-template-columns:230px 1fr 0}aside#right{display:none}}
   @media (max-width:800px){.app{grid-template-columns:0 1fr 0}aside#left{display:none}.footer-grid{grid-template-columns:1fr}.header-grid{grid-template-columns:1fr}}
 </style>
@@ -119,6 +130,19 @@
           <button class="btn inline" id="manifestBtn" title="Strukturelles Manifest herunterladen">Manifest</button>
           <input type="file" id="importAllFile" title="JSON importieren" accept="application/json" />
         </div>
+        <div class="row" style="margin-top:6px">
+          <label><input type="checkbox" id="systemMotionChk"> System-Animationen nutzen</label>
+          <label><input type="checkbox" id="reduceMotionChk"> Animationen reduzieren</label>
+          <label><input type="checkbox" id="systemContrastChk"> System-Kontrast nutzen</label>
+          <label><input type="checkbox" id="highContrastChk"> Hoher Kontrast</label>
+          <label for="fontScaleSel">Schriftgröße</label>
+          <select id="fontScaleSel" title="Schriftgröße wählen">
+            <option value="14">14 px</option>
+            <option value="16">16 px</option>
+            <option value="18">18 px</option>
+            <option value="20">20 px</option>
+          </select>
+        </div>
         <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
       </div>
       <div class="panel header-block pad" aria-label="Echtzeit Logging">
@@ -133,6 +157,8 @@
           </select>
         </div>
         <ul class="loglist" id="loglist" aria-live="polite"></ul>
+        <div id="liveStatus" class="sr-only" aria-live="polite" aria-atomic="true">Status bereit.</div>
+        <div id="liveStatusText" class="status-banner muted" data-type="info">Status: bereit.</div>
         <div class="row">
           <button class="btn inline warn" id="clearLogBtn">Log leeren</button>
           <button class="btn inline" id="downloadLogBtn">Log speichern</button>
@@ -256,9 +282,23 @@
 <script>
 (function(){
   'use strict';
+  const docEl=typeof document!=='undefined'?document.documentElement:null;
+  const supportsMatchMedia=typeof window!=='undefined'&&typeof window.matchMedia==='function';
+  const reducedMotionMedia=supportsMatchMedia?window.matchMedia('(prefers-reduced-motion: reduce)'):null;
+  const prefersContrastMedia=supportsMatchMedia?window.matchMedia('(prefers-contrast: more)'):null;
+  const forcedColorsMedia=supportsMatchMedia?window.matchMedia('(forced-colors: active)'):null;
+  const systemReduceDefault=reducedMotionMedia&&typeof reducedMotionMedia.matches==='boolean'?reducedMotionMedia.matches:false;
+  const systemContrastDefault=(prefersContrastMedia&&typeof prefersContrastMedia.matches==='boolean'?prefersContrastMedia.matches:false)||(forcedColorsMedia&&typeof forcedColorsMedia.matches==='boolean'?forcedColorsMedia.matches:false);
   const isTestEnv=typeof window!=='undefined'&&window.__MODUL_TOOL_TEST__===true;
   const $=s=>document.querySelector(s);const $$=s=>Array.from(document.querySelectorAll(s));
   const loglist=$('#loglist');
+  const liveRegion=$('#liveStatus');
+  const liveText=$('#liveStatusText');
+  const systemMotionChk=$('#systemMotionChk');
+  const reduceMotionChk=$('#reduceMotionChk');
+  const systemContrastChk=$('#systemContrastChk');
+  const highContrastChk=$('#highContrastChk');
+  const fontScaleSel=$('#fontScaleSel');
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
   const escapeHtml=str=>safeStr(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const ALLOWED_TAGS=new Set(['a','abbr','b','blockquote','br','code','em','i','li','ol','p','pre','small','span','strong','u','ul']);
@@ -293,6 +333,117 @@
       });
     });
     return template.innerHTML;
+  }
+  const STATUS_TYPES=new Set(['info','ok','warn','error']);
+  function announce(message,type='info'){
+    const text=safeStr(message).trim()||'Bereit.';
+    const statusType=STATUS_TYPES.has(type)?type:'info';
+    if(liveRegion){
+      liveRegion.textContent=text;
+      liveRegion.setAttribute('data-last-type',statusType);
+    }
+    if(liveText){
+      liveText.dataset.type=statusType;
+      liveText.textContent='Status: '+text;
+      if(statusType==='info'){liveText.classList.add('muted');}
+      else{liveText.classList.remove('muted');}
+    }
+  }
+  const allowedFontScales=new Set([14,16,18,20]);
+  function readSystemMotion(){
+    return reducedMotionMedia&&typeof reducedMotionMedia.matches==='boolean'?reducedMotionMedia.matches:false;
+  }
+  function readSystemContrast(){
+    const mediaContrast=prefersContrastMedia&&typeof prefersContrastMedia.matches==='boolean'?prefersContrastMedia.matches:false;
+    const forcedActive=forcedColorsMedia&&typeof forcedColorsMedia.matches==='boolean'?forcedColorsMedia.matches:false;
+    return mediaContrast||forcedActive;
+  }
+  function isReduceMotionActive(){
+    if(state.respectSystemMotion){
+      return readSystemMotion();
+    }
+    return !!state.reduceMotion;
+  }
+  function isHighContrastActive(){
+    if(state.respectSystemContrast){
+      return readSystemContrast();
+    }
+    return !!state.highContrast;
+  }
+  function applyMotionPreference(){
+    if(docEl){
+      docEl.setAttribute('data-motion',isReduceMotionActive()?'reduced':'full');
+    }
+  }
+  function applyContrastPreference(){
+    if(docEl){
+      docEl.setAttribute('data-contrast',isHighContrastActive()?'high':'normal');
+    }
+  }
+  function applyFontScale(){
+    const size=allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):16;
+    if(docEl){
+      docEl.style.setProperty('--font-size',size+'px');
+    }
+    if(document&&document.body){
+      if(size>=18){document.body.classList.add('font-large');}
+      else{document.body.classList.remove('font-large');}
+    }
+  }
+  function applyDisplayPreferences(){
+    applyMotionPreference();
+    applyContrastPreference();
+    applyFontScale();
+  }
+  function renderDisplaySettings(){
+    if(systemMotionChk){
+      systemMotionChk.checked=!!state.respectSystemMotion;
+    }
+    if(reduceMotionChk){
+      reduceMotionChk.checked=state.respectSystemMotion?readSystemMotion():!!state.reduceMotion;
+      reduceMotionChk.disabled=!!state.respectSystemMotion;
+      reduceMotionChk.setAttribute('aria-disabled',state.respectSystemMotion?'true':'false');
+    }
+    if(systemContrastChk){
+      systemContrastChk.checked=!!state.respectSystemContrast;
+    }
+    if(highContrastChk){
+      highContrastChk.checked=state.respectSystemContrast?readSystemContrast():!!state.highContrast;
+      highContrastChk.disabled=!!state.respectSystemContrast;
+      highContrastChk.setAttribute('aria-disabled',state.respectSystemContrast?'true':'false');
+    }
+    if(fontScaleSel){
+      const value=allowedFontScales.has(Number(state.fontScale))?String(Number(state.fontScale)):String(systemFontDefault());
+      fontScaleSel.value=value;
+    }
+  }
+  function systemFontDefault(){
+    return 16;
+  }
+  function bindMediaListeners(){
+    const handleMotionChange=()=>{
+      if(state.respectSystemMotion){
+        applyMotionPreference();
+        renderDisplaySettings();
+        announce('System-Animationseinstellung übernommen.','info');
+      }
+    };
+    const handleContrastChange=()=>{
+      if(state.respectSystemContrast){
+        applyContrastPreference();
+        renderDisplaySettings();
+        announce('System-Kontrasteinstellung übernommen.','info');
+      }
+    };
+    if(reducedMotionMedia){
+      if(typeof reducedMotionMedia.addEventListener==='function'){reducedMotionMedia.addEventListener('change',handleMotionChange);}else if(typeof reducedMotionMedia.addListener==='function'){reducedMotionMedia.addListener(handleMotionChange);}
+    }
+    if(prefersContrastMedia){
+      if(typeof prefersContrastMedia.addEventListener==='function'){prefersContrastMedia.addEventListener('change',handleContrastChange);}else if(typeof prefersContrastMedia.addListener==='function'){prefersContrastMedia.addListener(handleContrastChange);}
+    }
+    if(forcedColorsMedia){
+      if(typeof forcedColorsMedia.addEventListener==='function'){forcedColorsMedia.addEventListener('change',handleContrastChange);}else if(typeof forcedColorsMedia.addListener==='function'){forcedColorsMedia.addListener(handleContrastChange);}
+    }
   }
   const FALLBACK_THEME={
     text:'#111827',
@@ -349,7 +500,7 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.1.4',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
   let clockTimer=null;
   const moduleRegistry=new Map();
   const isPlainObject=value=>value&&typeof value==='object'&&!Array.isArray(value);
@@ -409,6 +560,14 @@
         ensureBoolean(manifest.settings.autosave,'manifest.settings.autosave',errors);
         ensureBoolean(manifest.settings.selfrepair,'manifest.settings.selfrepair',errors);
         ensureBoolean(manifest.settings.toasts,'manifest.settings.toasts',errors);
+        if(hasOwn(manifest.settings,'respectSystemMotion')){ensureBoolean(manifest.settings.respectSystemMotion,'manifest.settings.respectSystemMotion',errors);}
+        if(hasOwn(manifest.settings,'reduceMotion')){ensureBoolean(manifest.settings.reduceMotion,'manifest.settings.reduceMotion',errors);}
+        if(hasOwn(manifest.settings,'respectSystemContrast')){ensureBoolean(manifest.settings.respectSystemContrast,'manifest.settings.respectSystemContrast',errors);}
+        if(hasOwn(manifest.settings,'highContrast')){ensureBoolean(manifest.settings.highContrast,'manifest.settings.highContrast',errors);}
+        if(hasOwn(manifest.settings,'fontScale')){
+          const size=Number(manifest.settings.fontScale);
+          if(!allowedFontScales.has(size)){errors.push('manifest.settings.fontScale muss 14, 16, 18 oder 20 sein.');}
+        }
       }
     }
     const statePart=obj&&obj.state;
@@ -419,7 +578,12 @@
         ensureString(statePart.theme,'state.theme',1),
         typeof statePart.autosave==='boolean'?null:'state.autosave muss ein Wahr/Falsch-Wert sein.',
         typeof statePart.selfrepair==='boolean'?null:'state.selfrepair muss ein Wahr/Falsch-Wert sein.',
-        typeof statePart.toasts==='boolean'?null:'state.toasts muss ein Wahr/Falsch-Wert sein.'
+        typeof statePart.toasts==='boolean'?null:'state.toasts muss ein Wahr/Falsch-Wert sein.',
+        statePart.respectSystemMotion===undefined||typeof statePart.respectSystemMotion==='boolean'?null:'state.respectSystemMotion muss ein Wahr/Falsch-Wert sein.',
+        statePart.reduceMotion===undefined||typeof statePart.reduceMotion==='boolean'?null:'state.reduceMotion muss ein Wahr/Falsch-Wert sein.',
+        statePart.respectSystemContrast===undefined||typeof statePart.respectSystemContrast==='boolean'?null:'state.respectSystemContrast muss ein Wahr/Falsch-Wert sein.',
+        statePart.highContrast===undefined||typeof statePart.highContrast==='boolean'?null:'state.highContrast muss ein Wahr/Falsch-Wert sein.',
+        statePart.fontScale===undefined||allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?null:'state.fontScale muss 14, 16, 18 oder 20 sein.'
       ].filter(Boolean);
       errors.push(...stateChecks);
       if(!hasOwn(statePart,'modules')){errors.push('state.modules fehlt.');}
@@ -556,7 +720,7 @@
     }
   }
   function toast(msg){if(!$('#toastsChk').checked)return;const t=document.createElement('div');t.textContent=msg;t.setAttribute('role','status');Object.assign(t.style,{position:'fixed',right:'14px',bottom:'14px',background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'12px',boxShadow:'var(--shadow)',zIndex:99});document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
-  function addLog(type,msg){const lvl=['ok','warn','error'].includes(type)?type:'info';const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type:lvl,msg});if(state.log.length>300)state.log.shift();renderLog()}
+  function addLog(type,msg){const lvl=['ok','warn','error'].includes(type)?type:'info';const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type:lvl,msg});if(state.log.length>300)state.log.shift();announce(msg,lvl);renderLog()}
   function renderLog(){loglist.innerHTML='';
     const filter=(state.logFilter||'all').toLowerCase();
     const entries=state.log.filter(e=>filter==='all'||e.type===filter).slice(-10);
@@ -588,6 +752,13 @@
     if(!Array.isArray(state.playlist)){state.playlist=[];fixes++;}
     if(!Array.isArray(state.log)){state.log=[];fixes++;}
     if(!['all','ok','warn','error'].includes(state.logFilter)){state.logFilter='all';fixes++;}
+    if(typeof state.respectSystemMotion!=='boolean'){state.respectSystemMotion=true;fixes++;}
+    if(typeof state.reduceMotion!=='boolean'){state.reduceMotion=systemReduceDefault;fixes++;}
+    if(typeof state.respectSystemContrast!=='boolean'){state.respectSystemContrast=true;fixes++;}
+    if(typeof state.highContrast!=='boolean'){state.highContrast=systemContrastDefault;fixes++;}
+    const numericFont=Math.round(Number(state.fontScale)||0);
+    if(!allowedFontScales.has(numericFont)){state.fontScale=systemFontDefault();fixes++;}
+    else{state.fontScale=numericFont;}
     const seen=new Set();
     const modules=[];
     state.modules.filter(Boolean).forEach((m,idx)=>{
@@ -655,7 +826,13 @@
     if(fixes>0)addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
   }
   function renderStats(){$('#stat-modules').textContent=state.modules.length;$('#stat-cats').textContent=Object.keys(state.categories).length;$('#stat-genres').textContent=state.genres.length;$('#stat-moods').textContent=state.moods.length;$('#stat-tracks').textContent=state.playlist.length;$('#countGenres').textContent=state.genres.length;$('#countMoods').textContent=state.moods.length;$('#countCats').textContent=Object.keys(state.categories).length}
-  function renderTheme(){document.documentElement.setAttribute('data-theme',state.theme);$('#themeSel').value=state.theme;refreshPluginFrames();}
+  function renderTheme(){
+    if(docEl){docEl.setAttribute('data-theme',state.theme);}
+    const themeSelect=$('#themeSel');
+    if(themeSelect) themeSelect.value=state.theme;
+    applyDisplayPreferences();
+    refreshPluginFrames();
+  }
   function renderModules(){const list=$('#modulesList');list.innerHTML='';const sorted=[...state.modules].sort((a,b)=>safeStr(a.name).localeCompare(safeStr(b.name)));const frag=document.createDocumentFragment();sorted.forEach(m=>{const btn=document.createElement('button');btn.className='btn block';btn.setAttribute('role','option');btn.innerHTML=`<span>${safeStr(m.name)||'Unbenannt'}</span><span class=\"small\">anzeigen</span>`;btn.addEventListener('click',()=>openModule(m.id));frag.appendChild(btn)});list.appendChild(frag)}
   function renderArchives(){const gl=$('#genresList');gl.innerHTML='';const gfrag=document.createDocumentFragment();state.genres.forEach(g=>{const li=document.createElement('li');li.textContent=g;gfrag.appendChild(li)});gl.appendChild(gfrag);const ml=$('#moodsList');ml.innerHTML='';const mfrag=document.createDocumentFragment();state.moods.forEach(m=>{const li=document.createElement('li');li.textContent=m;mfrag.appendChild(li)});ml.appendChild(mfrag)}
   function renderCategories(){const sel=$('#catSel');const rsel=$('#randCatSel');sel.innerHTML='';rsel.innerHTML='';const frag1=document.createDocumentFragment();const frag2=document.createDocumentFragment();Object.keys(state.categories).sort((a,b)=>a.localeCompare(b)).forEach(c=>{const o1=document.createElement('option');o1.value=c;o1.textContent=c;frag1.appendChild(o1);const o2=document.createElement('option');o2.value=c;o2.textContent=c;frag2.appendChild(o2)});sel.appendChild(frag1);rsel.appendChild(frag2)}
@@ -1255,7 +1432,7 @@
       plugins:state.plugins.map(p=>({id:p.id,name:p.name,version:p.version||'n/a',moduleId:p.moduleId})),
       archives:{genres:state.genres.length,moods:state.moods.length,categories:Object.keys(state.categories).length},
       playlist:state.playlist.length,
-      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false}
+      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false,respectSystemMotion:!!state.respectSystemMotion,reduceMotion:isReduceMotionActive(),respectSystemContrast:!!state.respectSystemContrast,highContrast:isHighContrastActive(),fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault()}
     };
   }
   function buildBackup(){
@@ -1266,6 +1443,11 @@
         autosave:!!state.autosave,
         selfrepair:!!state.selfrepair,
         toasts:state.toasts!==false,
+        respectSystemMotion:!!state.respectSystemMotion,
+        reduceMotion:!!state.reduceMotion,
+        respectSystemContrast:!!state.respectSystemContrast,
+        highContrast:!!state.highContrast,
+        fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),
         modules:state.modules,
         categories:state.categories,
         genres:state.genres,
@@ -1313,6 +1495,11 @@
       autosave:!!statePart.autosave,
       selfrepair:!!statePart.selfrepair,
       toasts:statePart.toasts!==false,
+      respectSystemMotion:statePart.respectSystemMotion===undefined?true:!!statePart.respectSystemMotion,
+      reduceMotion:statePart.reduceMotion===undefined?systemReduceDefault:!!statePart.reduceMotion,
+      respectSystemContrast:statePart.respectSystemContrast===undefined?true:!!statePart.respectSystemContrast,
+      highContrast:statePart.highContrast===undefined?systemContrastDefault:!!statePart.highContrast,
+      fontScale:allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?Math.round(Number(statePart.fontScale)||0):systemFontDefault(),
       modules:sanitizeModules(statePart.modules),
       categories:sanitizeCategories(statePart.categories),
       genres:sanitizeStringArray(statePart.genres).sort((a,b)=>a.localeCompare(b)),
@@ -1358,6 +1545,11 @@
         state.autosave=valid.autosave;
         state.selfrepair=valid.selfrepair;
         state.toasts=valid.toasts;
+        state.respectSystemMotion=valid.respectSystemMotion;
+        state.reduceMotion=valid.reduceMotion;
+        state.respectSystemContrast=valid.respectSystemContrast;
+        state.highContrast=valid.highContrast;
+        state.fontScale=valid.fontScale;
         state.modules=valid.modules;
         state.categories=valid.categories;
         state.genres=valid.genres;
@@ -1397,6 +1589,11 @@
     $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist()});
     $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist()});
     $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist()});
+    if(systemMotionChk){systemMotionChk.addEventListener('change',()=>{state.respectSystemMotion=systemMotionChk.checked;if(state.respectSystemMotion){addLog('info','System-Animationen aktiv.');}else{addLog('info','Eigene Animationseinstellung aktiv.');}applyMotionPreference();renderDisplaySettings();persist();});}
+    if(reduceMotionChk){reduceMotionChk.addEventListener('change',()=>{state.reduceMotion=!!reduceMotionChk.checked;addLog('ok',state.reduceMotion?'Animationen reduziert.':'Animationen normal.');applyMotionPreference();renderDisplaySettings();persist();});}
+    if(systemContrastChk){systemContrastChk.addEventListener('change',()=>{state.respectSystemContrast=systemContrastChk.checked;if(state.respectSystemContrast){addLog('info','System-Kontrast aktiv.');}else{addLog('info','Eigene Kontrasteinstellung aktiv.');}applyContrastPreference();renderDisplaySettings();persist();});}
+    if(highContrastChk){highContrastChk.addEventListener('change',()=>{state.highContrast=!!highContrastChk.checked;addLog('ok',state.highContrast?'Hoher Kontrast aktiv.':'Normaler Kontrast aktiv.');applyContrastPreference();renderDisplaySettings();persist();});}
+    if(fontScaleSel){fontScaleSel.addEventListener('change',()=>{const parsed=Math.round(Number(fontScaleSel.value)||systemFontDefault());state.fontScale=allowedFontScales.has(parsed)?parsed:systemFontDefault();addLog('ok','Schriftgröße auf '+state.fontScale+' px gesetzt.');applyFontScale();renderDisplaySettings();persist();});}
     $('#exportAllBtn').addEventListener('click',exportAll);
     $('#manifestBtn').addEventListener('click',downloadManifest);
     $('#importAllFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f)});
@@ -1439,8 +1636,21 @@
     pl.addEventListener('keydown',e=>{const item=e.target.closest('.item');if(!item)return;const idx=Number(item.dataset.index);if(Number.isNaN(idx))return;const key=e.key;if((key==='Enter'||key===' '||key==='Spacebar')&&!e.altKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();playIndex(idx);}else if((key==='Delete'||key==='Backspace')&&!e.altKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();removeTrackAt(idx);}else if((key==='ArrowUp'||key==='ArrowDown')&&e.altKey){e.preventDefault();const target=key==='ArrowUp'?idx-1:idx+1;reorderPlaylist(idx,target);}});
   }
   function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
-  function renderAll(){ensureAllPlugins();ensureModuleRegistryMatchesState(startId);renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog();const filterSel=$('#logFilterSel');if(filterSel)filterSel.value=state.logFilter||'all';}
-  function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();addLog('ok','Bereit.')}
+  function renderAll(){
+    ensureAllPlugins();
+    ensureModuleRegistryMatchesState(startId);
+    renderTheme();
+    renderDisplaySettings();
+    renderModules();
+    renderArchives();
+    renderCategories();
+    renderPlaylist();
+    renderStats();
+    renderLog();
+    const filterSel=$('#logFilterSel');
+    if(filterSel)filterSel.value=state.logFilter||'all';
+  }
+  function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();addLog('ok','Bereit.')}
   const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);},openModule},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}

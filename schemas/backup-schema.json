@@ -57,7 +57,12 @@
           "properties": {
             "autosave": { "type": "boolean" },
             "selfrepair": { "type": "boolean" },
-            "toasts": { "type": "boolean" }
+            "toasts": { "type": "boolean" },
+            "respectSystemMotion": { "type": "boolean" },
+            "reduceMotion": { "type": "boolean" },
+            "respectSystemContrast": { "type": "boolean" },
+            "highContrast": { "type": "boolean" },
+            "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] }
           }
         }
       }
@@ -67,11 +72,11 @@
       "additionalProperties": false,
       "required": [
         "theme",
-        "autosave",
-        "selfrepair",
-        "toasts",
-        "modules",
-        "categories",
+        "autosave", 
+        "selfrepair", 
+        "toasts", 
+        "modules", 
+        "categories", 
         "genres",
         "moods",
         "playlist",
@@ -85,6 +90,11 @@
         "autosave": { "type": "boolean" },
         "selfrepair": { "type": "boolean" },
         "toasts": { "type": "boolean" },
+        "respectSystemMotion": { "type": "boolean" },
+        "reduceMotion": { "type": "boolean" },
+        "respectSystemContrast": { "type": "boolean" },
+        "highContrast": { "type": "boolean" },
+        "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
         "modules": {
           "type": "array",
           "items": {

@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 - **Produktstatus:** Funktionsreiches Offline-Dashboard mit Modul-, Archiv- und Playlistverwaltung in einer monolithischen HTML-Datei.
 - **Reifegrad nach Domänen:** Architektur 2/5, Daten & Persistenz 2/5, Sicherheit 3/5, Barrierefreiheit 3/5, UX 3/5, Performance 2/5, Audio 3/5, Tests 3/5, Release & Governance 1/5.
-- **Kernfortschritte:** Strenger Backup-Import mit JSON-Schema, gehärtete Plugin-Pipeline (Sanitizing + Sandbox-Iframes), verbesserte Tastatursteuerung und Test-API für automatisierte Prüfungen.
+- **Kernfortschritte:** Strenger Backup-Import mit JSON-Schema, gehärtete Plugin-Pipeline (Sanitizing + Sandbox-Iframes), verbesserte Tastatursteuerung, Live-Status (`aria-live`) und Systempräferenz-Handling (Motion/Kontrast) inklusive skalierbarer Typografie sowie Test-API für automatisierte Prüfungen.
 - **Hauptdefizite:** Fehlende Layer-Struktur, kein zentrales Eventing, keine Undo/Redo-Mechanik, eingeschränkte Build-/Release-Prozesse und unvollständige Sicherheits- sowie A11y-Checks.
 - **Priorisierte Sofortmaßnahmen:** (1) Architekturtrennung mit Store/Service-Layern + Event-Bus, (2) Transaktionskern mit stabilen IDs und atomaren Writes, (3) A11y-Advanced inkl. System-Preferences und Live-Regionen, (4) Worker-Offloading & Performance-Budgets, (5) Signierte, geprüfte Import-/Export-Kette.
 
@@ -36,9 +36,9 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - **Empfehlungen:** DOMPurify-Äquivalent offline kompilieren, Validierungspipeline (Header-Sniffing, Dateiendung) implementieren, Berechtigungskonzept (Schreibschutz, Papierkorb mit TTL) etablieren, signierte Releases und Integritätsanzeige bereitstellen.
 
 ## 6. Barrierefreiheit & Inclusive Design
-- **Positive Aspekte:** Mehrere High-Contrast-Themes, Tastaturzugriff auf Playlist und Dropzone (Enter/Space, Alt+Pfeile, Entf), sichtbare Fokusrahmen in der Playlist.
-- **Defizite:** Kein globales Fokus-Management, Dialoge haben keine Escape-Logik, keine Live-Regionen für längere Prozesse (z. B. Backup-Prüfung), Schriftgröße fix, keine Beachtung von `prefers-reduced-motion` oder `prefers-contrast`.
-- **Professionelle Zielsetzung:** A11y-Audit (WCAG 2.2 AA), Adaptive Layouts mit `prefers-*`, skalierbare Typografie (14–20 px Presets), Live-Regionen für Status- und Fehlermeldungen, Fokusfallen vermeiden und dokumentierte Tastaturkürzel.
+- **Positive Aspekte:** Mehrere High-Contrast-Themes, Tastaturzugriff auf Playlist und Dropzone (Enter/Space, Alt+Pfeile, Entf), sichtbare Fokusrahmen in der Playlist, Unterstützung von `prefers-reduced-motion`/`prefers-contrast`, Live-Statusbanner (`aria-live`) und skalierbare Schriftgrößen (14–20 px Presets).
+- **Defizite:** Kein globales Fokus-Management, Dialoge haben keine Escape-Logik, Live-Region deckt bisher vor allem Status/Logs ab (Langläufer wie Backup-Prüfung brauchen dedizierte Meldungen), Farbkontraste werden noch nicht automatisiert verifiziert.
+- **Professionelle Zielsetzung:** A11y-Audit (WCAG 2.2 AA), Fokusfallen beseitigen, Dialoge mit Escape/Focus-Trap ergänzen, Live-Regionen für Langläuferprozesse ausbauen, automatisierte A11y-Regressionen und dokumentierte Tastaturkürzel.
 
 ## 7. Nutzererlebnis & Microcopy
 - **Stärken:** Umfangreiche Tooltips, Logbuch, Manifest-Export, klare Buttons für Kernaktionen.
@@ -88,11 +88,12 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - Test-API exponiert (`window.ModulToolTestAPI`) inkl. Playlist-/Plugin-Helfer.
 - Backup-Schema (`schemas/backup-schema.json`) erstellt und Node-Tests (`npm test`) für Schema- und Shortcut-Prüfungen angelegt.
 - Dokumentation (Analyse, Entwicklerhandbuch, ToDo) aktualisiert und strukturierte Follow-ups eingetragen.
+- Systempräferenz-Optionen (Motion/Kontrast), Live-Statusbanner und skalierbare Typografie im Dashboard ergänzt.
 
 ## 15. Nächste Schritte (Top 5)
 1. **Architektur neu schneiden:** UI in modulare Komponenten überführen, Event-Bus + Statecharts einbauen, Services isolieren.
 2. **Transaktionskernel bauen:** UUID/ULID, Operation-Log, Undo/Redo, atomare Writes, Migrationen dokumentieren.
-3. **A11y-Advanced liefern:** Prefers-* respektieren, Fokusfallen schließen, Live-Regionen und skalierbare Typografie.
+3. **A11y-Advanced finalisieren:** Fokusfallen schließen, Dialogsteuerung per Escape, Live-Regionen für Langläufer und automatisierte Screenreader-/Kontrast-Tests.
 4. **Worker & Performance-Budgets:** CPU-intensive Aufgaben auslagern, Messpunkte setzen, Speicher-Wächter implementieren.
 5. **Sichere Import-/Export-Pipeline:** MIME-/Signaturprüfung, Dry-Run mit Nutzerfeedback, signierte Backups inkl. Verifikation im UI.
 

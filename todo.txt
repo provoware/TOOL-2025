@@ -28,12 +28,13 @@
 - [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen
 
 ## Barrierefreiheit (A11y) – Advanced
-- [ ] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten
+- [x] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten (Statusbanner & Checkboxen aktiv)
 - [ ] Fokus-Outline-Design und Fokusfallen prüfen (sichtbare `:focus-visible`, Escape schließt Dialoge zuverlässig)
-- [ ] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren
-- [ ] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren
+- [x] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren (globaler Status aktualisiert Log-Feedback)
+- [x] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren (Theme-Variable & UI-Select)
 - [ ] Escape-Mechanismus für alle Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit)
 - [ ] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern
+- [ ] Prozess-spezifische Live-Regionen für Backup-Prüfung, Importlauf und Selbsttest ergänzen (detaillierte Statusmeldungen)
 
 ## UX & Microcopy
 - [ ] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern
@@ -64,6 +65,7 @@
 - [ ] Playwright-End-to-End-Flows für Import/Export, Plugin-Install und Playlist-Steuerung automatisieren
 - [ ] Pa11y/axe A11y-Regressionen in CI einhängen
 - [ ] Performance-Smoke-Test in CI mit Budget-Grenzen (Lighthouse, Web Vitals) verankern
+- [ ] Playwright-Szenario für Anzeigeeinstellungen (Motion/Kontrast/Schrift) und Statusbanner automatisieren
 
 ## Build/Release & Offline-Verteilung
 - [ ] Reproduzierbare Builds mit deterministischer Minifizierung und Build-Hash im Footer erzeugen
@@ -108,3 +110,4 @@
 - [x] Plugin-Module aus HTML-Inhalten gegen Skripte absichern (z. B. Sanitizer oder Render-Sandbox)
 - [x] CSP und Sandbox-Konzept für Plugins definieren (iframe/Web-Worker prüfen)
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
+- [x] System-Preferences & Live-Status implementiert (Motion/Kontrast, Schriftgrößen, aria-live)
