@@ -1,4 +1,168 @@
 # TOOL-2025 ToDo
+1. **Architektur & Modularisierung**
+   1.1 Zerschneidung des Inline-Monolithen (`/index.html`) in klar abgegrenzte Module: `src/app/bootstrap.js`, `src/app/state.js`, `src/app/ui/*.js`, `src/app/services/*.js`.
+   1.2 Einführung einer sauberen **Composition-Root** (`src/main.js`), die exakt eine `init()` ausführt und DI-ähnlich Abhängigkeiten injiziert.
+   1.3 Strikte Trennung von **DOM-Schicht** (reine View-Logik) und **Domänen-/State-Schicht** (pure functions).
+   1.4 Export/Namespace-Strategie: ausschließlich **ein** globales Window-Binding (`window.Tool`) als Fassade.
+
+2. **Fehlerquellen aus der Basisanalyse – Root-Cause-Vertiefung**
+   2.1 Platzhalter `...` → Build- und Laufzeitfehler: durch unvollständige Merge-/Minify-Artefakte; Ursache meist unterbrochene Bundling-Pipeline.
+   2.2 Mehrfachdeklarationen (z. B. `testApi`) → fehlende Scope-Isolation; Inline-Skripte konkurrieren.
+   2.3 Ungültiges JSON-Schema → Tests crashen früh; Ergebnis: Ausfall sämtlicher Integrationstests.
+   2.4 Defekte Helper (`tools/lib/prerequisites.js`) → Kaskadierende Ausfälle in Preflight/Start/Quality.
+   2.5 CSP-Relaxierung (`'unsafe-inline'`) → Security-Policy wirkungslos, erschwerte Fehlersuche (Mischung von Quellorten).
+
+3. **Security-Härtung (praktikabel & auditierbar)**
+   3.1 CSP auf **nonces** oder **SHA256-Hashes** umstellen; Inline-Code eliminieren; Report-To/Reporting-API aktivieren.
+   3.2 `tools/start-tool.js`: sichere Pfad-Normalisierung (safe-join), MIME-Typ-Mapping, `X-Content-Type-Options: nosniff`, `Cross-Origin-Resource-Policy`, `Referrer-Policy`.
+   3.3 Dependency-Angriffe eindämmen: `"engines"`, `npm ci`, `lockfileVersion`, `npm audit --omit=dev` im CI, Renovate-Bot.
+   3.4 Schema-Eingaben ajv-basiert validieren (strict mode), Fehler sanitizen, keine detailierten Stacktraces im Browser.
+
+4. **Qualitätstore & Preflight – professionell**
+   4.1 Preflight-Stufen mit **klaren Exit-Codes** und menschlichen Handlungsempfehlungen (Node-Version, fehlende Ordner, Ports).
+   4.2 Quality-Gate mit **Messgrößen**: Lint-Fehler=Blocker, Testabdeckung ≥ 80 %, Bundlegröße ≤ 300 KB gzip, TTI < 2 s lokal.
+   4.3 ASCII-Report + `reports/*.json` (maschinenlesbar) für CI-Auswertung.
+
+5. **Teststrategie (stabil, aussagekräftig)**
+   5.1 **Pyramide**: 70 % Unit (pure functions, State), 20 % Integration (DOM mit jsdom), 10 % E2E (Playwright).
+   5.2 Test-Utils: `waitForSelector`, `waitForIdle`, deterministische Timer (FakeTimers), klare Timeouts/Fehlertexte.
+   5.3 Schema-Tests: Roundtrip (serialize → validate → hydrate), Migrationspfade (siehe §13).
+   5.4 Negative Tests (invalid data, leere Daten, große Datenmengen).
+   5.5 Snapshots nur für kleine, stabile UI-Fragmente; große DOM-Snapshots vermeiden.
+
+6. **Schema & Datenmodell (robust & versioniert)**
+   6.1 `schemas/backup-schema.json` auf Draft 2020-12 heben, **ohne** Platzhalter; `additionalProperties` bewusst setzen.
+   6.2 Semantische Versionierung im Schema (`$id` + `x-schema-version`).
+   6.3 **Migrations-Registry**: `src/migrations/{from}_to_{to}.js`; automatische Anhebung bei Import/Restore.
+   6.4 Strikte Types (z. B. via TypeScript-`*.d.ts` aus JSON-Schema generieren).
+
+7. **Build & Bundling**
+   7.1 Wechsel zu Vite/Rollup: `type="module"`, Code-Splitting, Tree-Shaking, Sourcemaps, `build.manifest`.
+   7.2 Externe Assets (CSS/JS) statt Inline → CSP-konform; Hash-Namen für Cache-Busting.
+   7.3 Bundle-Budgets & Analyse (Rollup-Visualizer); Abbrüche bei Budget-Verletzungen.
+
+8. **Lint, Format, Konventionen**
+   8.1 ESLint (JS/TS) + `eslint-plugin-import`, `eslint-plugin-security`, `eslint-plugin-jsdoc`.
+   8.2 Prettier, EditorConfig, einheitliche Zeilenenden; CI bricht bei Drift ab.
+   8.3 Commitlint + Conventional Commits; **semantic-release** für automatisierte Versionierung/Changelog.
+
+9. **DevX & Reproduzierbarkeit**
+   9.1 `"engines": {"node": ">=20"}`, `engine-strict=true`; optional Volta/Corepack für Node/Pnpm-Fixierung.
+   9.2 `Makefile`/`npm-scripts` mit klaren Pfaden: `preflight`, `start`, `build`, `test`, `lint`, `format`, `report`.
+   9.3 Onboarding-Skript: prüft Git-Config, Node, Port-Konflikte, Rechte.
+
+10. **Server/Tooling-Härtung (Start/Preflight/Quality)**
+    10.1 `tools/start-tool.js`: 404/500-Handler, SPA-Fallback, ETag/Last-Modified, Range (Medien), Logging (CLF + JSON).
+    10.2 `tools/preflight-check.js`: Verzeichnisanlage idempotent (`backups`, `exports`, `plugins`, `logs`, `data`).
+    10.3 `tools/quality-gate.js`: Abdeckungs-Thresholds, Lighthouse (CI-Modus) mit Budgetdatei.
+
+11. **Beobachtbarkeit**
+    11.1 Strukturierte Logs (pino/loglevel) mit Korrelation-IDs; Log-Rotation in `logs/`.
+    11.2 Feature-Flag-Events, Messpunkte (TTFB, TTI, LCP) per Web-Vitals; Export als JSON.
+    11.3 Fehlerberichtskanal (window\.onerror + unhandledrejection) → redigierte Reports.
+
+12. **Performance**
+    12.1 Kritischer Renderpfad: CSS vor JS, `defer`/`module`-Scripts, kein `document.write`.
+    12.2 Memoization reiner Berechnungen; Virtual-DOM-ähnliche Render-Funktionen oder lit-html.
+    12.3 Lazy-Loading großer Tabellen/Thumbnails; Offscreen-Canvas für Bild-Thumbnails.
+    12.4 `Intl`-APIs statt großen i18n-Bibliotheken, wo möglich.
+
+13. **Datenmigrationen & Backups**
+    13.1 Beim Import: Erkennung der Schema-Version → sequentielle Migrationen, rollbar; Validation nach jeder Stufe.
+    13.2 Backups mit eindeutigen Filenamen (`YYYYMMDD-HHMMSS.schema-vX.json`), Prüfsumme (SHA256), Metadaten in `backups/index.json`.
+    13.3 Rückwärtskompatibilität: Reader kann letzte **zwei** Hauptversionen migrieren.
+
+14. **I18n & A11y**
+    14.1 Globales `i18n`-Objekt, Fallback = `en`; Keys statt Rohtexte im Code.
+    14.2 A11y-Checks (axe-core) im CI; Tastaturbedienung, Fokusfallen, ARIA-Rollen.
+    14.3 Farben/Kontraste gemäß WCAG 2.1 AA; Reduktion Bewegung (prefers-reduced-motion).
+
+15. **UI-State & Nebenläufigkeit**
+    15.1 Single-Source-of-Truth (State-Container, kleine, pure Reducer).
+    15.2 Entkoppelte Timer/Intervals; Lifecycle zentral (start/stop), Leaks vermeiden.
+    15.3 Idempotente `init()`; Wiederholte Aufrufe erkennen und überspringen.
+
+16. **Robuste Eingabe-/Ausgabevalidierung**
+    16.1 Sämtliche Benutzer-Eingaben und Import-Dateien gegen das Schema prüfen; freundliche, kontextreiche Fehlermeldungen.
+    16.2 Dateigrößen-/Typgrenzen (z. B. JSON ≤ 5 MB), progressives Parsen mit AbortController.
+    16.3 Ergebnisvalidierung nach Export/Backup (roundtrip + Checksum).
+
+17. **Risiko- & Regression-Management**
+    17.1 „Blocker-Matrix“:
+    – Build-Blocker: unvollständige Helper, ungültiges Schema, Inline-Fehler.
+    – Sicherheitsblocker: CSP-Unsicherheit, Directory Traversal.
+    – Qualität: fehlende Tests/Abdeckung, unklare Budgets.
+    17.2 Für jeden Blocker: **Akzeptanzkriterien** (Tests grün, Lighthouse ≥ 90/90/90/90, CSP-Reports = 0 kritische).
+    17.3 Canary-Branch mit GitHub Environments; progressive Freigabe.
+
+18. **CI/CD-Strategie**
+    18.1 Pipeline-Stufen: `setup → preflight → lint → test → build → quality-gate → artifact → release`.
+    18.2 Caching (npm, vite), parallele Jobs, Mindestabdeckung als Quality-Gate.
+    18.3 Artefakt-Upload: Build + Reports + Coverage + Lighthouse + SBOM (CycloneDX).
+
+19. **SBOM & Lizenz-Compliance**
+    19.1 Generierung CycloneDX SBOM; Prüfung gegen Policy (z. B. GPL-Inkompatibilitäten).
+    19.2 Abbruch bei riskanten Lizenzen in Prod-Abhängigkeiten.
+
+20. **Dokumentation – zielgruppenorientiert**
+    20.1 README: Quickstart (Node-Version, Befehle), Troubleshooting (häufige Fehler), Security-Hinweise.
+    20.2 `/docs/` für Architekturdiagramm, Modulgrenzen, State-Maschine, Migrationsdesign, Release-Runbook.
+    20.3 „First Failure Guide“: Wie identifizieren & beheben (Logs, Preflight, Tests).
+
+21. **Messbare Verbesserungsziele (OKRs)**
+    21.1 TTI lokal < 2 s, Bundle gzip < 300 KB, Coverage ≥ 80 %, Fehlerquote (window\.onerror) < 0.1 % Sessions.
+    21.2 0 kritische `npm audit` Findings in Prod-Dependencies.
+    21.3 100 % deterministische Tests (keine flakey Retries).
+
+22. **Konkrete Reparaturreihenfolge (operativ)**
+    22.1 Helper-Bibliothek vollständig implementieren; Preflight/Start lauffähig.
+    22.2 Inline-Skripte eliminieren, Duplikate und Platzhalter entfernen; CSP verschärfen.
+    22.3 Schema finalisieren, Tests anpassen; Migrationsgerüst anlegen.
+    22.4 Bundling + Budgets, Quality-Gate mit Lighthouse; Server-Härtung.
+    22.5 A11y/i18n, Observability, SBOM; Dokumentation/Runbooks.
+
+23. **Akzeptanzkriterien pro Fix-Paket**
+    23.1 **Core-Boot:** `npm run preflight` → Exit 0, Ordner angelegt, Node-Version ok.
+    23.2 **Build:** `npm run build` → Artefakte mit Hash-Namen, Budgets eingehalten.
+    23.3 **Tests:** `npm test` → grün, Coverage-Report ≥ 80 %.
+    23.4 **Security:** CSP ohne `'unsafe-inline'`, keine Directory-Traversal-Fälle (Fuzz-Tests).
+    23.5 **Quality-Gate:** Lighthouse CI Scores ≥ 90 (P, A11y, Best Practices, SEO).
+
+24. **Nachhaltigkeit & Wissenssicherung**
+    24.1 ADRs (Architectural Decision Records) für CSP, Bundler, Schema-Versionierung.
+    24.2 „How-to-Debug“-Rezepte (DOM, State, Network, Schema).
+    24.3 Changelog automatisiert; Release-Notes mit Breaking-Changes und Migrations-Hinweisen.
+
+25. **Risikoreduzierung im Tagesgeschäft**
+    25.1 Feature-Toggles für neue Schema-Felder; „dark launch“.
+    25.2 Telemetrie-gestützte Rollbacks (Artefakte versioniert, Rückweg dokumentiert).
+    25.3 Staging-Preview pro PR mit automatisierten Checks.
+
+26. **Performance-Feinschliff**
+    26.1 Debounce/Throttle an allen Eingabefeldern mit teuren Operationen.
+    26.2 Web-Workers für CPU-lastige Schema-Validierungen.
+    26.3 Persistenz: IndexedDB (asynchron) statt LocalStorage (blockierend), Transaktionen, Migrationspfade.
+
+27. **DX-Extras**
+    27.1 Vorlagen-Dateien: `templates/issue.md`, `templates/pr.md`.
+    27.2 Git Hooks (Husky): pre-commit (lint+format), pre-push (tests).
+    27.3 Fehlerrepro-Skripte (`npm run repro:scenario-xyz`) mit fixen Seeds.
+
+28. **Explizite Eigentümerschaften**
+    28.1 CODEOWNERS: `src/app/*` (Frontend), `tools/*` (Tooling), `schemas/*` (Datenmodell).
+    28.2 Pflicht-Review durch jeweilige Owner; Blockerrechte definiert.
+
+29. **Langfristige Roadmap**
+    29.1 Migration auf TypeScript (strikt), generierte Typen aus JSON-Schema.
+    29.2 ESM-only, Dual-Publishing (falls Paket); Node-Loader für JSON-Imports.
+    29.3 Progressive Web App (optional): Offline-Backups, Installierbarkeit.
+
+30. **Sofort nutzbare Prüfliste (Go/No-Go vor Release)**
+    30.1 Keine Inline-Skripte, CSP-Reports leer (kritisch).
+    30.2 Schema valide; Migrations laufen grün auf Referenzdatensätzen.
+    30.3 Tests grün & deterministisch; Lighthouse ≥ 90; Bundle-Budgets eingehalten.
+    30.4 Server sicher (Pfad & MIME), Logs sauber, SBOM erstellt, Audit ohne kritische Findings.
+    30.5 README/Docs aktuell; Preflight/Quality-Gate bestehen; Version/Changelog erzeugt.
 
 ## Offene Basisarbeiten
 - [x] ESLint-Linting (`npm run lint`), Qualitäts-Gate (`npm run quality`) und Preflight-Check (`npm run preflight`) bereitstellen
