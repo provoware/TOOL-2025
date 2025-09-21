@@ -118,6 +118,23 @@ test('Layout-Preset steuert Seitenleisten und landet im Backup', async () => {
   assert.equal(backup.manifest.settings.layoutPreset, 'audio-only');
 });
 
+test('Layout-Sichtbarkeit erklärt Bereiche für Laien', async () => {
+  const { document } = dom.window;
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: false, persistChange: false });
+  await flush();
+  const messages = Array.from(document.querySelectorAll('#layoutVisibilityList li')).map((li) => li.textContent.trim());
+  assert.ok(messages.some((text) => text.startsWith('Module links: ausgeblendet')), 'Linker Bereich wird als ausgeblendet beschrieben.');
+  assert.ok(messages.some((text) => text.startsWith('Audio rechts: sichtbar')), 'Rechter Bereich wird als sichtbar beschrieben.');
+  const cycleBtn = document.querySelector('#layoutCycleBtn');
+  assert.ok(cycleBtn, 'Cycle-Button existiert');
+  assert.ok(/Weiter zu: /.test(cycleBtn.textContent), 'Cycle-Button nennt das nächste Layout.');
+  const nextLayout = cycleBtn.dataset.nextLayout;
+  assert.ok(nextLayout, 'Next-Layout-Datensatz gesetzt');
+  api.actions.applyLayoutPreset(nextLayout, { announceSelection: false, persistChange: false });
+  await flush();
+  assert.equal(api.state.layoutPreset, nextLayout);
+});
+
 test('validatePluginData normalisiert Inhalte', () => {
   const pluginData = api.actions.validatePluginData({
     name: '  Referenz-Plugin  ',

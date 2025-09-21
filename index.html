@@ -132,6 +132,12 @@
   .config-card p{margin:0;font-size:.85rem;color:var(--muted)}
   .layout-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
   .layout-controls .btn{flex:1 1 160px;justify-content:center;text-align:center}
+  .layout-visual{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px}
+  .layout-visual[data-stack="true"]{grid-template-columns:1fr}
+  .layout-visual span{padding:8px 10px;border-radius:10px;border:1px solid var(--border);background:var(--panel-2);text-align:center;font-size:.85rem;font-weight:600}
+  .layout-visual span[data-hidden="true"]{opacity:.35;text-decoration:line-through}
+  .layout-visual span[data-active="true"]{outline:2px solid var(--accent);outline-offset:2px}
+  .layout-visibility{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
   .layout-summary{margin-top:6px;font-size:.9rem;color:var(--muted)}
   body[data-layout="modules-wide"]{--left-col:360px;--right-col:300px}
   body[data-layout="audio-wide"]{--left-col:220px;--right-col:420px}
@@ -233,6 +239,16 @@
           <button type="button" class="btn inline" data-layout="audio-only" aria-pressed="false">Nur Audio</button>
           <button type="button" class="btn inline" data-layout="workspace" aria-pressed="false">Arbeitsfläche</button>
           <button type="button" class="btn inline" data-layout="stacked" aria-pressed="false">Übereinander</button>
+        </div>
+        <div class="layout-visual" id="layoutVisual" aria-hidden="true">
+          <span data-area="left">Module</span>
+          <span data-area="main">Arbeitsfläche</span>
+          <span data-area="right">Audio</span>
+        </div>
+        <ul class="layout-visibility" id="layoutVisibilityList" aria-live="polite" aria-label="Sichtbarkeitsstatus"></ul>
+        <div class="row" style="margin-top:6px">
+          <button type="button" class="btn inline" id="layoutShowAllBtn">Alles anzeigen</button>
+          <button type="button" class="btn inline" id="layoutCycleBtn">Weiter zum nächsten Layout</button>
         </div>
         <p class="layout-summary muted" id="layoutSummary">Ausgewogen: Alle Bereiche bleiben sichtbar und gut lesbar.</p>
       </div>
@@ -501,6 +517,10 @@
   const configResetBtn=$('#configResetBtn');
   const layoutSummary=$('#layoutSummary');
   const layoutButtons=$$('#layoutControls button[data-layout]');
+  const layoutVisual=$('#layoutVisual');
+  const layoutVisibilityList=$('#layoutVisibilityList');
+  const layoutCycleBtn=$('#layoutCycleBtn');
+  const layoutShowAllBtn=$('#layoutShowAllBtn');
   const systemMotionChk=$('#systemMotionChk');
   const reduceMotionChk=$('#reduceMotionChk');
   const systemContrastChk=$('#systemContrastChk');
@@ -1159,14 +1179,76 @@
     const key=safeLower(id);
     return LAYOUT_PRESETS[key]||LAYOUT_PRESETS.balanced;
   }
-  function renderLayoutControls(){
-    const meta=getLayoutMeta(state.layoutPreset);
+  function renderLayoutControls(meta){
+    const currentMeta=meta||getLayoutMeta(state.layoutPreset);
     if(layoutSummary){
-      layoutSummary.textContent=`${meta.label}: ${meta.description}`;
+      layoutSummary.textContent=`${currentMeta.label}: ${currentMeta.description}`;
     }
     if(layoutButtons&&layoutButtons.length){
-      layoutButtons.forEach(btn=>{btn.setAttribute('aria-pressed',btn.dataset.layout===meta.id?'true':'false');});
+      layoutButtons.forEach(btn=>{btn.setAttribute('aria-pressed',btn.dataset.layout===currentMeta.id?'true':'false');});
     }
+    renderLayoutVisibility(currentMeta);
+    updateLayoutCycleButton(currentMeta);
+  }
+  function renderLayoutVisibility(meta){
+    if(layoutVisual){
+      layoutVisual.setAttribute('data-stack',meta.stack?'true':'false');
+      const highlightArea=(id=>{
+        switch(id){
+          case'modules-wide':
+          case'module-only':
+            return'left';
+          case'audio-wide':
+          case'audio-only':
+            return'right';
+          case'workspace':
+          case'stacked':
+            return'main';
+          default:
+            return'main';
+        }
+      })(meta.id);
+      ['left','main','right'].forEach(area=>{
+        const cell=layoutVisual.querySelector(`[data-area="${area}"]`);
+        if(!cell)return;
+        if(area==='left'){
+          if(meta.showLeft===false){cell.setAttribute('data-hidden','true');}
+          else{cell.removeAttribute('data-hidden');}
+        }
+        if(area==='right'){
+          if(meta.showRight===false){cell.setAttribute('data-hidden','true');}
+          else{cell.removeAttribute('data-hidden');}
+        }
+        if(area==='main'){
+          cell.removeAttribute('data-hidden');
+        }
+        if(area===highlightArea){cell.setAttribute('data-active','true');}
+        else{cell.removeAttribute('data-active');}
+      });
+    }
+    if(layoutVisibilityList){
+      layoutVisibilityList.innerHTML='';
+      const frag=document.createDocumentFragment();
+      const entries=[
+        meta.showLeft===false?'Module links: ausgeblendet. Mit „Alles anzeigen“ oder „Nur Module“ wieder sichtbar machen.':'Module links: sichtbar und sofort erreichbar.',
+        meta.stack?'Arbeitsfläche: sichtbar – Bereiche werden untereinander gestapelt, ideal für kleine Bildschirme.':'Arbeitsfläche: sichtbar in der Mitte für konzentriertes Arbeiten.',
+        meta.showRight===false?'Audio rechts: ausgeblendet. „Alles anzeigen“ oder „Nur Audio“ blendet den Player wieder ein.':'Audio rechts: sichtbar inklusive Player und Playlist.'
+      ];
+      if(meta.id==='workspace'){
+        entries.push('Nur Arbeitsfläche aktiv: beste Übersicht zum Schreiben oder Planen.');
+      }
+      entries.forEach(text=>{const li=document.createElement('li');li.textContent=text;frag.appendChild(li);});
+      layoutVisibilityList.appendChild(frag);
+    }
+  }
+  function updateLayoutCycleButton(meta){
+    if(!layoutCycleBtn)return;
+    const currentIndex=Math.max(0,LAYOUT_SEQUENCE.indexOf(meta.id));
+    const nextId=LAYOUT_SEQUENCE[(currentIndex+1)%LAYOUT_SEQUENCE.length];
+    const nextMeta=getLayoutMeta(nextId);
+    layoutCycleBtn.dataset.nextLayout=nextMeta.id;
+    layoutCycleBtn.textContent=`Weiter zu: ${nextMeta.label}`;
+    layoutCycleBtn.setAttribute('aria-label',`Weiter zum Layout ${nextMeta.label}`);
   }
   function applyLayoutPreset(id,{announceSelection=true,persistChange=true}={}){
     const meta=getLayoutMeta(id);
@@ -1183,7 +1265,7 @@
       if(meta.stack){document.body.setAttribute('data-layout-stack','true');}
       else{document.body.removeAttribute('data-layout-stack');}
     }
-    renderLayoutControls();
+    renderLayoutControls(meta);
     if(persistChange) persist();
     if(announceSelection){
       announceProcess(`Layout „${meta.label}“ aktiviert.`,'info');
@@ -2529,6 +2611,8 @@
     if(layoutButtons&&layoutButtons.length){
       layoutButtons.forEach(btn=>btn.addEventListener('click',()=>{const target=btn.dataset.layout;if(!target)return;applyLayoutPreset(target,{announceSelection:true});}));
     }
+    if(layoutShowAllBtn){layoutShowAllBtn.addEventListener('click',()=>applyLayoutPreset('balanced',{announceSelection:true}));}
+    if(layoutCycleBtn){layoutCycleBtn.addEventListener('click',()=>{const next=layoutCycleBtn.dataset.nextLayout||LAYOUT_SEQUENCE[(Math.max(0,LAYOUT_SEQUENCE.indexOf(state.layoutPreset))+1)%LAYOUT_SEQUENCE.length];applyLayoutPreset(next,{announceSelection:true});});}
     const relayCheckbox=(control,selector)=>{if(!control)return;control.addEventListener('change',()=>{const target=$(selector);if(!target)return;if(target.checked!==control.checked){target.checked=control.checked;}target.dispatchEvent(new Event('change',{bubbles:true}));});};
     relayCheckbox(configAutosave,'#autosaveChk');
     relayCheckbox(configSelfrepair,'#selfrepairChk');

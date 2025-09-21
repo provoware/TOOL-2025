@@ -118,4 +118,5 @@
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
 - [x] System-Preferences & Live-Status implementiert (Motion/Kontrast, Schriftgrößen, aria-live)
 - [x] Log-Level-Design vereinheitlicht (Icons, Farbcodierung, Info-Filter)
+- [x] Sichtbarkeits-Assistent für Bereiche & Fenster (Mini-Vorschau, Klartextstatus, Schnellbuttons) ergänzt
 - [x] Layout-Presets inklusive Backup-/Manifest-Unterstützung und Statusmeldungen implementiert (Buttons für Ausgewogen, Module/Audio-Fokus, Arbeitsfläche, Stapeln)
