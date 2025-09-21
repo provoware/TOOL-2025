@@ -258,6 +258,39 @@
   const loglist=$('#loglist');
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
   const escapeHtml=str=>safeStr(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+  const ALLOWED_TAGS=new Set(['a','abbr','b','blockquote','br','code','em','i','li','ol','p','pre','small','span','strong','u','ul']);
+  const ALLOWED_ATTRS={a:['href','title','target','rel'],code:['class'],pre:['class'],span:['class','data-label']};
+  const URL_ATTRS=new Set(['href']);
+  const SANITIZE_BASE_ORIGIN=(typeof location!=='undefined'&&location.origin)||'https://modultool.local';
+  function sanitizeHtml(html){
+    const markup=safeStr(html);
+    if(!markup.trim())return '';
+    const template=document.createElement('template');
+    template.innerHTML=markup;
+    const nodes=Array.from(template.content.querySelectorAll('*'));
+    nodes.forEach(node=>{
+      const tag=node.tagName.toLowerCase();
+      if(!ALLOWED_TAGS.has(tag)){
+        while(node.firstChild){node.parentNode.insertBefore(node.firstChild,node);}node.remove();
+        return;
+      }
+      Array.from(node.attributes).forEach(attr=>{
+        const name=attr.name.toLowerCase();
+        if(name.startsWith('on')||name==='style'){node.removeAttribute(attr.name);return;}
+        const allowedForTag=ALLOWED_ATTRS[tag]||[];
+        if(!allowedForTag.includes(name)){node.removeAttribute(attr.name);return;}
+        if(URL_ATTRS.has(name)){
+          try{
+            const parsed=new URL(node.getAttribute(attr.name),SANITIZE_BASE_ORIGIN);
+            if(!['http:','https:','mailto:'].includes(parsed.protocol)){node.removeAttribute(attr.name);return;}
+          }catch{node.removeAttribute(attr.name);return;}
+          if(name==='href'&&!node.hasAttribute('target')){node.setAttribute('target','_blank');}
+          if(name==='href'){node.setAttribute('rel','noopener noreferrer');}
+        }
+      });
+    });
+    return template.innerHTML;
+  }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
   const state={version:'1.1.4',theme:'neo',autosave:true,selfrepair:true,toasts:true,modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
@@ -698,8 +731,8 @@
         box.className='panel pad';
         box.style.marginTop='12px';
         const title=escapeHtml(sec.title);
-        const contentHtml=escapeHtml(sec.content).replace(/\n/g,'<br>');
-        box.innerHTML=`<h3>${title}</h3><p>${contentHtml}</p>`;
+        const sanitizedContent=sanitizeHtml(safeStr(sec.content).replace(/\n/g,'<br>'))||'<span class="muted">Keine Inhalte.</span>';
+        box.innerHTML=`<h3>${title}</h3><div>${sanitizedContent}</div>`;
         el.appendChild(box);
       });
     }else{
@@ -1334,7 +1367,7 @@
   function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
   function renderAll(){ensureAllPlugins();ensureModuleRegistryMatchesState(startId);renderTheme();renderModules();renderArchives();renderCategories();renderPlaylist();renderStats();renderLog();const filterSel=$('#logFilterSel');if(filterSel)filterSel.value=state.logFilter||'all';}
   function init(){load();if(state.selfrepair)selfRepair();$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);}},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);},openModule},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

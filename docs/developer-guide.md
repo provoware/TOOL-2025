@@ -36,7 +36,7 @@ TOOL-2025/
 - **Barrierefreiheit:** WCAG 2.2 berücksichtigen, Tastatursteuerung und Screenreader-Unterstützung sicherstellen.
   - Bestehende Kurzbefehle: Dropzone reagiert auf `Enter`/`Space`, Playlist-Elemente besitzen Fokusrahmen sowie Alt+Pfeiltasten zum Sortieren.
 - **Performance:** Rendering-Strategien überdenken (z. B. Virtual DOM, Web Components, Svelte/React).
-- **Security:** Eingaben escapen, JSON-Imports validieren, CSP definieren, um XSS zu verhindern.
+- **Security:** Eingaben escapen, JSON-Imports validieren, CSP definieren, um XSS zu verhindern. Plugin-Inhalte werden im Tool per Sanitizer bereinigt (erlaubt Standard-Textformatierungen, blockiert Skripte/Events).
 - **Plugins:** Klar definierte Schnittstellen mit Sandbox (z. B. iframe oder Web Worker) vorsehen.
 
 ## Build- & Toolchain-Empfehlung
@@ -58,7 +58,8 @@ TOOL-2025/
 
 - **Plugin-Schnittstelle (Stand nach Optimierung)**
   - **Importformat:** JSON-Datei mit Mindestfeldern `name`, optional `description`, `version`, `author`, `moduleName`, `moduleId`, `sections`, `links`.
-  - **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool HTML-escaped und Zeilenumbrüche in `<br>` umgewandelt.
+  - **Sections:** Array aus Objekten `{"title": string, "content": string}`. Texte werden im Tool bereinigt; erlaubte Auszeichnungen bleiben erhalten, Zeilenumbrüche werden zu `<br>`.
+  - **Sicherheit:** Plugin-Ansichten akzeptieren nur einen freigegebenen HTML-Teilumfang (`<strong>`, `<em>`, Listen, Links). Alle Skript-/Event-Attribute sowie unsichere Protokolle werden verworfen und Links erhalten automatisch `rel="noopener noreferrer"`.
   - **Links:** Nur `http`/`https`-URLs werden akzeptiert. Label wird automatisch aus `label` oder `title` gezogen.
   - **Registrierung:** Importierte Plugins erhalten eine eindeutige ID, werden als eigenständiges Modul (`Plugin – <Name>`) registriert und im Plugin-Manager gelistet. Kollisionen mit vorhandenen Modul-IDs werden automatisch durch neue Slugs (`plugin-name-2`, `plugin-name-3`, …) gelöst.
   - **Export:** Im Plugin-Manager steht pro Plugin ein Button „Exportieren“. Er erzeugt ein bereinigtes JSON inklusive `moduleName`/`moduleId`, sodass Plugins auf anderen Installationen erneut eingespielt werden können.

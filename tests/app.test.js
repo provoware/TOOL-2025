@@ -169,6 +169,40 @@ test('removePlugin entfernt Plugin inkl. Modul', async () => {
   assert.equal(api.actions.moduleRendererExists(moduleId), false);
 });
 
+test('Plugin-Inhalte werden sanitisiert', async () => {
+  const candidate = api.actions.validatePluginData({
+    name: 'Sicherheits-Plugin',
+    description: 'Demo.',
+    version: '1.0.0',
+    author: 'Security',
+    moduleName: 'Sicherheitsansicht',
+    moduleId: 'sec-mod',
+    sections: [
+      {
+        title: 'Hinweis',
+        content:
+          '<strong>Fett</strong><script>alert(1)</script><a href="javascript:alert(1)">böse</a><a href="https://example.com">gut</a>'
+      }
+    ],
+    links: []
+  });
+  const plugin = api.actions.registerPlugin(candidate);
+  await flush();
+  api.actions.openModule(plugin.moduleId);
+  await flush();
+  const canvas = dom.window.document.querySelector('#canvas');
+  const html = canvas.innerHTML;
+  assert.match(html, /<strong>Fett<\/strong>/);
+  assert.ok(!/script/i.test(html));
+  assert.ok(!/javascript:/i.test(html));
+  const anchors = Array.from(canvas.querySelectorAll('a'));
+  const safeAnchor = anchors.find((a) => a.getAttribute('href'));
+  assert.ok(safeAnchor);
+  assert.ok(safeAnchor.getAttribute('href').startsWith('https://example.com'));
+  assert.equal(safeAnchor.getAttribute('rel'), 'noopener noreferrer');
+  assert.equal(safeAnchor.getAttribute('target'), '_blank');
+});
+
 test('assertBackupSchema erkennt fehlende Modul-Liste', () => {
   const backup = api.actions.buildBackup();
   delete backup.state.modules;
