@@ -371,6 +371,8 @@
           </select>
         </div>
         <ul class="loglist" id="loglist" aria-live="polite"></ul>
+        <p id="logSummaryLive" class="sr-only" aria-live="polite" aria-atomic="true">Noch keine Logeinträge vorhanden.</p>
+        <p id="logSummaryText" class="muted" role="status">Noch keine Logeinträge vorhanden.</p>
         <div id="liveStatus" class="sr-only" aria-live="polite" aria-atomic="true">Status bereit.</div>
         <div id="liveStatusText" class="status-banner" data-type="info">Status: bereit.</div>
         <div class="row">
@@ -681,6 +683,8 @@
     return wrap;
   }
   const loglist=$('#loglist');
+  const logSummaryLive=$('#logSummaryLive');
+  const logSummaryText=$('#logSummaryText');
   const liveRegion=$('#liveStatus');
   const liveText=$('#liveStatusText');
   const processLive=$('#processStatusLive');
@@ -2336,11 +2340,19 @@
     const rawFilter=safeLower(state.logFilter||'all');
     const filter=!rawFilter||rawFilter==='all'?'all':(KNOWN_LOG_LEVELS.has(rawFilter)?rawFilter:DEFAULT_LOG_LEVEL);
     const entries=state.log.filter(entry=>filter==='all'||normalizeLogType(entry.type)===filter).slice(-10);
+    const totalCount=state.log.length;
+    const filterLabel=filter==='all'?'alle Einträge':(`nur ${LOG_LEVELS[filter]?.label||'den Filter'}`);
+    let summary='Noch keine Logeinträge vorhanden.';
     if(entries.length===0){
       const empty=document.createElement('li');
       empty.className='log-empty';
       empty.textContent='Keine Einträge für den gewählten Filter.';
       loglist.appendChild(empty);
+      if(totalCount>0){
+        summary=`Keine Einträge für ${filterLabel}. Insgesamt ${totalCount} Einträge gespeichert.`;
+      }
+      if(logSummaryText) logSummaryText.textContent=summary;
+      if(logSummaryLive) logSummaryLive.textContent=summary;
       return;
     }
     entries.forEach(entry=>{
@@ -2367,6 +2379,14 @@
       li.append(icon,time,message);
       loglist.appendChild(li);
     });
+    if(entries.length>0){
+      const latest=entries[entries.length-1];
+      const latestTime=safeStr(latest.time)||'--:--:--';
+      const latestMsg=safeStr(latest.msg)||'Ohne Nachricht';
+      summary=`${entries.length} von ${totalCount} Einträgen werden angezeigt (${filterLabel}). Letzter Eintrag ${latestTime}: ${latestMsg}`;
+    }
+    if(logSummaryText) logSummaryText.textContent=summary;
+    if(logSummaryLive) logSummaryLive.textContent=summary;
   }
   const LS_KEY='modultool_state_v1';
   function save(){try{localStorage.setItem(LS_KEY,JSON.stringify(state));addLog('ok','Gespeichert.')}catch(err){addLog('error','Speichern fehlgeschlagen: '+err.message)}}
@@ -2463,6 +2483,8 @@
     }else{
       addLog('info','Self-Repair: keine Änderungen nötig.');
     }
+    const repairMessage=fixes>0?`Self-Repair abgeschlossen: ${fixes} Korrekturen automatisch angewendet.`:'Self-Repair abgeschlossen: keine Korrekturen notwendig.';
+    announceProcess(repairMessage,fixes>0?'ok':'info');
     return fixes;
   }
   function buildStatsSummary(){
@@ -3060,9 +3082,14 @@
     const summary=document.createElement('div');
     summary.className='panel pad';
     summary.style.marginTop='10px';
+    summary.setAttribute('aria-live','polite');
+    summary.setAttribute('aria-atomic','true');
     summary.innerHTML='<strong>Zusammenfassung</strong><p class="muted">Wird nach einer erfolgreichen Prüfung angezeigt.</p>';
     el.appendChild(summary);
     function showResult(type,message,details){
+      resultBox.setAttribute('aria-live',type==='error'?'assertive':'polite');
+      resultBox.dataset.state=type;
+      summary.dataset.state=type;
       resultBox.textContent=message;
       resultBox.style.borderColor=type==='ok'?'var(--ok)':type==='warn'?'var(--warn)':'var(--err)';
       resultBox.style.color=type==='ok'?'var(--ok)':type==='warn'?'var(--warn)':'var(--err)';

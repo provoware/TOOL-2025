@@ -1,3 +1,3 @@
-Release-Fortschritt: 72 %
+Release-Fortschritt: 73 %
 Stand: 2025-09-25
-Einschätzung: Module und Playlist zeigen jetzt laienfreundliche Leerstaaten, der Playlist-Import blendet Skeleton-Loader samt Prozessfeedback ein und das Dashboard fasst Kennzahlen in Klartext zusammen. Tests prüfen Empty-State/Skeleton-Verhalten; weiterhin offen bleiben Event-Bus, Transaktionskern und die Build-/Release-Toolchain.
+Einschätzung: Logbuch und Self-Repair melden nun Klartext-Zusammenfassungen (sichtbar & Screenreader), das Backup-Prüfmodul passt seine Live-Region automatisch an und Prozessbanner informieren Laien über erfolgreiche Korrekturen. Schwergewichte wie Event-Bus, Transaktionskern und die Build-/Release-Toolchain stehen weiterhin aus.

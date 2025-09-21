@@ -39,7 +39,7 @@
 - [x] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren (globaler Status aktualisiert Log-Feedback)
 - [x] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren (Theme-Variable & UI-Select)
 - [ ] Escape-Mechanismus für verbleibende Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit) – Hilfe/Konfiguration erledigt, restliche Overlays offen
-- [ ] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern
+- [x] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern (Log-Zusammenfassung + Prozessbanner)
 - [x] Prozess-spezifische Live-Regionen für Backup-Prüfung, Importlauf und Selbsttest ergänzen (detaillierte Statusmeldungen)
 - [ ] Prozess-Live-Region auf weitere Langläufer (Worker, Audioanalyse) ausweiten und Prioritäten dokumentieren
 
@@ -133,3 +133,4 @@
 - [x] Layout-Presets inklusive Backup-/Manifest-Unterstützung und Statusmeldungen implementiert (Buttons für Ausgewogen, Module/Audio-Fokus, Arbeitsfläche, Stapeln)
 - [x] Validierungsreport für Backup/Import eingeführt (sanitizeStateForExport, Report-Anzeige im Prüfmodul, Import-Log-Hinweise)
 - [x] Feedback-Badge mit Zeitstempel, `guardAction`-Helper, Plugin-Vorprüfung und Debug-Download ergänzt; `npm test` läuft jetzt automatisch mit `npm run lint` (pretest)
+- [x] Log-Zusammenfassung liefert Filter-/Anzahl-/Letzte-Meldung-Klartext (sichtbar + Screenreader) und Self-Repair meldet Ergebnisse über das Prozessbanner
