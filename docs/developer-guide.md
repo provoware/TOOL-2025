@@ -42,19 +42,26 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
    ```bash
    npm install
    ```
-3. Tests ausführen (führt dank `pretest` automatisch `npm run lint` vor dem Testlauf aus):
+3. Start-Routine ausführen (legt Standardordner an, startet Server & öffnet Browser automatisch):
+   ```bash
+   npm start
+   ```
+   Alternativ ohne npm-Skript:
+   ```bash
+   node tools/start-tool.js
+   ```
+4. Tests ausführen (führt dank `pretest` automatisch `npm run lint` vor dem Testlauf aus):
    ```bash
    npm test
    ```
-4. Linting separat ausführen (wenn nur Analyse ohne Tests gewünscht):
+5. Linting separat ausführen (wenn nur Analyse ohne Tests gewünscht):
    ```bash
    npm run lint
    ```
-5. Kompletten Qualitätslauf starten (`npm run verify` alias für `npm test`):
+6. Kompletten Qualitätslauf starten (`npm run verify` alias für `npm test`):
    ```bash
    npm run verify
    ```
-4. Bis zur Einführung des Bundlers kann `index.html` direkt im Browser geöffnet werden (`file://`-Pfad).
 
 ## 6. Geplante Projektstruktur (Post-Refactor)
 ```

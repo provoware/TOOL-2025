@@ -6,7 +6,8 @@
     "pretest": "npm run lint",
     "test": "node --test tests",
     "lint": "ESLINT_USE_FLAT_CONFIG=false eslint --ext .js,.html index.html tests",
-    "verify": "npm test"
+    "verify": "npm test",
+    "start": "node tools/start-tool.js"
   },
   "devDependencies": {
     "ajv": "^8.17.1",

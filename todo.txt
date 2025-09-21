@@ -92,6 +92,7 @@
 - [ ] Reproduzierbare Builds mit deterministischer Minifizierung und Build-Hash im Footer erzeugen
 - [ ] Release-Pakete lokal signieren (SHA256 + Signaturdatei) und Integritätsanzeige im Tool ergänzen
 - [ ] Mehrformat-Exporte (JSON, TXT, optional PDF) offline generieren
+- [ ] Start-Routine in portable Pakete überführen (z. B. Node-Packer oder einfache Shell/Bat-Dateien) und Prüfschritte dokumentieren
 - [ ] Service Worker + PWA-Manifest für Offline-Distribution vorbereiten
 - [ ] Release-Playbook dokumentieren (Build, Signatur, QA, Auslieferung)
 - [ ] Integritätsanzeige im Tool („Signatur geprüft“) ergänzen
@@ -122,6 +123,7 @@
 - [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
 - [x] Start-Check im Dashboard eingeführt (Abhängigkeitsprüfung, Speicher-Fallback, Log-/Process-Feedback, Node-Test)
 - [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
+- [x] Ein-Datei-Start-Routine (`npm start`/`node tools/start-tool.js`) ergänzt, die Standardordner erzeugt, Server startet und Browser öffnet
 - [x] Backup-Import verschärfen (Module/Kategorien deduplizieren & sanitisieren)
 - [x] Persistente Module registrieren (Platzhalter-Renderer nach Self-Repair & Import)
 - [x] Plugin-Tests automatisieren (Unit- und Smoke-Tests für Import/Entfernen)
