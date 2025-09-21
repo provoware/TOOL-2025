@@ -672,6 +672,16 @@
       <h3 class="title" style="margin:0;font-size:1.05rem;">Aktuelle Auswahl</h3>
       <ul class="config-list" id="configSummaryList"></ul>
     </section>
+    <section class="config-section" aria-label="Konfiguration sichern oder laden">
+      <h3 class="title" style="margin:0;font-size:1.05rem;">Konfiguration sichern oder laden</h3>
+      <p class="muted">Speichere deine Einstellungen als Datei (Export), um sie später mit einem Klick wieder zu laden (Import).</p>
+      <div class="config-button-row" style="flex-wrap:wrap;gap:8px;">
+        <button type="button" class="btn inline" id="configExportBtn">Konfiguration speichern</button>
+        <button type="button" class="btn inline" id="configImportBtn">Konfiguration laden</button>
+      </div>
+      <p class="muted" id="configTransferHint">Tipp: Bewahre die Konfigurationsdatei zusammen mit deinen Backups auf. So stellst du Farben, Layout und Sicherheitsschalter sekundenschnell wieder her.</p>
+      <input type="file" id="configImportInput" accept="application/json" hidden />
+    </section>
     <div class="config-footer">
       <button type="button" class="btn inline" id="configApplyBtn">Fertig – Assistent schließen</button>
       <button type="button" class="btn inline warn" id="configResetBtn">Zurück auf Standard</button>
@@ -816,6 +826,11 @@
   const configCloseBtn=$('#configCloseBtn');
   const configPresetList=$('#configPresetList');
   const configPresetHint=$('#configPresetHint');
+  const configExportBtn=$('#configExportBtn');
+  const configImportBtn=$('#configImportBtn');
+  const configImportInput=$('#configImportInput');
+  const configTransferHint=$('#configTransferHint');
+  const defaultConfigTransferMessage=configTransferHint?configTransferHint.textContent:'';
   const configThemeButtons=$$('#configThemeButtons button[data-theme]');
   const configFontButtons=$$('#configFontButtons button[data-font]');
   const configAutosave=$('#configAutosave');
@@ -1000,6 +1015,8 @@
     'debug-export':'Tipp: Die Debug-Datei enthält Statusdaten. Teile sie nur mit Personen, die dir beim Fehlerfinden helfen sollen.',
     'backup-export':'Tipp: Benenne dein Backup direkt um, zum Beispiel „Backup-2025-01-01.json“. So findest du es später schnell wieder.',
     'manifest-export':'Tipp: Das Manifest (`modultool-manifest.json`) enthält deine Einstellungen. Für komplette Sicherungen nutze zusätzlich den Backup-Export.',
+    'config-export':'Tipp: Lege die Konfigurationsdatei direkt in deinen Backup-Ordner. So stellst du Farben, Layout und Sicherheitsschalter blitzschnell wieder her.',
+    'config-import':'Tipp: Öffne nur Konfigurationsdateien, die du selbst gespeichert hast. Dann passen alle Schalter garantiert zum ModulTool.',
     'playlist-export':'Tipp: Die Playlist-Datei (`playlist.json`) speichert Titel, Künstler und Quellen. Die Audiodateien bleiben in deinem Musikordner.',
     'playlist-import':'Tipp: Importiere nur Playlist-Dateien, die du vorher über „Playlist exportieren“ erstellt hast. Dann stimmt das Format sicher.',
     'module-name-empty':'Tipp: Vergib dem Modul gleich einen sprechenden Namen, z. B. „Livestream-Setup“. So findest du es später schneller.',
@@ -1013,6 +1030,9 @@
   });
   const globalGuardDisposers=[];
   const THEME_LABELS=Object.freeze({neo:'Neo',paper:'Paper',night:'Night HighContrast',forest:'Forest',aurora:'Aurora'});
+  const KNOWN_THEMES=new Set(Object.keys(THEME_LABELS));
+  const CONFIG_EXPORT_TYPE='modultool-config';
+  const CONFIG_EXPORT_VERSION='1.0.0';
   const LAYOUT_PRESETS=Object.freeze({
     balanced:{id:'balanced',label:'Ausgewogen',description:'Alle Bereiche sichtbar und gleichmäßig verteilt.',left:'280px',right:'360px',showLeft:true,showRight:true,stack:false},
     'modules-wide':{id:'modules-wide',label:'Module breit',description:'Linke Modulleiste extra breit, rechts kompakt.',left:'360px',right:'300px',showLeft:true,showRight:true,stack:false},
@@ -2495,6 +2515,191 @@
       debugText,
       feedbackText
     ];
+  }
+  function updateConfigTransferStatus(message){
+    if(!configTransferHint)return;
+    const text=safeStr(message).trim();
+    configTransferHint.textContent=text||defaultConfigTransferMessage||'Speichere oder lade deine Einstellungen nach Bedarf.';
+  }
+  function buildConfigExportSnapshot(){
+    const presetId=findPresetMatch(state)||state.configPreset||'custom';
+    const presetMeta=getPresetMeta(presetId);
+    const layoutMeta=getLayoutMeta(state.layoutPreset);
+    const summary=buildConfigSummaryItems();
+    return{
+      type:CONFIG_EXPORT_TYPE,
+      version:CONFIG_EXPORT_VERSION,
+      generatedAt:new Date().toISOString(),
+      preset:presetId,
+      presetLabel:presetMeta.label,
+      layout:layoutMeta.id,
+      layoutLabel:layoutMeta.label,
+      theme:KNOWN_THEMES.has(state.theme)?state.theme:'neo',
+      fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),
+      settings:{
+        autosave:state.autosave!==false,
+        selfrepair:state.selfrepair!==false,
+        toasts:state.toasts!==false,
+        respectSystemMotion:!!state.respectSystemMotion,
+        reduceMotion:!!state.reduceMotion,
+        respectSystemContrast:!!state.respectSystemContrast,
+        highContrast:!!state.highContrast,
+        smartErrors:state.smartErrors!==false,
+        preventMistakes:state.preventMistakes!==false,
+        debugMode:!!state.debugMode,
+        feedbackMode:state.feedbackMode==='smart'?'smart':'full'
+      },
+      summary
+    };
+  }
+  function normalizeConfigSnapshot(raw){
+    if(!isPlainObject(raw)){
+      return{ok:false,error:'Konfigurationsdatei enthält kein gültiges Objekt.'};
+    }
+    const type=safeLower(raw.type||'');
+    if(type&&type!==CONFIG_EXPORT_TYPE){
+      return{ok:false,error:'Die Datei ist keine ModulTool-Konfiguration.'};
+    }
+    const settings=isPlainObject(raw.settings)?raw.settings:{};
+    const bool=(value,fallback)=>value===undefined?fallback:!!value;
+    const truthy=(value,fallback)=>value===undefined?fallback:(value!==false);
+    const themeCandidate=safeLower(raw.theme||settings.theme||'');
+    const theme=KNOWN_THEMES.has(themeCandidate)?themeCandidate:(KNOWN_THEMES.has(state.theme)?state.theme:'neo');
+    const layoutCandidate=safeStr(raw.layout||raw.layoutPreset||'').trim().toLowerCase();
+    const layoutMeta=getLayoutMeta(LAYOUT_PRESETS[layoutCandidate]?layoutCandidate:state.layoutPreset);
+    const fontCandidate=Math.round(Number(raw.fontScale??settings.fontScale??state.fontScale)||0);
+    const fontScale=allowedFontScales.has(fontCandidate)?fontCandidate:systemFontDefault();
+    const feedbackModeCandidate=safeLower(settings.feedbackMode||raw.feedbackMode||'');
+    const feedbackMode=feedbackModeCandidate==='smart'?'smart':'full';
+    const presetId=safeStr(raw.preset||raw.configPreset||settings.configPreset||'custom').trim().toLowerCase()||'custom';
+    return{
+      ok:true,
+      data:{
+        preset:presetId,
+        theme,
+        layout:layoutMeta.id,
+        fontScale,
+        autosave:truthy(settings.autosave,state.autosave!==false),
+        selfrepair:truthy(settings.selfrepair,state.selfrepair!==false),
+        toasts:bool(settings.toasts,state.toasts!==false),
+        respectSystemMotion:bool(settings.respectSystemMotion,state.respectSystemMotion),
+        reduceMotion:bool(settings.reduceMotion,state.reduceMotion),
+        respectSystemContrast:bool(settings.respectSystemContrast,state.respectSystemContrast),
+        highContrast:bool(settings.highContrast,state.highContrast),
+        smartErrors:truthy(settings.smartErrors,state.smartErrors!==false),
+        preventMistakes:truthy(settings.preventMistakes,state.preventMistakes!==false),
+        debugMode:bool(settings.debugMode,state.debugMode),
+        feedbackMode
+      },
+      meta:{
+        presetLabel:getPresetMeta(presetId).label,
+        layoutLabel:layoutMeta.label
+      }
+    };
+  }
+  function applyConfigFromSnapshot(snapshot,{source='Datei',announce=true,log=true,updateHint=true,persistChange=true}={}){
+    const normalized=normalizeConfigSnapshot(snapshot);
+    if(!normalized.ok){
+      if(log){
+        handleValidationResult({ok:false,message:normalized.error},{context:'Konfiguration',level:'warn'});
+      }
+      return{ok:false,error:normalized.error};
+    }
+    const data=normalized.data;
+    const meta=normalized.meta||{};
+    state.autosave=data.autosave!==false;
+    state.selfrepair=data.selfrepair!==false;
+    state.toasts=data.toasts!==false;
+    state.smartErrors=data.smartErrors!==false;
+    state.preventMistakes=data.preventMistakes!==false;
+    state.debugMode=!!data.debugMode;
+    state.feedbackMode=data.feedbackMode==='smart'?'smart':'full';
+    state.theme=KNOWN_THEMES.has(data.theme)?data.theme:'neo';
+    state.fontScale=allowedFontScales.has(Number(data.fontScale))?Number(data.fontScale):systemFontDefault();
+    state.respectSystemMotion=!!data.respectSystemMotion;
+    if(state.respectSystemMotion){
+      state.reduceMotion=readSystemMotion();
+    }else{
+      state.reduceMotion=!!data.reduceMotion;
+    }
+    state.respectSystemContrast=!!data.respectSystemContrast;
+    if(state.respectSystemContrast){
+      state.highContrast=readSystemContrast();
+    }else{
+      state.highContrast=!!data.highContrast;
+    }
+    const layoutMeta=getLayoutMeta(data.layout);
+    state.layoutPreset=layoutMeta.id;
+    state.configPreset=data.preset||state.configPreset||'custom';
+    applyLayoutPreset(layoutMeta.id,{announceSelection:false});
+    renderTheme();
+    renderDisplaySettings();
+    const autosaveEl=$('#autosaveChk');
+    if(autosaveEl){autosaveEl.checked=state.autosave!==false;}
+    const selfrepairEl=$('#selfrepairChk');
+    if(selfrepairEl){selfrepairEl.checked=state.selfrepair!==false;}
+    const toastsEl=$('#toastsChk');
+    if(toastsEl){toastsEl.checked=state.toasts!==false;}
+    updateConfigPresetState({skipLog:true});
+    updateConfigSummary();
+    if(persistChange){
+      persist({reason:'settings-changed',detail:{setting:'config-import',source}});
+    }
+    if(log){
+      const presetLabel=meta.presetLabel||getPresetMeta(state.configPreset).label||state.configPreset;
+      addLog('ok',`Konfiguration importiert: ${presetLabel}.`);
+      captureFeedback(`Konfiguration aus ${source} übernommen. Farben, Layout und Sicherheitsschalter wurden angepasst.`, 'ok', {source:'settings'});
+      offerPreventiveHint('config-import');
+    }
+    if(announce){
+      const presetLabel=meta.presetLabel||getPresetMeta(state.configPreset).label||state.configPreset;
+      announceProcess(`Konfiguration übernommen (${presetLabel}).`,'ok');
+      toast('Konfiguration übernommen.');
+    }
+    if(updateHint){
+      updateConfigTransferStatus(`Zuletzt übernommen aus ${source}.`);
+    }
+    return{ok:true,data,meta};
+  }
+  function exportConfigSettings(){
+    const result=guardAction('Konfiguration exportieren',()=>{
+      const snapshot=buildConfigExportSnapshot();
+      const fileName=generateExportFileName('modultool-konfiguration','json',{key:'config'});
+      download(fileName,JSON.stringify(snapshot,null,2));
+      const label=snapshot.presetLabel||snapshot.preset;
+      addLog('ok',`Konfiguration exportiert (${label}).`);
+      captureFeedback(`Konfigurationsdatei gespeichert. Die Datei heißt ${fileName}.`, 'ok', {source:'settings'});
+      updateConfigTransferStatus(`Gespeichert als ${fileName}.`);
+      offerPreventiveHint('config-export');
+      return{fileName,snapshot};
+    },{hint:'config-export'});
+    if(result){
+      announceProcess('Konfigurationsdatei gespeichert.','ok');
+    }
+    return result;
+  }
+  function importConfigFromJson(jsonText,{source='Datei'}={}){
+    const outcome=guardAction('Konfiguration importieren',()=>{
+      const trimmed=safeStr(jsonText).trim();
+      if(!trimmed){
+        handleValidationResult({ok:false,message:'Keine Daten in der Datei gefunden.'},{context:'Konfiguration',level:'warn'});
+        throw new Error('Datei ohne Inhalt.');
+      }
+      let parsed;
+      try{
+        parsed=JSON.parse(trimmed);
+      }catch(error){
+        handleValidationResult({ok:false,message:'Datei konnte nicht gelesen werden.',detail:safeStr(error&&error.message)},{context:'Konfiguration',level:'error'});
+        throw new Error('Ungültiges JSON.');
+      }
+      const applied=applyConfigFromSnapshot(parsed,{source,announce:true,log:true,updateHint:true,persistChange:true});
+      if(!applied||applied.ok!==true){
+        const message=applied&&applied.error?applied.error:'Konfiguration konnte nicht übernommen werden.';
+        throw new Error(message);
+      }
+      return applied;
+    },{hint:'config-import'});
+    return !!(outcome&&outcome.ok);
   }
   function updateConfigSummary(){
     const items=buildConfigSummaryItems();
@@ -4545,6 +4750,43 @@
     if(configPresetList){configPresetList.addEventListener('click',e=>{const btn=e.target.closest('button[data-preset]');if(!btn)return;activateConfigPreset(btn.dataset.preset);});}
     configThemeButtons.forEach(btn=>btn.addEventListener('click',()=>{const value=btn.dataset.theme;if(!value)return;const themeSel=$('#themeSel');if(themeSel){themeSel.value=value;themeSel.dispatchEvent(new Event('change',{bubbles:true}));}}));
     configFontButtons.forEach(btn=>btn.addEventListener('click',()=>{const value=btn.dataset.font;if(!value)return;if(fontScaleSel){fontScaleSel.value=value;fontScaleSel.dispatchEvent(new Event('change',{bubbles:true}));}}));
+    if(configExportBtn){configExportBtn.addEventListener('click',()=>exportConfigSettings());}
+    if(configImportBtn&&configImportInput){
+      configImportBtn.addEventListener('click',()=>{configImportInput.value='';configImportInput.click();});
+      configImportInput.addEventListener('change',()=>{
+        const file=configImportInput.files&&configImportInput.files[0];
+        if(!file)return;
+        const validation=validateJsonFile(file);
+        if(!validation.ok){
+          handleValidationResult(validation,{context:'Konfiguration',level:validation.level||'warn'});
+          configImportInput.value='';
+          updateConfigTransferStatus('Import abgebrochen. Bitte prüfe die Datei.');
+          return;
+        }
+        const reader=new FileReader();
+        announceProcess('Konfigurationsdatei wird geprüft…','info');
+        reader.onload=()=>{
+          const text=reader.result||'';
+          configImportInput.value='';
+          const signature=validateJsonContent(text,{expectedRoot:'object'});
+          if(!signature.ok){
+            handleValidationResult(signature,{context:'Konfiguration',level:signature.level||'warn'});
+            updateConfigTransferStatus('Import fehlgeschlagen. Datei passt nicht zum erwarteten Format.');
+            return;
+          }
+          const ok=importConfigFromJson(text,{source:file.name||'Datei'});
+          if(!ok){
+            updateConfigTransferStatus('Import fehlgeschlagen. Bitte Datei prüfen.');
+          }
+        };
+        reader.onerror=()=>{
+          configImportInput.value='';
+          handleValidationResult({ok:false,message:'Datei konnte nicht gelesen werden.'},{context:'Konfiguration',level:'error'});
+          updateConfigTransferStatus('Import fehlgeschlagen. Bitte Datei erneut auswählen.');
+        };
+        reader.readAsText(file);
+      });
+    }
     if(layoutButtons&&layoutButtons.length){
       layoutButtons.forEach(btn=>btn.addEventListener('click',()=>{const target=btn.dataset.layout;if(!target)return;applyLayoutPreset(target,{announceSelection:true});}));
     }
@@ -4635,9 +4877,9 @@
           const canvas=$('#canvas');
           if(canvas){try{canvas.focus({preventScroll:true});}catch(ex){/* ignore */}}
           e.preventDefault();
-        }
       }
-    });
+    }
+  });
     $('#quickSearch').addEventListener('input',()=>{const q=safeLower($('#quickSearch').value);$$('#modulesList .btn').forEach(btn=>{btn.style.display=safeLower(btn.textContent).includes(q)?'flex':'none'})});
     $('#addModuleBtn').addEventListener('click',onAddModule);
     $('#newModuleName').addEventListener('keydown',e=>{if(e.key==='Enter')onAddModule()});
@@ -4771,7 +5013,7 @@
       addLog('info','Dashboard geladen. Viel Erfolg!');
     }
   }
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,validateJsonFile,validateJsonContent,validateAudioFile,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport,getStorageMeta:()=>Object.assign({},storageMeta),generateExportFileName:(base,ext,options)=>generateExportFileName(base,ext,options||{}),getExportSequences:()=>JSON.parse(JSON.stringify(state.exportSequences||{}))},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,removeModule,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,validateJsonFile,validateJsonContent,validateAudioFile,runDependencyCheck:autoResolveDependencies,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id),buildConfigSnapshot:()=>buildConfigExportSnapshot(),applyConfigSnapshot:(snapshot,options)=>applyConfigFromSnapshot(snapshot,Object.assign({announce:false,log:false,updateHint:false,persistChange:false},options||{}))},events:{bus:eventBus,names:EVENT_NAMES,buildStateDigest,describeStateDigest,getDigestHistory:()=>Array.isArray(state.digestHistory)?state.digestHistory.map(entry=>Object.assign({},entry)):[],resetDigestHistory:resetStateDigestHistory},helpers:{createPersistableState,applyLoadedState,getDependencyReport,getStorageMeta:()=>Object.assign({},storageMeta),generateExportFileName:(base,ext,options)=>generateExportFileName(base,ext,options||{}),getExportSequences:()=>JSON.parse(JSON.stringify(state.exportSequences||{}))},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

@@ -53,10 +53,11 @@
 - [x] Bereichs-Farbampel für Module, Arbeitsfläche, Audio & Archiv ergänzen (Legende, Panels, Dropzone, Listen farblich abgestimmt)
 - [x] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten (Hilfe-Center umgesetzt)
 - [ ] Hilfe-Center um Fokus-Trap und geführte Onboarding-Tour erweitern
+- [ ] Hilfe-Center um Abschnitt zur Konfigurations-Sicherung (Export/Import) ergänzen
 - [ ] Onboarding-Assistent mit Schritt-für-Schritt-Erklärungen, Beispieldaten und Feedback-Schleifen implementieren
 - [ ] Kontextuelle Hilfetexte und Tooltips standardisieren (Microcopy-Styleguide)
 - [x] Konfigurations-Assistent mit Presets, Klartext-Zusammenfassung und Button-Steuerung integrieren
-- [ ] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen
+- [x] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen (Export/Import aktiv, Fokusfalle umgesetzt)
 - [ ] Layout-Anpassung per Drag/Resize ermöglichen (Seitenleistenbreite stufenlos, Speicher je Preset) und mobile Breakpoints dokumentieren
 - [ ] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
 - [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen

@@ -1,3 +1,3 @@
-Release-Fortschritt: 86 %
-Stand: 2025-09-22
-Einschätzung: Modul- und Plugin-Löschaktionen laufen nun über `guardAction`, melden Warnungen direkt im Log, erzeugen laienfreundliche Feedback-Hinweise (inkl. Self-Repair-Tipp) und lösen Prozessansagen aus. Neue Node-Tests sichern den Löschschutz und prüfen, dass Module samt Plugin-Registrierung sauber aufgeräumt werden. Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts und Fokusfallen für verbleibende Dialoge.
+Release-Fortschritt: 88 %
+Stand: 2025-09-23
+Einschätzung: Der Konfigurations-Assistent speichert Einstellungen jetzt als laienfreundliche JSON-Datei und lädt sie wieder ein (inkl. Log-/Prozessfeedback, Präventionstipps und Hinweistext im Dialog). Neue Node-Tests prüfen Export-Format und Import-Anwendung. Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts und kontextbezogene Hilfetexte zur Konfigurations-Sicherung.

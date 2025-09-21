@@ -181,6 +181,66 @@ test('Backup übernimmt Fehlerfänger-, Datei- und Debug-Einstellungen', async (
   assert.equal(backup.manifest.settings.feedbackMode, 'smart');
 });
 
+test('Konfigurations-Export fasst Preset und Einstellungen für Laien zusammen', () => {
+  api.actions.activateConfigPreset('performance', { announceSelection: false });
+  const snapshot = api.actions.buildConfigSnapshot();
+  assert.equal(snapshot.type, 'modultool-config');
+  assert.equal(snapshot.version, '1.0.0');
+  assert.equal(snapshot.preset, 'performance');
+  assert.equal(snapshot.settings.toasts, false);
+  assert.equal(snapshot.settings.reduceMotion, true);
+  assert.ok(Array.isArray(snapshot.summary), 'Zusammenfassung sollte eine Liste sein');
+  assert.ok(
+    snapshot.summary.some((line) => /Autospeichern/.test(line)),
+    'Autospeichern-Hinweis fehlt in der Zusammenfassung'
+  );
+});
+
+test('Konfigurationsimport übernimmt Layout, Theme und Sicherheitsoptionen', () => {
+  const snapshot = {
+    type: 'modultool-config',
+    version: '1.0.0',
+    preset: 'custom',
+    theme: 'night',
+    layout: 'audio-only',
+    fontScale: 18,
+    settings: {
+      autosave: false,
+      selfrepair: false,
+      toasts: false,
+      respectSystemMotion: false,
+      reduceMotion: true,
+      respectSystemContrast: false,
+      highContrast: true,
+      smartErrors: false,
+      preventMistakes: false,
+      debugMode: true,
+      feedbackMode: 'smart'
+    }
+  };
+
+  const result = api.actions.applyConfigSnapshot(snapshot, {
+    announce: false,
+    log: false,
+    updateHint: false,
+    persistChange: false
+  });
+
+  assert.ok(result.ok, 'Konfiguration sollte übernommen werden');
+  assert.equal(api.state.theme, 'night');
+  assert.equal(api.state.layoutPreset, 'audio-only');
+  assert.equal(api.state.autosave, false);
+  assert.equal(api.state.selfrepair, false);
+  assert.equal(api.state.toasts, false);
+  assert.equal(api.state.smartErrors, false);
+  assert.equal(api.state.preventMistakes, false);
+  assert.equal(api.state.debugMode, true);
+  assert.equal(api.state.feedbackMode, 'smart');
+  assert.equal(api.state.fontScale, 18);
+  assert.equal(api.state.reduceMotion, true);
+  assert.equal(api.state.highContrast, true);
+});
+
 test('Backup und Manifest enthalten Digest-Verlauf für Laienberichte', async () => {
   api.events.resetDigestHistory();
   const created = api.actions.createUserModule('Digest-Demo', { announce: false });
