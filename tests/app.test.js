@@ -60,6 +60,7 @@ beforeEach(() => {
   api.actions.clearPlugins();
   api.state.log = [];
   api.actions.activateConfigPreset('balanced', { announceSelection: false });
+  api.actions.applyLayoutPreset('balanced', { announceSelection: false, persistChange: false });
 });
 
 function seedPlaylist(ids) {
@@ -102,6 +103,19 @@ test('Backup erfüllt JSON-Schema', () => {
   if (!valid) {
     assert.fail(ajv.errorsText(validate.errors, { separator: '\n' }));
   }
+});
+
+test('Layout-Preset steuert Seitenleisten und landet im Backup', async () => {
+  api.actions.applyLayoutPreset('audio-only', { announceSelection: false, persistChange: false });
+  await flush();
+  assert.equal(api.state.layoutPreset, 'audio-only');
+  const body = dom.window.document.body;
+  assert.equal(body.getAttribute('data-layout'), 'audio-only');
+  assert.equal(body.classList.contains('collapsed-left'), true);
+  assert.equal(body.classList.contains('collapsed-right'), false);
+  const backup = api.actions.buildBackup();
+  assert.equal(backup.state.layoutPreset, 'audio-only');
+  assert.equal(backup.manifest.settings.layoutPreset, 'audio-only');
 });
 
 test('validatePluginData normalisiert Inhalte', () => {

@@ -1,3 +1,3 @@
-Release-Fortschritt: 52 %
+Release-Fortschritt: 55 %
 Stand: 2025-09-21
-Einschätzung: Logging/Statusfeedback und der Konfigurations-Assistent decken jetzt laienfreundliche Presets ab; Architektur-, Performance- und Release-Pakete bleiben weiterhin offen.
+Einschätzung: Logging/Statusfeedback, der Konfigurations-Assistent und neue Layout-Presets decken laienfreundliche Grundeinstellungen ab; Architektur-, Performance- und Release-Pakete bleiben weiterhin offen.

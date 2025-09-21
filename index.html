@@ -6,7 +6,7 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self'; media-src 'self' blob:; object-src 'none'; base-uri 'self'; frame-ancestors 'self'; form-action 'self'" />
 <title>ModulTool – Singlefile Klick&Start</title>
 <style>
-  :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px;--font-size:16px;--max-line:75ch}
+  :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px;--font-size:16px;--max-line:75ch;--left-col:280px;--right-col:360px}
   html{font-size:var(--font-size)}
   [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--info:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045}
   [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--info:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb}
@@ -17,7 +17,7 @@
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;letter-spacing:.01em}
   body.font-large{line-height:1.7}
   a{color:var(--link)}
-  .app{display:grid;grid-template-areas:"header header header" "left   main   right" "footer footer footer";grid-template-columns:280px 1fr 360px;grid-template-rows:auto 1fr auto;min-height:100vh}
+  .app{display:grid;grid-template-areas:"header header header" "left   main   right" "footer footer footer";grid-template-columns:var(--left-col) 1fr var(--right-col);grid-template-rows:auto 1fr auto;min-height:100vh}
   header{grid-area:header;background:var(--panel);box-shadow:var(--shadow);position:sticky;top:0;z-index:5}
   aside#left{grid-area:left;background:var(--panel-2);border-right:1px solid var(--border)}
   main{grid-area:main;background:var(--bg-soft)}
@@ -47,7 +47,7 @@
   input::placeholder,textarea::placeholder{color:var(--muted)}
   label{font-size:.9rem;color:var(--muted)}
   hr{border:0;height:1px;background:var(--border)}
-  .header-grid{display:grid;gap:var(--gap);grid-template-columns:1fr auto auto auto;align-items:stretch}
+  .header-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(auto-fit,minmax(240px,1fr));align-items:stretch}
   .header-block{min-height:64px}
   .clock{font-size:1.25rem;font-variant-numeric:tabular-nums}
   .loglist{max-height:120px;overflow:auto}
@@ -72,9 +72,9 @@
   .status-banner[data-type="warn"]{color:var(--warn)}
   .status-banner[data-type="error"]{color:var(--err)}
   .collapsed-left aside#left{display:none}
-  .collapsed-left .app{grid-template-columns:0 1fr 360px}
+  .collapsed-left .app{grid-template-columns:0 1fr var(--right-col)}
   .collapsed-right aside#right{display:none}
-  .collapsed-right .app{grid-template-columns:280px 1fr 0}
+  .collapsed-right .app{grid-template-columns:var(--left-col) 1fr 0}
   .modules{display:flex;flex-direction:column;gap:8px}
   .modules .btn{display:flex;justify-content:space-between;align-items:center}
   .modules .small{font-size:.8rem;color:var(--muted)}
@@ -130,6 +130,25 @@
   .config-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
   .config-card label{font-size:.95rem;color:var(--text)}
   .config-card p{margin:0;font-size:.85rem;color:var(--muted)}
+  .layout-controls{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .layout-controls .btn{flex:1 1 160px;justify-content:center;text-align:center}
+  .layout-summary{margin-top:6px;font-size:.9rem;color:var(--muted)}
+  body[data-layout="modules-wide"]{--left-col:360px;--right-col:300px}
+  body[data-layout="audio-wide"]{--left-col:220px;--right-col:420px}
+  body[data-layout="module-only"]{--left-col:320px;--right-col:0}
+  body[data-layout="module-only"] aside#right{display:none}
+  body[data-layout="module-only"] .app{grid-template-columns:var(--left-col) 1fr 0}
+  body[data-layout="audio-only"]{--left-col:0;--right-col:400px}
+  body[data-layout="audio-only"] aside#left{display:none}
+  body[data-layout="audio-only"] .app{grid-template-columns:0 1fr var(--right-col)}
+  body[data-layout="workspace"]{--left-col:0;--right-col:0}
+  body[data-layout="workspace"] aside#left,body[data-layout="workspace"] aside#right{display:none}
+  body[data-layout="workspace"] .app{grid-template-columns:0 1fr 0}
+  body[data-layout="stacked"]{--left-col:100%;--right-col:100%}
+  body[data-layout="stacked"] .app{grid-template-columns:1fr;grid-template-areas:"header" "main" "left" "right" "footer"}
+  body[data-layout="stacked"] aside#left,body[data-layout="stacked"] aside#right{display:block}
+  body[data-layout="stacked"] aside#left{border-right:none;border-bottom:1px solid var(--border)}
+  body[data-layout="stacked"] aside#right{border-left:none;border-top:1px solid var(--border)}
   body.config-open{overflow:hidden}
   [data-motion="reduced"] *,[data-motion="reduced"] *::before,[data-motion="reduced"] *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
   [data-contrast="high"] .panel,[data-contrast="high"] .btn{border-width:2px}
@@ -202,6 +221,20 @@
         <div id="configSummary" class="config-summary" aria-live="polite">Paket: Allround (Standard) • Autospeichern aktiv • Animationen folgen der Systemeinstellung</div>
         <div id="processStatusLive" class="sr-only" aria-live="polite" aria-atomic="true">Prozessstatus bereit.</div>
         <div id="processStatusText" class="status-banner" data-type="info">Prozessstatus: bereit.</div>
+      </div>
+      <div class="panel header-block pad" aria-label="Bereichsanordnung">
+        <div class="title">Bereiche &amp; Fenster</div>
+        <p class="muted" style="margin:0">Buttons passen Module, Arbeitsfläche und Audio für Laien verständlich an.</p>
+        <div class="layout-controls" id="layoutControls" role="group" aria-label="Layout-Vorlagen">
+          <button type="button" class="btn inline" data-layout="balanced" aria-pressed="false">Ausgewogen</button>
+          <button type="button" class="btn inline" data-layout="modules-wide" aria-pressed="false">Module breit</button>
+          <button type="button" class="btn inline" data-layout="audio-wide" aria-pressed="false">Audio breit</button>
+          <button type="button" class="btn inline" data-layout="module-only" aria-pressed="false">Nur Module</button>
+          <button type="button" class="btn inline" data-layout="audio-only" aria-pressed="false">Nur Audio</button>
+          <button type="button" class="btn inline" data-layout="workspace" aria-pressed="false">Arbeitsfläche</button>
+          <button type="button" class="btn inline" data-layout="stacked" aria-pressed="false">Übereinander</button>
+        </div>
+        <p class="layout-summary muted" id="layoutSummary">Ausgewogen: Alle Bereiche bleiben sichtbar und gut lesbar.</p>
       </div>
       <div class="panel header-block pad" aria-label="Echtzeit Logging">
         <div class="title">Log (letzte 10)</div>
@@ -466,6 +499,8 @@
   const configSummaryList=$('#configSummaryList');
   const configApplyBtn=$('#configApplyBtn');
   const configResetBtn=$('#configResetBtn');
+  const layoutSummary=$('#layoutSummary');
+  const layoutButtons=$$('#layoutControls button[data-layout]');
   const systemMotionChk=$('#systemMotionChk');
   const reduceMotionChk=$('#reduceMotionChk');
   const systemContrastChk=$('#systemContrastChk');
@@ -518,6 +553,16 @@
   const DEFAULT_LOG_LEVEL='info';
   const KNOWN_LOG_LEVELS=new Set(Object.keys(LOG_LEVELS));
   const THEME_LABELS=Object.freeze({neo:'Neo',paper:'Paper',night:'Night HighContrast',forest:'Forest',aurora:'Aurora'});
+  const LAYOUT_PRESETS=Object.freeze({
+    balanced:{id:'balanced',label:'Ausgewogen',description:'Alle Bereiche sichtbar und gleichmäßig verteilt.',left:'280px',right:'360px',showLeft:true,showRight:true,stack:false},
+    'modules-wide':{id:'modules-wide',label:'Module breit',description:'Linke Modulleiste extra breit, rechts kompakt.',left:'360px',right:'300px',showLeft:true,showRight:true,stack:false},
+    'audio-wide':{id:'audio-wide',label:'Audio breit',description:'Rechte Audiobox groß, links schlank.',left:'220px',right:'420px',showLeft:true,showRight:true,stack:false},
+    'module-only':{id:'module-only',label:'Nur Module',description:'Linke Modulleiste bleibt, rechte Audiobox wird ausgeblendet.',left:'320px',right:'0px',showLeft:true,showRight:false,stack:false},
+    'audio-only':{id:'audio-only',label:'Nur Audio',description:'Rechte Audiobox bleibt, linke Modulleiste wird ausgeblendet.',left:'0px',right:'400px',showLeft:false,showRight:true,stack:false},
+    workspace:{id:'workspace',label:'Arbeitsfläche',description:'Nur die Arbeitsfläche – Seitenleisten verschwinden komplett.',left:'0px',right:'0px',showLeft:false,showRight:false,stack:false},
+    stacked:{id:'stacked',label:'Übereinander',description:'Module, Arbeitsfläche und Audio werden untereinander gestapelt.',left:'100%',right:'100%',showLeft:true,showRight:true,stack:true}
+  });
+  const LAYOUT_SEQUENCE=['balanced','modules-wide','audio-wide','module-only','audio-only','workspace','stacked'];
   const CONFIG_PRESETS=Object.freeze({
     balanced:{
       id:'balanced',
@@ -1076,7 +1121,7 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',layoutPreset:'balanced',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
   function getPresetMeta(id){return CONFIG_PRESETS[id]||CONFIG_PRESETS.custom;}
   function findPresetMatch(snapshot){
     if(!snapshot)return null;
@@ -1110,6 +1155,43 @@
     const font=allowedFontScales.has(Number(activeFont))?Number(activeFont):systemFontDefault();
     configFontButtons.forEach(btn=>{btn.setAttribute('aria-pressed',Number(btn.dataset.font)===font?'true':'false');});
   }
+  function getLayoutMeta(id){
+    const key=safeLower(id);
+    return LAYOUT_PRESETS[key]||LAYOUT_PRESETS.balanced;
+  }
+  function renderLayoutControls(){
+    const meta=getLayoutMeta(state.layoutPreset);
+    if(layoutSummary){
+      layoutSummary.textContent=`${meta.label}: ${meta.description}`;
+    }
+    if(layoutButtons&&layoutButtons.length){
+      layoutButtons.forEach(btn=>{btn.setAttribute('aria-pressed',btn.dataset.layout===meta.id?'true':'false');});
+    }
+  }
+  function applyLayoutPreset(id,{announceSelection=true,persistChange=true}={}){
+    const meta=getLayoutMeta(id);
+    state.layoutPreset=meta.id;
+    if(docEl){
+      docEl.style.setProperty('--left-col',meta.left||'280px');
+      docEl.style.setProperty('--right-col',meta.right||'360px');
+    }
+    if(document&&document.body){
+      document.body.setAttribute('data-layout',meta.id);
+      document.body.classList.remove('collapsed-left','collapsed-right');
+      if(meta.showLeft===false){document.body.classList.add('collapsed-left');}
+      if(meta.showRight===false){document.body.classList.add('collapsed-right');}
+      if(meta.stack){document.body.setAttribute('data-layout-stack','true');}
+      else{document.body.removeAttribute('data-layout-stack');}
+    }
+    renderLayoutControls();
+    if(persistChange) persist();
+    if(announceSelection){
+      announceProcess(`Layout „${meta.label}“ aktiviert.`,'info');
+      addLog('ok','Layout gewählt: '+meta.label);
+    }
+    updateConfigSummary();
+    return meta;
+  }
   function updateConfigPresetHint(forceId){
     const presetId=forceId||state.configPreset||'custom';
     const meta=getPresetMeta(presetId);
@@ -1122,6 +1204,7 @@
     const presetMeta=getPresetMeta(state.configPreset);
     const themeLabel=THEME_LABELS[state.theme]||safeStr(state.theme||'Neo');
     const fontSize=allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault();
+    const layoutMeta=getLayoutMeta(state.layoutPreset);
     const autosaveText=state.autosave?'Autospeichern an (speichert automatisch)':'Autospeichern aus (manuell speichern)';
     const selfrepairText=state.selfrepair?'Self-Repair an (Tool heilt Fehler)':'Self-Repair aus (manuell prüfen)';
     const toastText=state.toasts!==false?'Hinweis-Popups an':'Hinweis-Popups aus';
@@ -1131,6 +1214,7 @@
       `Paket: ${presetMeta.label}`,
       `Farbschema: ${themeLabel}`,
       `Schriftgröße ${fontSize}\u202fpx`,
+      `Layout: ${layoutMeta.label}`,
       autosaveText,
       selfrepairText,
       toastText,
@@ -1338,6 +1422,10 @@
           const presetKey=safeLower(manifest.settings.configPreset);
           if(!CONFIG_PRESETS[presetKey]){errors.push('manifest.settings.configPreset ist unbekannt.');}
         }
+        if(hasOwn(manifest.settings,'layoutPreset')){
+          const layoutKey=safeLower(manifest.settings.layoutPreset);
+          if(!LAYOUT_PRESETS[layoutKey]){errors.push('manifest.settings.layoutPreset ist unbekannt.');}
+        }
       }
     }
     const statePart=obj&&obj.state;
@@ -1355,6 +1443,7 @@
         statePart.highContrast===undefined||typeof statePart.highContrast==='boolean'?null:'state.highContrast muss ein Wahr/Falsch-Wert sein.',
         statePart.fontScale===undefined||allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?null:'state.fontScale muss 14, 16, 18 oder 20 sein.',
         statePart.configPreset===undefined||CONFIG_PRESETS[safeLower(statePart.configPreset)]?null:'state.configPreset ist unbekannt.'
+        ,statePart.layoutPreset===undefined||LAYOUT_PRESETS[safeLower(statePart.layoutPreset)]?null:'state.layoutPreset ist unbekannt.'
       ].filter(Boolean);
       errors.push(...stateChecks);
       if(!hasOwn(statePart,'modules')){errors.push('state.modules fehlt.');}
@@ -1553,6 +1642,7 @@
     if(typeof state.reduceMotion!=='boolean'){state.reduceMotion=systemReduceDefault;fixes++;}
     if(typeof state.respectSystemContrast!=='boolean'){state.respectSystemContrast=true;fixes++;}
     if(typeof state.highContrast!=='boolean'){state.highContrast=systemContrastDefault;fixes++;}
+    if(!LAYOUT_PRESETS[safeLower(state.layoutPreset)]){state.layoutPreset='balanced';fixes++;}
     const numericFont=Math.round(Number(state.fontScale)||0);
     if(!allowedFontScales.has(numericFont)){state.fontScale=systemFontDefault();fixes++;}
     else{state.fontScale=numericFont;}
@@ -2257,7 +2347,7 @@
       plugins:state.plugins.map(p=>({id:p.id,name:p.name,version:p.version||'n/a',moduleId:p.moduleId})),
       archives:{genres:state.genres.length,moods:state.moods.length,categories:Object.keys(state.categories).length},
       playlist:state.playlist.length,
-      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false,respectSystemMotion:!!state.respectSystemMotion,reduceMotion:isReduceMotionActive(),respectSystemContrast:!!state.respectSystemContrast,highContrast:isHighContrastActive(),fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom')}
+      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false,respectSystemMotion:!!state.respectSystemMotion,reduceMotion:isReduceMotionActive(),respectSystemContrast:!!state.respectSystemContrast,highContrast:isHighContrastActive(),fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom'),layoutPreset:getLayoutMeta(state.layoutPreset).id}
     };
   }
   function buildBackup(){
@@ -2282,7 +2372,8 @@
         activeModule:state.activeModule,
         log:state.log.slice(-50),
         logFilter:state.logFilter||'all',
-        configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom')
+        configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom'),
+        layoutPreset:getLayoutMeta(state.layoutPreset).id
       }
     };
   }
@@ -2316,6 +2407,7 @@
       });
       return out;
     };
+    const layoutMeta=getLayoutMeta(statePart.layoutPreset);
     const sanitized={
       theme:safeStr(statePart.theme).trim()||'neo',
       autosave:!!statePart.autosave,
@@ -2326,6 +2418,7 @@
       respectSystemContrast:statePart.respectSystemContrast===undefined?true:!!statePart.respectSystemContrast,
       highContrast:statePart.highContrast===undefined?systemContrastDefault:!!statePart.highContrast,
       fontScale:allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?Math.round(Number(statePart.fontScale)||0):systemFontDefault(),
+      layoutPreset:layoutMeta.id,
       modules:sanitizeModules(statePart.modules),
       categories:sanitizeCategories(statePart.categories),
       genres:sanitizeStringArray(statePart.genres).sort((a,b)=>a.localeCompare(b)),
@@ -2339,6 +2432,7 @@
     const rawPreset=safeLower(statePart.configPreset);
     const detectedPreset=CONFIG_PRESETS[rawPreset]?rawPreset:(findPresetMatch(sanitized)||'custom');
     sanitized.configPreset=detectedPreset;
+    sanitized.layoutPreset=layoutMeta.id;
     return sanitized;
   }
   function pluginToSerializable(plugin){
@@ -2391,7 +2485,10 @@
         state.log=valid.log;
         state.logFilter=valid.logFilter;
         state.configPreset=valid.configPreset;
+        state.layoutPreset=valid.layoutPreset;
+        applyLayoutPreset(state.layoutPreset,{announceSelection:false});
         selfRepair();
+        applyLayoutPreset(state.layoutPreset,{announceSelection:false});
         ensureAllPlugins();
         renderAll();
         persist();
@@ -2429,6 +2526,9 @@
     if(configPresetList){configPresetList.addEventListener('click',e=>{const btn=e.target.closest('button[data-preset]');if(!btn)return;activateConfigPreset(btn.dataset.preset);});}
     configThemeButtons.forEach(btn=>btn.addEventListener('click',()=>{const value=btn.dataset.theme;if(!value)return;const themeSel=$('#themeSel');if(themeSel){themeSel.value=value;themeSel.dispatchEvent(new Event('change',{bubbles:true}));}}));
     configFontButtons.forEach(btn=>btn.addEventListener('click',()=>{const value=btn.dataset.font;if(!value)return;if(fontScaleSel){fontScaleSel.value=value;fontScaleSel.dispatchEvent(new Event('change',{bubbles:true}));}}));
+    if(layoutButtons&&layoutButtons.length){
+      layoutButtons.forEach(btn=>btn.addEventListener('click',()=>{const target=btn.dataset.layout;if(!target)return;applyLayoutPreset(target,{announceSelection:true});}));
+    }
     const relayCheckbox=(control,selector)=>{if(!control)return;control.addEventListener('change',()=>{const target=$(selector);if(!target)return;if(target.checked!==control.checked){target.checked=control.checked;}target.dispatchEvent(new Event('change',{bubbles:true}));});};
     relayCheckbox(configAutosave,'#autosaveChk');
     relayCheckbox(configSelfrepair,'#selfrepairChk');
@@ -2440,8 +2540,8 @@
     if(helpCopyBtn){helpCopyBtn.addEventListener('click',copyHelpNotes);}
     if(helpDownloadBtn){helpDownloadBtn.addEventListener('click',downloadHelpNotes);}
     $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme);handleSettingChanged();});
-    $('#toggleLeft').addEventListener('click',()=>{document.body.classList.toggle('collapsed-left')});
-    $('#toggleRight').addEventListener('click',()=>{document.body.classList.toggle('collapsed-right')});
+    $('#toggleLeft').addEventListener('click',()=>{const meta=getLayoutMeta(state.layoutPreset);const next=meta.showLeft===false?'balanced':'audio-only';applyLayoutPreset(next,{announceSelection:true});});
+    $('#toggleRight').addEventListener('click',()=>{const meta=getLayoutMeta(state.layoutPreset);const next=meta.showRight===false?'balanced':'module-only';applyLayoutPreset(next,{announceSelection:true});});
     $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist();handleSettingChanged();});
     $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist();handleSettingChanged();});
     $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist();handleSettingChanged();});
@@ -2535,6 +2635,7 @@
     ensureAllPlugins();
     ensureModuleRegistryMatchesState(startId);
     renderTheme();
+    renderLayoutControls();
     renderDisplaySettings();
     renderModules();
     renderArchives();
@@ -2547,8 +2648,8 @@
     updateConfigPresetState({skipLog:true});
     updateConfigSummary();
   }
-  function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}applyLayoutPreset(state.layoutPreset||'balanced',{announceSelection:false,persistChange:false});$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

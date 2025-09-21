@@ -66,6 +66,18 @@
             "configPreset": {
               "type": "string",
               "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
+            },
+            "layoutPreset": {
+              "type": "string",
+              "enum": [
+                "balanced",
+                "modules-wide",
+                "audio-wide",
+                "module-only",
+                "audio-only",
+                "workspace",
+                "stacked"
+              ]
             }
           }
         }
@@ -102,6 +114,18 @@
         "configPreset": {
           "type": "string",
           "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
+        },
+        "layoutPreset": {
+          "type": "string",
+          "enum": [
+            "balanced",
+            "modules-wide",
+            "audio-wide",
+            "module-only",
+            "audio-only",
+            "workspace",
+            "stacked"
+          ]
         },
         "modules": {
           "type": "array",

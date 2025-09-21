@@ -7,7 +7,7 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
 - **Typ:** Single-File-Webanwendung (`index.html`) mit integriertem CSS/JavaScript.
 - **Persistenz:** Browser `localStorage` mit Versionstempel (`state.version`).
 - **Domänen:** Modul- und Archivverwaltung, Audio-Playlist, Plugin-Manager, Logging, Manifest-Export, Backup-Prüfung.
-- **Anzeige & Feedback:** Systempräferenz-Optionen (Motion/Kontrast), Live-Status (`aria-live`), prozessspezifische Statusausgabe für Backup/Import, skalierbare Schriftgrößen (14–20 px Presets), farbcodierte Log-/Status-Icons für `info`/`ok`/`warn`/`error`, laienfreundliches Hilfe-Center (F1) mit Shortcut-Spickzettel sowie ein Konfigurations-Assistent mit Preset-Buttons, Klartext-Zusammenfassung und synchronisierten Checkboxen.
+- **Anzeige & Feedback:** Systempräferenz-Optionen (Motion/Kontrast), Live-Status (`aria-live`), prozessspezifische Statusausgabe für Backup/Import, skalierbare Schriftgrößen (14–20 px Presets), farbcodierte Log-/Status-Icons für `info`/`ok`/`warn`/`error`, sieben Layout-Presets (Ausgewogen, Module-/Audio-Fokus, Arbeitsfläche, Übereinander) mit Statusmeldung & Persistenz, laienfreundliches Hilfe-Center (F1) mit Shortcut-Spickzettel sowie ein Konfigurations-Assistent mit Preset-Buttons, Klartext-Zusammenfassung und synchronisierten Checkboxen.
 
 ## 3. Architektur-Zielbild
 1. **Layering:**
@@ -26,6 +26,7 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
 - Plugin-Sandbox: Inhalte werden sanitisiert, in Sandbox-Iframes gerendert und erhalten Theme-Snapshots.
 - Live-Status & Display-Settings: `announce()` aktualisiert eine `aria-live`-Region, `announceProcess()` liefert Laufzeit-Feedback für Import/Backup/Selbsttest, Display-Präferenzen respektieren `prefers-*` und lassen sich per UI steuern; das Hilfe-Center (F1) bietet leicht verständliche Schrittlisten, Fokussteuerung und Kopier-/Download-Funktionen.
 - Konfigurations-Assistent: Vier Presets (Allround, Barrierefrei, Fokus, Performance) triggern bestehende Checkbox-/Select-Handler, `state.configPreset` hält den aktuellen Modus, `findPresetMatch` erkennt manuelle Anpassungen und synchronisiert Klartext-Zusammenfassung sowie Buttons.
+- Layoutsteuerung: `applyLayoutPreset` (Buttons + Test-API) setzt CSS-Variablen (`--left-col`, `--right-col`), toggelt Seitenleisten, aktualisiert `data-layout`, schreibt das Layout in Backup & Manifest und sendet Statusmeldungen.
 - Fokusführung: Einheitliche `:focus-visible`-Rahmen für Buttons, Eingaben, Links und Dropzone unterstützen Tastaturnutzung; `Escape` holt ausgeblendete Seitenleisten zurück.
 
 ## 5. Lokale Entwicklungsumgebung einrichten
@@ -96,7 +97,7 @@ TOOL-2025/
 
 ## 11. Datenexport, Manifest & Backup
 - **Manifest:** Zusammenfassung des Zustands (Version, Theme, Statistiken) via Button.
-- **Backup:** Enthält Manifest + bereinigte Daten (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter). Import verwendet `assertBackupSchema` + Normalisierung.
+- **Backup:** Enthält Manifest + bereinigte Daten (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter, Layout-Preset). Import verwendet `assertBackupSchema` + Normalisierung.
 - **Backup-Prüfmodul:** UI-Modul mit Schema-Validierung, Fehlerlisten, Statistiken und Statusmeldungen über `aria-live`; Ergebnisse werden fokussiert und `announceProcess()` kündigt Start/Erfolg/Fehler an.
 - **Dateinamenspolitik:** Noch offen – empfohlen sind inkrementelle Suffixe (`_v001`) und Signaturen.
 

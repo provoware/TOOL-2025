@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 - **Produktstatus:** Funktionsreiches Offline-Dashboard mit Modul-, Archiv- und Playlistverwaltung in einer monolithischen HTML-Datei.
 - **Reifegrad nach Domänen:** Architektur 2/5, Daten & Persistenz 2/5, Sicherheit 3/5, Barrierefreiheit 3/5, UX 3/5, Performance 2/5, Audio 3/5, Tests 3/5, Release & Governance 1/5.
-- **Kernfortschritte:** Strenger Backup-Import mit JSON-Schema, gehärtete Plugin-Pipeline (Sanitizing + Sandbox-Iframes), verbesserte Tastatursteuerung, Live-Status (`aria-live`) und Systempräferenz-Handling (Motion/Kontrast) inklusive skalierbarer Typografie, laienfreundlicher Konfigurations-Assistent mit Preset-Buttons, Klartext-Zusammenfassung und Sofort-Feedback sowie Test-API für automatisierte Prüfungen und ein prozessspezifisches Status-Monitoring (Backup/Import) mit sichtbaren Fokus-Rahmen auf allen Interaktionselementen sowie einem laienfreundlichen Hilfe-Center (F1) mit Schritt-für-Schritt-Anleitungen und kopierbarem Spickzettel.
+- **Kernfortschritte:** Strenger Backup-Import mit JSON-Schema, gehärtete Plugin-Pipeline (Sanitizing + Sandbox-Iframes), verbesserte Tastatursteuerung, Live-Status (`aria-live`) und Systempräferenz-Handling (Motion/Kontrast) inklusive skalierbarer Typografie, laienfreundlicher Konfigurations-Assistent mit Preset-Buttons, Klartext-Zusammenfassung und Sofort-Feedback sowie Test-API für automatisierte Prüfungen, ein prozessspezifisches Status-Monitoring (Backup/Import) mit sichtbaren Fokus-Rahmen auf allen Interaktionselementen, ein laienfreundliches Hilfe-Center (F1) mit Schritt-für-Schritt-Anleitungen und kopierbarem Spickzettel sowie flexible Layout-Vorlagen (Ausgewogen, Module-/Audio-Fokus, Arbeitsfläche, Stapeln), die sich per Button wechseln lassen und Backups/Manifeste mitschreiben.
 - **Hauptdefizite:** Fehlende Layer-Struktur, kein zentrales Eventing, keine Undo/Redo-Mechanik, eingeschränkte Build-/Release-Prozesse und unvollständige Sicherheits- sowie A11y-Checks.
 - **Priorisierte Sofortmaßnahmen:** (1) Architekturtrennung mit Store/Service-Layern + Event-Bus, (2) Transaktionskern mit stabilen IDs und atomaren Writes, (3) A11y-Advanced inkl. System-Preferences und Live-Regionen, (4) Worker-Offloading & Performance-Budgets, (5) Signierte, geprüfte Import-/Export-Kette.
 
@@ -37,6 +37,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 
 ## 6. Barrierefreiheit & Inclusive Design
 - **Positive Aspekte:** Mehrere High-Contrast-Themes, Tastaturzugriff auf Playlist und Dropzone (Enter/Space, Alt+Pfeile, Entf), neue `:focus-visible`-Rahmen für Buttons/Eingaben/Links, Unterstützung von `prefers-reduced-motion`/`prefers-contrast`, Live-Statusbanner (`aria-live`) sowie Prozess-Live-Region für Backup-Import/-Prüfung, skalierbare Schriftgrößen (14–20 px Presets) und ein modales Hilfe-Center mit Tastatur- und Screenreader-Unterstützung.
+- **Neue Layout-Kontrolle:** Sieben vorkonfigurierte Layout-Buttons (Ausgewogen, Module/Audio breit, Nur Module, Nur Audio, Arbeitsfläche, Übereinander) lassen sich ohne Fachsprache bedienen, speichern sich im Backup/Manifest und geben nach dem Klick sofortige Statusmeldungen.
 - **Neue Interaktionshilfe:** Konfigurations-Assistent mit vier Presets (Allround, Barrierefrei, Fokus, Performance), Klartext-Zusammenfassung und synchronisierten Buttons/Checkboxen, sodass Laien ohne Fachbegriffe Animationen, Kontrast, Schriftgröße und Sicherheitsoptionen konfigurieren können.
 - **Defizite:** Kein globales Fokus-Management, Escape-Logik greift nur für Seitenleisten (Dialoge benötigen weiterhin Fokusfallen & Exit), Prozessregion deckt aktuell Backup/Import ab (weitere Langläufer wie Selbsttests sollten folgen), Farbkontraste werden noch nicht automatisiert verifiziert.
 - **Offene Konfigurations-Themen:** Preset-Export/-Import sowie Fokusfallen im Konfigurations-Dialog fehlen, ebenso eine automatisierte Prüfung der Preset-Beschreibungen auf Barrierefreiheit.
@@ -44,6 +45,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 
 ## 7. Nutzererlebnis & Microcopy
 - **Stärken:** Umfangreiche Tooltips, laienfreundliches Hilfe-Center mit Shortcut-Spickzettel, Logbuch mit farbcodierten Level-Icons, Manifest-Export und klare Buttons für Kernaktionen.
+- **Layout-Flexibilität:** Bereichsvorlagen per Button (Ausgewogen, Fokus, Übereinander) inklusive sofortiger Ansage erhöhen Verständlichkeit und funktionieren auch auf kleinen Displays.
 - **Lücken:** Leere Zustände zeigen keine Anleitungen, Farbsemantik bleibt uneinheitlich (mehrere Akzentfarben), Self-Repair kommuniziert Entscheidungen nur via Log und ein geführter Onboarding-Assistent fehlt weiterhin.
 - **Empfehlungen:** Empty States mit CTA, konsistentes Farbset (Grün Erfolg, Blau Info, Orange Aktion, Rot Fehler), Microcopy-Standards (Verb + Nutzen), Onboarding-Assistent mit geführten Touren und Feedback-Schleifen mit Nutzerbewertungen.
 
@@ -80,7 +82,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 ## 13. Professional Roadmap (12 Wochen Vorschlag)
 1. **Phase 1 – Fundament (Wochen 1–3):** Projektstruktur aufspalten, Build/Toolchain (Vite, TypeScript, ESLint, Prettier, Jest) einrichten, Event-Bus & Store-Grundlage, DOMPurify-Äquivalent integrieren.
 2. **Phase 2 – Datenkern (Wochen 4–6):** Transaktionslog, Undo/Redo, atomare Storage-Schicht, UUID/ULID und Index-Maps, Dateinamenspolitik.
-3. **Phase 3 – Experience & A11y (Wochen 7–9):** Prefers-* Unterstützung, Fokus-Management, Live-Regionen, Shortcut-Overlay, Empty States, Farbsemantik.
+3. **Phase 3 – Experience & A11y (Wochen 7–9):** Prefers-* Unterstützung, Fokus-Management, Live-Regionen, Shortcut-Overlay, Empty States, Farbsemantik, Drag-/Resize-fähige Layoutsteuerung.
 4. **Phase 4 – Performance & Release (Wochen 10–12):** Worker-Offloading, Performance-Budgets & Monitoring, Testsuite erweitern (Playwright, axe, visuelle Regression), signierte Builds + Release-Playbook.
 
 ## 14. Realisierte Arbeiten dieser Iteration (Referenz)
@@ -94,6 +96,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - Prozess-Live-Region für Import/Backup mit Screenreader-Feedback eingeführt und Fokus-Styling (`:focus-visible`) vereinheitlicht.
 - Laienfreundliches Hilfe-Center (F1) mit Schritt-für-Schritt-Erklärungen, Shortcut-Spickzettel sowie Kopier-/Download-Funktion ergänzt.
 - Konfigurations-Assistent mit Preset-Buttons, laienverständlichen Beschreibungen, synchronisierten Checkboxen und Klartext-Zusammenfassung implementiert.
+- Layout-Steuerung mit sieben Buttons (Ausgewogen bis Übereinander) inklusive Backup-/Manifest-Unterstützung und Statusmeldungen ergänzt.
 
 ## 15. Nächste Schritte (Top 5)
 1. **Architektur neu schneiden:** UI in modulare Komponenten überführen, Event-Bus + Statecharts einbauen, Services isolieren.
