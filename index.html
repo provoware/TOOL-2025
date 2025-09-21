@@ -1005,7 +1005,11 @@
     'module-name-empty':'Tipp: Vergib dem Modul gleich einen sprechenden Namen, z. B. „Livestream-Setup“. So findest du es später schneller.',
     'module-duplicate':'Tipp: Verwende eindeutige Modulnamen. Hänge zur Not eine Zahl an, etwa „Podcast 2“. Dann bleiben die Listen übersichtlich.',
     'module-add':'Tipp: Neu angelegte Module erscheinen links in der Liste. Klicke sie dort sofort an, um Inhalte einzufügen.',
-    'enable-prevent-mistakes':'Schalte unten die Option „Datei-Prüfung aktiv“ ein. Dann kontrolliert das Tool jede Datei automatisch bevor sie geladen wird.'
+    'enable-prevent-mistakes':'Schalte unten die Option „Datei-Prüfung aktiv“ ein. Dann kontrolliert das Tool jede Datei automatisch bevor sie geladen wird.',
+    'module-remove':'Tipp: Sichere vor dem Löschen ein Backup („Backup exportieren“). Gelöschte Module sind sonst sofort weg.',
+    'module-remove-success':'Tipp: Falls du dich vertan hast, starte „Self-Repair“. Das Tool versucht dann, fehlende Module wiederherzustellen.',
+    'plugin-remove':'Tipp: Exportiere ein Plugin zuerst („Plugin exportieren“), damit du es später leicht wieder importieren kannst.',
+    'plugin-remove-success':'Tipp: Nach dem Entfernen eines Plugins kannst du die gleiche Datei später jederzeit erneut importieren. Bewahre sie in deinem Backup-Ordner auf.'
   });
   const globalGuardDisposers=[];
   const THEME_LABELS=Object.freeze({neo:'Neo',paper:'Paper',night:'Night HighContrast',forest:'Forest',aurora:'Aurora'});
@@ -3448,35 +3452,76 @@
     addLog('ok','Plugin importiert: '+plugin.name);
     return plugin;
   }
-  function removeModule(id){
-    const idx=state.modules.findIndex(m=>m.id===id);
-    if(idx===-1)return;
-    const wasActive=state.activeModule===id;
-    state.modules.splice(idx,1);
-    moduleRegistry.delete(id);
-    if(wasActive){
-      state.activeModule=startId;
-      openModule(startId);
-    }
-    renderModules();
-    renderStats();
-    ensureModuleRegistryMatchesState(state.activeModule||null);
-    persist({reason:'module-removed',detail:{moduleId:id}});
+  function removeModule(id,options={}){
+    const moduleId=safeStr(id).trim();
+    if(!moduleId)return false;
+    const {announce=true,label,reason='module-removed',log=true,capture=true,hint}=options;
+    const removal=guardAction(label||'Modul entfernen',()=>{
+      const idx=state.modules.findIndex(m=>safeStr(m&&m.id).trim()===moduleId);
+      if(idx===-1){throw new Error('Modul wurde nicht gefunden');}
+      const module=state.modules[idx];
+      const moduleName=safeStr(module&&module.name).trim()||'Ohne Namen';
+      const wasActive=state.activeModule===moduleId;
+      state.modules.splice(idx,1);
+      moduleRegistry.delete(moduleId);
+      if(wasActive){state.activeModule=startId;}
+      ensureModuleRegistryMatchesState(state.activeModule||null);
+      if(wasActive){
+        const targetId=state.activeModule||startId;
+        if(targetId){openModule(targetId);}
+      }
+      renderModules();
+      renderStats();
+      persist({reason,detail:{moduleId}});
+      const summary=`Modul „${moduleName}“ entfernt.`;
+      if(log!==false){addLog('warn',summary);}
+      if(capture!==false){captureFeedback(summary,'warn',{source:'module'});}
+      if(announce!==false){announceProcess(summary,'warn');}
+      offerPreventiveHint('module-remove-success');
+      return true;
+    },{level:'warn',hint:hint||'module-remove',requirePreventMistakes:true});
+    return Boolean(removal);
   }
-  function removePlugin(id){
-    const idx=state.plugins.findIndex(p=>p.id===id);
-    if(idx===-1)return;
-    const plugin=state.plugins[idx];
-    state.plugins.splice(idx,1);
-    if(plugin&&plugin.moduleId)removeModule(plugin.moduleId);
-    persist({reason:'plugin-removed',detail:{pluginId:id}});
-    addLog('warn','Plugin entfernt: '+(plugin?plugin.name:'unbekannt'));
-    if(state.activeModule===pluginOverviewId)openModule(pluginOverviewId);
+  function removePlugin(id,options={}){
+    const pluginId=safeStr(id).trim();
+    if(!pluginId)return false;
+    const {announce=true,log=true,capture=true,hint='plugin-remove'}=options;
+    const removal=guardAction('Plugin entfernen',()=>{
+      const idx=state.plugins.findIndex(p=>safeStr(p&&p.id).trim()===pluginId);
+      if(idx===-1){throw new Error('Plugin wurde nicht gefunden');}
+      const plugin=state.plugins[idx];
+      const pluginName=safeStr(plugin&&plugin.name).trim()||'Plugin';
+      state.plugins.splice(idx,1);
+      if(plugin&&plugin.moduleId){
+        removeModule(plugin.moduleId,{announce:false,label:'Plugin-Modul entfernen',reason:'plugin-module-removed'});
+      }
+      persist({reason:'plugin-removed',detail:{pluginId}});
+      const summary=`Plugin „${pluginName}“ entfernt.`;
+      if(log!==false){addLog('warn',summary);}
+      if(capture!==false){captureFeedback(summary,'warn',{source:'plugin'});}
+      if(announce!==false){announceProcess(summary,'warn');}
+      if(state.activeModule===pluginOverviewId){openModule(pluginOverviewId);}
+      offerPreventiveHint('plugin-remove-success');
+      return true;
+    },{level:'warn',hint,requirePreventMistakes:true});
+    return Boolean(removal);
   }
-  function clearPlugins(){
+  function clearPlugins(options={}){
+    const {announce=true}=options;
     const ids=state.plugins.map(p=>p.id);
-    ids.forEach(id=>removePlugin(id));
+    let removedCount=0;
+    ids.forEach(id=>{
+      if(removePlugin(id,{announce:false,log:false,capture:false})){removedCount++;}
+    });
     ensureModuleRegistryMatchesState(state.activeModule||null);
+    if(removedCount>0){
+      const summary=removedCount===1?'1 Plugin entfernt.':`${removedCount} Plugins entfernt.`;
+      addLog('warn','Plugin-Reset: '+summary);
+      captureFeedback('Plugin-Reset: '+summary,'warn',{source:'plugin'});
+      if(announce!==false){announceProcess('Plugin-Reset: '+summary,'warn');}
+      offerPreventiveHint('plugin-remove-success');
+    }
+    return removedCount;
   }
   function renderPluginOverview(el){
     el.innerHTML=`<h2>Plugin-Manager</h2><p>Importiere Erweiterungen im JSON-Format. Struktur: {"name","version","description","author","sections":[{"title","content"}]}.</p>`;

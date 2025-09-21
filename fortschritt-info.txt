@@ -1,3 +1,3 @@
-Release-Fortschritt: 85 %
-Stand: 2025-09-21
-Einschätzung: Die neue Start-Routine (`npm start` bzw. `node tools/start-tool.js`) richtet automatisch die Standardordner ein, startet einen lokalen Server und öffnet direkt den Browser. Dadurch genügt jetzt ein einziger Befehl, um ohne Zusatzwissen in die grafische Oberfläche zu gelangen. Das Terminal liefert laienfreundliche Schritte und Hinweise, falls etwa ein Port belegt ist. Nächste Schritte: portable Startpakete, Build-/Signaturkette und Event-Statecharts.
+Release-Fortschritt: 86 %
+Stand: 2025-09-22
+Einschätzung: Modul- und Plugin-Löschaktionen laufen nun über `guardAction`, melden Warnungen direkt im Log, erzeugen laienfreundliche Feedback-Hinweise (inkl. Self-Repair-Tipp) und lösen Prozessansagen aus. Neue Node-Tests sichern den Löschschutz und prüfen, dass Module samt Plugin-Registrierung sauber aufgeräumt werden. Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts und Fokusfallen für verbleibende Dialoge.

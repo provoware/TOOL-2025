@@ -32,7 +32,7 @@
 - [ ] Lokales Rechte-/Berechtigungsmodell mit Schreibschutz-Flag, Bestätigungen und Papierkorb (TTL) einführen
 - [ ] Trusted Types, CSP-Reporting und Reporting-API integrieren, um Inline-Skripte dauerhaft zu blocken
 - [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen
-- [ ] `guardAction` auf alle kritischen Datenpfade (Import, Export, Module, Playlist) ausweiten und Fehlerkategorien für Auswertungen erfassen (Exporte + Plugin/Playlist-Importe + Modul-Anlage erledigt; Modulbearbeitung & Backup-Dialog offen)
+- [ ] `guardAction` auf alle kritischen Datenpfade (Import, Export, Module, Playlist) ausweiten und Fehlerkategorien für Auswertungen erfassen (Exporte + Plugin/Playlist-Importe + Modul-Anlage/-Entfernung erledigt; Modulbearbeitung & Backup-Dialog offen)
 - [ ] Plugin-Import um Signatur-/Prüfsummen-Checks und laienfreundliche Lösungsvorschläge im Fehlerfall erweitern
 
 ## Barrierefreiheit (A11y) – Advanced

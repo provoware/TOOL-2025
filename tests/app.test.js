@@ -497,6 +497,57 @@ test('guardAction blendet Präventionshinweise nur einmal ein', async () => {
   assert.equal(hintsAfterSecondRun.length, initialHints.length, 'Hinweis erscheint nur einmal');
 });
 
+test('Modul entfernen liefert Feedback, Log und Prozessansage', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  const newModule = api.actions.createUserModule('Entfern-Test', { announce: false });
+  await flush();
+  assert.ok(newModule.id, 'Modul sollte erzeugt werden');
+
+  const previousLogLength = api.state.log.length;
+  const removed = api.actions.removeModule(newModule.id);
+  await flush();
+
+  assert.equal(removed, true, 'removeModule sollte true liefern');
+  assert.ok(!api.state.modules.some((mod) => mod.id === newModule.id), 'Modul sollte entfernt werden');
+  const lastLog = api.state.log[api.state.log.length - 1];
+  assert.ok(api.state.log.length > previousLogLength, 'Log sollte gewachsen sein');
+  assert.equal(lastLog.type, 'warn');
+  assert.match(lastLog.msg, /Modul „Entfern-Test“ entfernt/, 'Logtext benennt das Modul');
+  const feedbackTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  assert.ok(feedbackTexts.some((text) => /Modul „Entfern-Test“ entfernt/.test(text)), 'Feedback enthält den Hinweis');
+});
+
+test('Plugin entfernen räumt Modul auf und meldet den Erfolg', async () => {
+  const { document } = dom.window;
+  const list = document.querySelector('#feedbackList');
+  const plugin = api.actions.registerPlugin({
+    name: 'Demo Plugin',
+    version: '1.0.0',
+    description: 'Testfall',
+    author: 'QA',
+    moduleName: 'Demo Plugin Modul',
+    moduleId: 'demo-plugin-module',
+    sections: [{ title: 'Intro', content: 'Hallo Welt' }],
+    links: []
+  });
+  await flush();
+  assert.ok(plugin && plugin.id, 'Plugin sollte importiert werden');
+  assert.ok(api.state.modules.some((mod) => mod.id === plugin.moduleId), 'Plugin-Modul vorhanden');
+
+  const removed = api.actions.removePlugin(plugin.id);
+  await flush();
+
+  assert.equal(removed, true, 'removePlugin sollte true liefern');
+  assert.ok(!api.state.plugins.some((p) => p.id === plugin.id), 'Plugin-Eintrag entfernt');
+  assert.ok(!api.state.modules.some((mod) => mod.id === plugin.moduleId), 'Plugin-Modul ebenfalls entfernt');
+  const lastLog = api.state.log[api.state.log.length - 1];
+  assert.equal(lastLog.type, 'warn');
+  assert.match(lastLog.msg, /Plugin „Demo Plugin“ entfernt/, 'Logtext benennt das Plugin');
+  const feedbackTexts = Array.from(list.querySelectorAll('li')).map((li) => li.textContent);
+  assert.ok(feedbackTexts.some((text) => /Plugin „Demo Plugin“ entfernt/.test(text)), 'Feedback meldet den Plugin-Abbau');
+});
+
 test('Layout-Preset steuert Seitenleisten und landet im Backup', async () => {
   api.actions.applyLayoutPreset('audio-only', { announceSelection: false, persistChange: false });
   await flush();
