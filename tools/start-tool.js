@@ -5,9 +5,14 @@ const path = require('node:path');
 const os = require('node:os');
 const { spawn } = require('node:child_process');
 
-const REQUIRED_DIRECTORIES = ['backups', 'exports', 'plugins', 'logs', 'data'];
+const {
+  ensureDirectories,
+  REQUIRED_DIRECTORIES,
+  resolveProjectPath
+} = require('./lib/prerequisites');
+
 const DEFAULT_PORT = 4173;
-const ROOT = path.resolve(__dirname, '..');
+const ROOT = path.resolve(resolveProjectPath());
 
 const MIME_TYPES = new Map([
   ['.html', 'text/html; charset=utf-8'],
@@ -24,19 +29,6 @@ const MIME_TYPES = new Map([
   ['.txt', 'text/plain; charset=utf-8'],
   ['.md', 'text/markdown; charset=utf-8']
 ]);
-
-async function ensureDirectories() {
-  await Promise.all(
-    REQUIRED_DIRECTORIES.map(async (dir) => {
-      const target = path.join(ROOT, dir);
-      try {
-        await fs.mkdir(target, { recursive: true });
-      } catch (error) {
-        console.warn(`[Start-Routine] Hinweis: Konnte Verzeichnis "${dir}" nicht anlegen (${error.message}).`);
-      }
-    })
-  );
-}
 
 function resolveFilePath(requestUrl = '/') {
   try {

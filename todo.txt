@@ -1,7 +1,7 @@
 # TOOL-2025 ToDo
 
 ## Offene Basisarbeiten
-- [x] ESLint-Linting (`npm run lint`) und kombinierte Qualitätsprüfung (`npm run verify`) anlegen
+- [x] ESLint-Linting (`npm run lint`), Qualitäts-Gate (`npm run quality`) und Preflight-Check (`npm run preflight`) bereitstellen
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
@@ -24,6 +24,7 @@
 - [ ] Validierungsreport zusätzlich als JSON-Datei exportieren und Undo-Pfade dokumentieren
 - [ ] State-Digest dauerhaft speichern (Event-Archiv, Verlauf für Module/Playlist/Plugins; UI-Historie aktiv, Persistenz/Export offen)
 - [ ] Start-Check-Bericht in Backups/Manifest aufnehmen und Speicher-Fallback im Export dokumentieren
+- [ ] Backup-Schema reparieren (JSON-Validität sicherstellen, Tests stabilisieren)
 
 ## Sicherheit & Sanitizing
 - [x] Smart-Error-Guard einführen (globale Fehlerfänger, JSON-/Audio-Dateiprüfung, Feedback-Panel, Debug-Snapshot)
@@ -98,6 +99,7 @@
 - [ ] Service Worker + PWA-Manifest für Offline-Distribution vorbereiten
 - [ ] Release-Playbook dokumentieren (Build, Signatur, QA, Auslieferung)
 - [ ] Integritätsanzeige im Tool („Signatur geprüft“) ergänzen
+- [ ] CI-Workflow aufsetzen, der `npm run preflight -- --with-quality` für jeden Commit ausführt
 
 ## Dokumentation & Governance
 - [ ] Leichtes Threat-Model (STRIDE-Checkliste) erstellen und Gegenmaßnahmen notieren
