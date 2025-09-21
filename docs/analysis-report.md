@@ -41,7 +41,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - **Professionelle Zielsetzung:** A11y-Audit (WCAG 2.2 AA), Fokusfallen beseitigen, Dialoge mit Escape/Focus-Trap ergänzen, Live-Regionen für Langläuferprozesse ausbauen, automatisierte A11y-Regressionen und dokumentierte Tastaturkürzel.
 
 ## 7. Nutzererlebnis & Microcopy
-- **Stärken:** Umfangreiche Tooltips, Logbuch, Manifest-Export, klare Buttons für Kernaktionen.
+- **Stärken:** Umfangreiche Tooltips, Logbuch mit farbcodierten Level-Icons, Manifest-Export, klare Buttons für Kernaktionen.
 - **Lücken:** Leere Zustände zeigen keine Anleitungen, Farbsemantik nicht konsequent (mehrere Akzentfarben), kein Shortcut-Overlay, Self-Repair kommuniziert Entscheidungen nur via Log.
 - **Empfehlungen:** Empty States mit CTA, konsistentes Farbset (Grün Erfolg, Blau Info, Orange Aktion, Rot Fehler), Microcopy-Standards (Verb + Nutzen), Onboarding-Assistent, Shortcut-Overlay (`?`-Dialog) und Feedback-Schleifen mit Nutzerbewertungen.
 
@@ -82,7 +82,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 4. **Phase 4 – Performance & Release (Wochen 10–12):** Worker-Offloading, Performance-Budgets & Monitoring, Testsuite erweitern (Playwright, axe, visuelle Regression), signierte Builds + Release-Playbook.
 
 ## 14. Realisierte Arbeiten dieser Iteration (Referenz)
-- Manifest-Download, Log-Filter-Persistenz und gefiltertes Rendering implementiert.
+- Manifest-Download, Log-Filter-Persistenz sowie farbcodiertes Log-Rendering mit Level-Icons implementiert.
 - Plugin-Manager mit Validierung, Sanitizing, Sandbox-Iframes, Export- und Entfernen-Funktion integriert.
 - Backup-Import verstärkt (Normalisierung von Modulen/Kategorien/Playlist), Self-Repair erweitert und Tests ergänzt.
 - Test-API exponiert (`window.ModulToolTestAPI`) inkl. Playlist-/Plugin-Helfer.

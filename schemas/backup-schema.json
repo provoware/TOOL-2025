@@ -213,7 +213,7 @@
         },
         "logFilter": {
           "type": "string",
-          "enum": ["all", "ok", "warn", "error"]
+          "enum": ["all", "info", "ok", "warn", "error"]
         }
       }
     }

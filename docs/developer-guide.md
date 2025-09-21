@@ -7,7 +7,7 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
 - **Typ:** Single-File-Webanwendung (`index.html`) mit integriertem CSS/JavaScript.
 - **Persistenz:** Browser `localStorage` mit Versionstempel (`state.version`).
 - **Domänen:** Modul- und Archivverwaltung, Audio-Playlist, Plugin-Manager, Logging, Manifest-Export, Backup-Prüfung.
-- **Anzeige & Feedback:** Systempräferenz-Optionen (Motion/Kontrast), Live-Status (`aria-live`), prozessspezifische Statusausgabe für Backup/Import und skalierbare Schriftgrößen (14–20 px Presets).
+- **Anzeige & Feedback:** Systempräferenz-Optionen (Motion/Kontrast), Live-Status (`aria-live`), prozessspezifische Statusausgabe für Backup/Import, skalierbare Schriftgrößen (14–20 px Presets) und farbcodierte Log-/Status-Icons für `info`/`ok`/`warn`/`error`.
 
 ## 3. Architektur-Zielbild
 1. **Layering:**
@@ -107,7 +107,7 @@ TOOL-2025/
 5. Barrierefreiheit & i18n prüfen (Tastatur, Screenreader, Kontrast, Übersetzbarkeit).
 
 ## 13. Logging, Monitoring & Telemetrie
-- Aktuelle Logs: `time`, `type`, `msg`, Filter im UI (`Alles`, `Erfolge`, `Hinweise`, `Fehler`).
+- Aktuelle Logs: `time`, `type`, `msg`, Filter im UI (`Alles`, `Infos`, `Erfolge`, `Hinweise`, `Fehler`) mit konsistenter Icon- und Farbcodierung.
 - Roadmap: Strukturierte Events (`eventId`, `payload`), Export als JSON/CSV, Option für anonymisierte Telemetrie (opt-in).
 - Debugging: Detail-Logs für Import/Export, Plugin-Lifecycle, Worker-Tasks.
 

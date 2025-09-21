@@ -40,7 +40,7 @@
 
 ## UX & Microcopy
 - [ ] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern
-- [ ] Farbsemantik vereinheitlichen (Grün=Erfolg, Blau=Info, Orange=Aktion, Rot=Fehler) und pro Modul nur einen Akzent nutzen
+- [ ] Farbsemantik vereinheitlichen (Grün=Erfolg, Blau=Info, Orange=Aktion, Rot=Fehler) und pro Modul nur einen Akzent nutzen (Log-Level-Farben umgesetzt, Rest der UI offen)
 - [ ] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten
 - [ ] Onboarding-Assistent mit Schritt-für-Schritt-Erklärungen, Beispieldaten und Feedback-Schleifen implementieren
 - [ ] Kontextuelle Hilfetexte und Tooltips standardisieren (Microcopy-Styleguide)
@@ -113,3 +113,4 @@
 - [x] CSP und Sandbox-Konzept für Plugins definieren (iframe/Web-Worker prüfen)
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
 - [x] System-Preferences & Live-Status implementiert (Motion/Kontrast, Schriftgrößen, aria-live)
+- [x] Log-Level-Design vereinheitlicht (Icons, Farbcodierung, Info-Filter)

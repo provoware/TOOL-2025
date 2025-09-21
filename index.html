@@ -8,11 +8,11 @@
 <style>
   :root{--font:system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,"Noto Sans",Arial,"Apple Color Emoji","Segoe UI Emoji";--radius:14px;--shadow:0 2px 8px rgba(0,0,0,.15);--gap:10px;--font-size:16px;--max-line:75ch}
   html{font-size:var(--font-size)}
-  [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045}
-  [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb}
-  [data-theme="night"]{--bg:#000;--bg-soft:#0d0d0d;--panel:#111;--panel-2:#161616;--text:#fff;--muted:#d1d1d1;--accent:#00c2ff;--ok:#00ff99;--warn:#ffd000;--err:#ff4d4d;--input:#0a0a0a;--border:#2a2a2a;--link:#66d9ff;--badge:#1a1a1a}
-  [data-theme="forest"]{--bg:#0e1a14;--bg-soft:#13241b;--panel:#162a21;--panel-2:#1d3429;--text:#e9fff5;--muted:#b7d8c9;--accent:#34d399;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--input:#0f1f19;--border:#2c4b3e;--link:#6ee7b7;--badge:#163428}
-  [data-theme="aurora"]{--bg:#0b1020;--bg-soft:#101636;--panel:#121a3f;--panel-2:#192456;--text:#ecf2ff;--muted:#bfc8f2;--accent:#7cdbff;--ok:#6ee7b7;--warn:#ffd166;--err:#ff6b6b;--input:#0d1433;--border:#2a3a78;--link:#9ae6ff;--badge:#1a2160}
+  [data-theme="neo"]{--bg:#0f1115;--bg-soft:#151924;--panel:#1b2030;--panel-2:#232a3b;--text:#ecf2ff;--muted:#b8c1d8;--accent:#66d9ff;--info:#66d9ff;--ok:#00d680;--warn:#ffb000;--err:#ff4d4d;--input:#101522;--border:#2a3550;--link:#7be0ff;--badge:#2a3045}
+  [data-theme="paper"]{--bg:#f8fafc;--bg-soft:#eef2f7;--panel:#fff;--panel-2:#f1f5fb;--text:#111827;--muted:#4b5563;--accent:#2563eb;--info:#2563eb;--ok:#059669;--warn:#d97706;--err:#dc2626;--input:#fff;--border:#d1d5db;--link:#1d4ed8;--badge:#e5e7eb}
+  [data-theme="night"]{--bg:#000;--bg-soft:#0d0d0d;--panel:#111;--panel-2:#161616;--text:#fff;--muted:#d1d1d1;--accent:#00c2ff;--info:#00c2ff;--ok:#00ff99;--warn:#ffd000;--err:#ff4d4d;--input:#0a0a0a;--border:#2a2a2a;--link:#66d9ff;--badge:#1a1a1a}
+  [data-theme="forest"]{--bg:#0e1a14;--bg-soft:#13241b;--panel:#162a21;--panel-2:#1d3429;--text:#e9fff5;--muted:#b7d8c9;--accent:#34d399;--info:#38bdf8;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--input:#0f1f19;--border:#2c4b3e;--link:#6ee7b7;--badge:#163428}
+  [data-theme="aurora"]{--bg:#0b1020;--bg-soft:#101636;--panel:#121a3f;--panel-2:#192456;--text:#ecf2ff;--muted:#bfc8f2;--accent:#7cdbff;--info:#7cdbff;--ok:#6ee7b7;--warn:#ffd166;--err:#ff6b6b;--input:#0d1433;--border:#2a3a78;--link:#9ae6ff;--badge:#1a2160}
   html,body{height:100%}
   body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);line-height:1.6;letter-spacing:.01em}
   body.font-large{line-height:1.7}
@@ -51,11 +51,23 @@
   .header-block{min-height:64px}
   .clock{font-size:1.25rem;font-variant-numeric:tabular-nums}
   .loglist{max-height:120px;overflow:auto}
-  .loglist li{list-style:none;font-size:.9rem;border-bottom:1px dashed var(--border);padding:2px 0}
-  .loglist li:last-child{border-bottom:0}
-  .log-empty{font-size:.9rem;color:var(--muted);padding:4px 0}
+  .log-entry{list-style:none;font-size:.9rem;border-bottom:1px dashed var(--border);padding:6px 0;display:grid;grid-template-columns:auto auto 1fr;gap:8px;align-items:start}
+  .log-entry:last-child{border-bottom:0}
+  .log-entry .log-icon{font-size:1rem;line-height:1}
+  .log-entry .log-time{font-family:"Fira Mono",Consolas,monospace;color:var(--muted)}
+  .log-entry[data-type="info"]{border-left:3px solid var(--info);padding-left:10px}
+  .log-entry[data-type="ok"]{border-left:3px solid var(--ok);padding-left:10px}
+  .log-entry[data-type="warn"]{border-left:3px solid var(--warn);padding-left:10px}
+  .log-entry[data-type="error"]{border-left:3px solid var(--err);padding-left:10px}
+  .log-entry[data-type="info"] .log-icon{color:var(--info)}
+  .log-entry[data-type="ok"] .log-icon{color:var(--ok)}
+  .log-entry[data-type="warn"] .log-icon{color:var(--warn)}
+  .log-entry[data-type="error"] .log-icon{color:var(--err)}
+  .log-entry .log-message{word-break:break-word}
+  .log-empty{font-size:.9rem;color:var(--muted);padding:6px 0}
   .log-controls{display:flex;gap:6px;align-items:center;flex-wrap:wrap;margin-bottom:6px}
   .status-banner{margin-top:8px;font-size:.85rem}
+  .status-banner[data-type="info"]{color:var(--info)}
   .status-banner[data-type="ok"]{color:var(--ok)}
   .status-banner[data-type="warn"]{color:var(--warn)}
   .status-banner[data-type="error"]{color:var(--err)}
@@ -148,7 +160,7 @@
         </div>
         <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
         <div id="processStatusLive" class="sr-only" aria-live="polite" aria-atomic="true">Prozessstatus bereit.</div>
-        <div id="processStatusText" class="status-banner muted" data-type="info">Prozessstatus: bereit.</div>
+        <div id="processStatusText" class="status-banner" data-type="info">Prozessstatus: bereit.</div>
       </div>
       <div class="panel header-block pad" aria-label="Echtzeit Logging">
         <div class="title">Log (letzte 10)</div>
@@ -156,6 +168,7 @@
           <label for="logFilterSel">Anzeige</label>
           <select id="logFilterSel" title="Logfilter wählen">
             <option value="all">Alles</option>
+            <option value="info">Nur Infos</option>
             <option value="ok">Nur Erfolge</option>
             <option value="warn">Nur Hinweise</option>
             <option value="error">Nur Fehler</option>
@@ -163,7 +176,7 @@
         </div>
         <ul class="loglist" id="loglist" aria-live="polite"></ul>
         <div id="liveStatus" class="sr-only" aria-live="polite" aria-atomic="true">Status bereit.</div>
-        <div id="liveStatusText" class="status-banner muted" data-type="info">Status: bereit.</div>
+        <div id="liveStatusText" class="status-banner" data-type="info">Status: bereit.</div>
         <div class="row">
           <button class="btn inline warn" id="clearLogBtn">Log leeren</button>
           <button class="btn inline" id="downloadLogBtn">Log speichern</button>
@@ -342,6 +355,15 @@
     return template.innerHTML;
   }
   const STATUS_TYPES=new Set(['info','ok','warn','error']);
+  const LOG_LEVELS=Object.freeze({
+    info:{label:'Info',icon:'ℹ️'},
+    ok:{label:'Erfolg',icon:'✅'},
+    warn:{label:'Hinweis',icon:'⚠️'},
+    error:{label:'Fehler',icon:'⛔'}
+  });
+  const DEFAULT_LOG_LEVEL='info';
+  const KNOWN_LOG_LEVELS=new Set(Object.keys(LOG_LEVELS));
+  function normalizeLogType(type){const key=safeLower(type);return KNOWN_LOG_LEVELS.has(key)?key:DEFAULT_LOG_LEVEL;}
   function announce(message,type='info'){
     const text=safeStr(message).trim()||'Bereit.';
     const statusType=STATUS_TYPES.has(type)?type:'info';
@@ -352,8 +374,6 @@
     if(liveText){
       liveText.dataset.type=statusType;
       liveText.textContent='Status: '+text;
-      if(statusType==='info'){liveText.classList.add('muted');}
-      else{liveText.classList.remove('muted');}
     }
   }
   function announceProcess(message,type='info',priority='polite'){
@@ -368,8 +388,6 @@
     if(processText){
       processText.dataset.type=statusType;
       processText.textContent='Prozessstatus: '+text;
-      if(statusType==='info'){processText.classList.add('muted');}
-      else{processText.classList.remove('muted');}
     }
   }
   const allowedFontScales=new Set([14,16,18,20]);
@@ -701,8 +719,8 @@
         errors.push(...logErr);
         if(!allowedLogTypes.has(entry.type)){errors.push(`state.log[${idx}].type muss info/ok/warn/error sein.`);}
       });
-      if(statePart.logFilter&&!['all','ok','warn','error'].includes(statePart.logFilter)){
-        errors.push('state.logFilter muss all/ok/warn/error sein.');
+      if(statePart.logFilter&&!['all','info','ok','warn','error'].includes(statePart.logFilter)){
+        errors.push('state.logFilter muss all/info/ok/warn/error sein.');
       }
     }
     if(errors.length){
@@ -743,10 +761,20 @@
     }
   }
   function toast(msg){if(!$('#toastsChk').checked)return;const t=document.createElement('div');t.textContent=msg;t.setAttribute('role','status');Object.assign(t.style,{position:'fixed',right:'14px',bottom:'14px',background:'var(--panel)',color:'var(--text)',border:'1px solid var(--border)',padding:'10px 12px',borderRadius:'12px',boxShadow:'var(--shadow)',zIndex:99});document.body.appendChild(t);setTimeout(()=>t.remove(),2400)}
-  function addLog(type,msg){const lvl=['ok','warn','error'].includes(type)?type:'info';const time=new Date().toLocaleTimeString('de-DE',{hour12:false});state.log.push({time,type:lvl,msg});if(state.log.length>300)state.log.shift();announce(msg,lvl);renderLog()}
+  function addLog(type,msg){
+    const lvl=normalizeLogType(type);
+    const levelMeta=LOG_LEVELS[lvl];
+    const time=new Date().toLocaleTimeString('de-DE',{hour12:false});
+    const message=safeStr(msg).trim()||levelMeta.label;
+    state.log.push({id:uuid(),time,type:lvl,msg:message});
+    if(state.log.length>300)state.log.shift();
+    announce(message,lvl);
+    renderLog();
+  }
   function renderLog(){loglist.innerHTML='';
-    const filter=(state.logFilter||'all').toLowerCase();
-    const entries=state.log.filter(e=>filter==='all'||e.type===filter).slice(-10);
+    const rawFilter=safeLower(state.logFilter||'all');
+    const filter=!rawFilter||rawFilter==='all'?'all':(KNOWN_LOG_LEVELS.has(rawFilter)?rawFilter:DEFAULT_LOG_LEVEL);
+    const entries=state.log.filter(entry=>filter==='all'||normalizeLogType(entry.type)===filter).slice(-10);
     if(entries.length===0){
       const empty=document.createElement('li');
       empty.className='log-empty';
@@ -754,12 +782,28 @@
       loglist.appendChild(empty);
       return;
     }
-    entries.forEach(e=>{
+    entries.forEach(entry=>{
+      const level=normalizeLogType(entry.type);
+      const meta=LOG_LEVELS[level];
       const li=document.createElement('li');
-      li.innerHTML=`<span class="muted">[${e.time}]</span> <span>${e.msg}</span>`;
-      if(e.type==='error')li.style.color='var(--err)';
-      if(e.type==='ok')li.style.color='var(--ok)';
-      if(e.type==='warn')li.style.color='var(--warn)';
+      li.className='log-entry';
+      li.dataset.type=level;
+      li.dataset.label=meta.label;
+      const icon=document.createElement('span');
+      icon.className='log-icon';
+      icon.setAttribute('aria-hidden','true');
+      icon.textContent=meta.icon;
+      const time=document.createElement('span');
+      time.className='log-time';
+      time.textContent=`[${safeStr(entry.time)||'--:--:--'}]`;
+      const message=document.createElement('span');
+      message.className='log-message';
+      const sr=document.createElement('span');
+      sr.className='sr-only';
+      sr.textContent=meta.label+': ';
+      message.appendChild(sr);
+      message.append(safeStr(entry.msg));
+      li.append(icon,time,message);
       loglist.appendChild(li);
     });
   }
@@ -774,7 +818,7 @@
     if(!Array.isArray(state.moods)){state.moods=[];fixes++;}
     if(!Array.isArray(state.playlist)){state.playlist=[];fixes++;}
     if(!Array.isArray(state.log)){state.log=[];fixes++;}
-    if(!['all','ok','warn','error'].includes(state.logFilter)){state.logFilter='all';fixes++;}
+    if(!['all','info','ok','warn','error'].includes(state.logFilter)){state.logFilter='all';fixes++;}
     if(typeof state.respectSystemMotion!=='boolean'){state.respectSystemMotion=true;fixes++;}
     if(typeof state.reduceMotion!=='boolean'){state.reduceMotion=systemReduceDefault;fixes++;}
     if(typeof state.respectSystemContrast!=='boolean'){state.respectSystemContrast=true;fixes++;}
@@ -1539,7 +1583,7 @@
       plugins:Array.isArray(statePart.plugins)?statePart.plugins:[],
       activeModule:statePart.activeModule||null,
       log:Array.isArray(statePart.log)?statePart.log:[],
-      logFilter:['all','ok','warn','error'].includes(statePart.logFilter)?statePart.logFilter:'all'
+      logFilter:['all','info','ok','warn','error'].includes(statePart.logFilter)?statePart.logFilter:'all'
     };
   }
   function pluginToSerializable(plugin){
