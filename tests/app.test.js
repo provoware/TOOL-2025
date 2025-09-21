@@ -59,6 +59,7 @@ after(() => {
 beforeEach(() => {
   api.actions.clearPlugins();
   api.state.log = [];
+  api.actions.activateConfigPreset('balanced', { announceSelection: false });
 });
 
 function seedPlaylist(ids) {
@@ -206,6 +207,20 @@ test('Plugin-Inhalte werden sanitisiert', async () => {
   assert.match(srcdoc, /target="_blank"/);
   assert.equal(frame.dataset.pluginName, 'Sicherheits-Plugin');
   assert.equal(frame.dataset.sectionTitle, 'Hinweis');
+});
+
+test('Konfigurations-Preset lässt sich anwenden und erkennt individuelle Änderung', async () => {
+  api.actions.activateConfigPreset('accessibility', { announceSelection: false });
+  await flush();
+  assert.equal(api.state.configPreset, 'accessibility');
+  assert.equal(api.state.fontScale, 18);
+  assert.equal(api.state.reduceMotion, true);
+  assert.equal(api.state.highContrast, true);
+  const toastsToggle = dom.window.document.querySelector('#toastsChk');
+  toastsToggle.checked = false;
+  toastsToggle.dispatchEvent(new dom.window.Event('change', { bubbles: true }));
+  await flush();
+  assert.equal(api.state.configPreset, 'custom');
 });
 
 test('assertBackupSchema erkennt fehlende Modul-Liste', () => {

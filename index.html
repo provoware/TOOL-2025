@@ -113,6 +113,24 @@
   .help-action .muted{font-size:.85rem}
   .help-tips{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
   .help-footer{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
+  .config-summary{margin-top:6px;font-size:.9rem;color:var(--muted);background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+  .config-overlay{position:fixed;inset:0;background:rgba(10,12,18,.8);display:flex;align-items:center;justify-content:center;padding:24px;z-index:130;backdrop-filter:blur(2px)}
+  .config-overlay[hidden]{display:none}
+  .config-dialog{width:min(820px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:2px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:22px;display:flex;flex-direction:column;gap:18px}
+  .config-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .config-header .title{margin:0}
+  .config-intro{margin:0;font-size:.95rem;color:var(--muted)}
+  .config-section{display:flex;flex-direction:column;gap:10px}
+  .config-presets,.config-button-row{display:flex;flex-wrap:wrap;gap:8px}
+  .config-presets .btn,.config-button-row .btn{flex:1 1 140px;justify-content:center;text-align:center}
+  .config-presets .btn[aria-pressed="true"],.config-button-row .btn[aria-pressed="true"]{outline:3px solid var(--accent);outline-offset:2px}
+  .config-list{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
+  .config-footer{display:flex;justify-content:flex-end;gap:10px;flex-wrap:wrap}
+  .config-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+  .config-card{background:var(--panel-2);border:1px solid var(--border);border-radius:12px;padding:12px;display:flex;flex-direction:column;gap:8px}
+  .config-card label{font-size:.95rem;color:var(--text)}
+  .config-card p{margin:0;font-size:.85rem;color:var(--muted)}
+  body.config-open{overflow:hidden}
   [data-motion="reduced"] *,[data-motion="reduced"] *::before,[data-motion="reduced"] *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
   [data-contrast="high"] .panel,[data-contrast="high"] .btn{border-width:2px}
   [data-contrast="high"] .panel{box-shadow:0 0 0 2px var(--accent)}
@@ -164,6 +182,7 @@
           <label><input type="checkbox" id="toastsChk" checked> Toast-Meldungen</label>
           <button class="btn inline" id="exportAllBtn" title="Alles als JSON exportieren">Export</button>
           <button class="btn inline" id="manifestBtn" title="Strukturelles Manifest herunterladen">Manifest</button>
+          <button class="btn inline" id="configBtn" title="Konfigurations-Assistent öffnen">Assistent</button>
           <input type="file" id="importAllFile" title="JSON importieren" accept="application/json" />
         </div>
         <div class="row" style="margin-top:6px">
@@ -180,6 +199,7 @@
           </select>
         </div>
         <div class="muted">Alle Aktionen werden geloggt. Fehler werden erklärt und repariert, wenn möglich.</div>
+        <div id="configSummary" class="config-summary" aria-live="polite">Paket: Allround (Standard) • Autospeichern aktiv • Animationen folgen der Systemeinstellung</div>
         <div id="processStatusLive" class="sr-only" aria-live="polite" aria-atomic="true">Prozessstatus bereit.</div>
         <div id="processStatusText" class="status-banner" data-type="info">Prozessstatus: bereit.</div>
       </div>
@@ -338,6 +358,72 @@
     </div>
   </div>
 </div>
+<div id="configOverlay" class="config-overlay" hidden>
+  <div id="configDialog" class="config-dialog" role="dialog" aria-modal="true" aria-labelledby="configTitle" tabindex="-1">
+    <div class="config-header">
+      <h2 class="title" id="configTitle">Konfigurations-Assistent für Laien</h2>
+      <button type="button" class="btn inline" id="configCloseBtn" aria-label="Konfiguration schließen (Esc)">Schließen ✖</button>
+    </div>
+    <p class="config-intro">Wähle ein Paket oder passe einzelne Schalter an. Fachbegriffe stehen in Klammern und sind kurz erklärt.</p>
+    <section class="config-section" aria-label="Empfohlene Pakete">
+      <h3 class="title" style="margin:0;font-size:1.05rem;">Empfohlene Pakete</h3>
+      <div class="config-presets" id="configPresetList">
+        <button type="button" class="btn inline" data-preset="balanced">Allround</button>
+        <button type="button" class="btn inline" data-preset="accessibility">Barrierefrei</button>
+        <button type="button" class="btn inline" data-preset="focus">Fokus</button>
+        <button type="button" class="btn inline" data-preset="performance">Performance</button>
+      </div>
+      <p class="muted" id="configPresetHint">Allround: Sicheres Standard-Paket mit automatischem Speichern und System-Einstellungen.</p>
+    </section>
+    <section class="config-section" aria-label="Feineinstellungen">
+      <h3 class="title" style="margin:0;font-size:1.05rem;">Feineinstellungen</h3>
+      <div class="config-grid">
+        <div class="config-card" aria-label="Farbschema">
+          <h4 class="title" style="margin:0;font-size:1rem;">Farbschema (Theme)</h4>
+          <p>Ein Klick stellt Farben und Kontraste passend ein.</p>
+          <div class="config-button-row" id="configThemeButtons">
+            <button type="button" class="btn inline" data-theme="neo">Neo</button>
+            <button type="button" class="btn inline" data-theme="paper">Paper</button>
+            <button type="button" class="btn inline" data-theme="night">Night</button>
+            <button type="button" class="btn inline" data-theme="forest">Forest</button>
+            <button type="button" class="btn inline" data-theme="aurora">Aurora</button>
+          </div>
+        </div>
+        <div class="config-card" aria-label="Schriftgröße">
+          <h4 class="title" style="margin:0;font-size:1rem;">Schriftgröße</h4>
+          <p>Feiner Text = 14 px, Standard = 16 px, größer = 18/20 px.</p>
+          <div class="config-button-row" id="configFontButtons">
+            <button type="button" class="btn inline" data-font="14">14 px</button>
+            <button type="button" class="btn inline" data-font="16">16 px</button>
+            <button type="button" class="btn inline" data-font="18">18 px</button>
+            <button type="button" class="btn inline" data-font="20">20 px</button>
+          </div>
+        </div>
+        <div class="config-card" aria-label="Sicherheit und Speicher">
+          <h4 class="title" style="margin:0;font-size:1rem;">Sicherheit &amp; Speicher</h4>
+          <label><input type="checkbox" id="configAutosave"> Autospeichern (speichert automatisch)</label>
+          <label><input type="checkbox" id="configSelfrepair"> Self-Repair (Selbstheilung bei Fehlern)</label>
+          <label><input type="checkbox" id="configToasts"> Hinweis-Popups (Toast-Meldungen)</label>
+        </div>
+        <div class="config-card" aria-label="Barrierefreiheit">
+          <h4 class="title" style="margin:0;font-size:1rem;">Barrierefreiheit &amp; Komfort</h4>
+          <label><input type="checkbox" id="configSystemMotion"> System-Animationen übernehmen</label>
+          <label><input type="checkbox" id="configReduceMotion"> Animationen reduzieren</label>
+          <label><input type="checkbox" id="configSystemContrast"> System-Kontrast übernehmen</label>
+          <label><input type="checkbox" id="configHighContrast"> Hoher Kontrast erzwingen</label>
+        </div>
+      </div>
+    </section>
+    <section class="config-section" aria-label="Aktuelle Auswahl">
+      <h3 class="title" style="margin:0;font-size:1.05rem;">Aktuelle Auswahl</h3>
+      <ul class="config-list" id="configSummaryList"></ul>
+    </section>
+    <div class="config-footer">
+      <button type="button" class="btn inline" id="configApplyBtn">Fertig – Assistent schließen</button>
+      <button type="button" class="btn inline warn" id="configResetBtn">Zurück auf Standard</button>
+    </div>
+  </div>
+</div>
 <script>
 (function(){
   'use strict';
@@ -362,11 +448,31 @@
   const helpDownloadBtn=$('#helpDownloadBtn');
   const helpCloseBtn=$('#helpCloseBtn');
   const helpStats=$('#helpStats');
+  const configOverlay=$('#configOverlay');
+  const configDialog=$('#configDialog');
+  const configCloseBtn=$('#configCloseBtn');
+  const configPresetList=$('#configPresetList');
+  const configPresetHint=$('#configPresetHint');
+  const configThemeButtons=$$('#configThemeButtons button[data-theme]');
+  const configFontButtons=$$('#configFontButtons button[data-font]');
+  const configAutosave=$('#configAutosave');
+  const configSelfrepair=$('#configSelfrepair');
+  const configToasts=$('#configToasts');
+  const configSystemMotion=$('#configSystemMotion');
+  const configReduceMotion=$('#configReduceMotion');
+  const configSystemContrast=$('#configSystemContrast');
+  const configHighContrast=$('#configHighContrast');
+  const configSummary=$('#configSummary');
+  const configSummaryList=$('#configSummaryList');
+  const configApplyBtn=$('#configApplyBtn');
+  const configResetBtn=$('#configResetBtn');
   const systemMotionChk=$('#systemMotionChk');
   const reduceMotionChk=$('#reduceMotionChk');
   const systemContrastChk=$('#systemContrastChk');
   const highContrastChk=$('#highContrastChk');
   const fontScaleSel=$('#fontScaleSel');
+  let lastConfigFocus=null;
+  let isApplyingPreset=false;
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
   const escapeHtml=str=>safeStr(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const ALLOWED_TAGS=new Set(['a','abbr','b','blockquote','br','code','em','i','li','ol','p','pre','small','span','strong','u','ul']);
@@ -411,6 +517,80 @@
   });
   const DEFAULT_LOG_LEVEL='info';
   const KNOWN_LOG_LEVELS=new Set(Object.keys(LOG_LEVELS));
+  const THEME_LABELS=Object.freeze({neo:'Neo',paper:'Paper',night:'Night HighContrast',forest:'Forest',aurora:'Aurora'});
+  const CONFIG_PRESETS=Object.freeze({
+    balanced:{
+      id:'balanced',
+      label:'Allround',
+      description:'Allround: Sicheres Standard-Paket mit automatischem Speichern und System-Einstellungen.',
+      settings:{
+        theme:'neo',
+        autosave:true,
+        selfrepair:true,
+        toasts:true,
+        respectSystemMotion:true,
+        reduceMotion:false,
+        respectSystemContrast:true,
+        highContrast:false,
+        fontScale:16
+      }
+    },
+    accessibility:{
+      id:'accessibility',
+      label:'Barrierefrei',
+      description:'Barrierefrei: Große Schrift, reduziertes Blinken und hoher Kontrast für bestmögliche Lesbarkeit.',
+      settings:{
+        theme:'paper',
+        autosave:true,
+        selfrepair:true,
+        toasts:true,
+        respectSystemMotion:false,
+        reduceMotion:true,
+        respectSystemContrast:false,
+        highContrast:true,
+        fontScale:18
+      }
+    },
+    focus:{
+      id:'focus',
+      label:'Fokus',
+      description:'Fokus: Dunkles Bild mit hohem Kontrast, wenig Popups und ruhige Animationen für konzentriertes Arbeiten.',
+      settings:{
+        theme:'night',
+        autosave:true,
+        selfrepair:true,
+        toasts:false,
+        respectSystemMotion:false,
+        reduceMotion:true,
+        respectSystemContrast:false,
+        highContrast:true,
+        fontScale:18
+      }
+    },
+    performance:{
+      id:'performance',
+      label:'Performance',
+      description:'Performance: Schlanke Rückmeldungen, reduzierte Effekte und Standardgröße für maximale Geschwindigkeit.',
+      settings:{
+        theme:'neo',
+        autosave:true,
+        selfrepair:true,
+        toasts:false,
+        respectSystemMotion:false,
+        reduceMotion:true,
+        respectSystemContrast:false,
+        highContrast:false,
+        fontScale:16
+      }
+    },
+    custom:{
+      id:'custom',
+      label:'Eigenes Paket',
+      description:'Eigenes Paket: Einstellungen wurden manuell angepasst.',
+      settings:{}
+    }
+  });
+  const CONFIG_PRESET_SEQUENCE=['balanced','accessibility','focus','performance'];
   function normalizeLogType(type){const key=safeLower(type);return KNOWN_LOG_LEVELS.has(key)?key:DEFAULT_LOG_LEVEL;}
   function announce(message,type='info'){
     const text=safeStr(message).trim()||'Bereit.';
@@ -811,6 +991,7 @@
       const value=allowedFontScales.has(Number(state.fontScale))?String(Number(state.fontScale)):String(systemFontDefault());
       fontScaleSel.value=value;
     }
+    syncConfigOverlay();
   }
   function systemFontDefault(){
     return 16;
@@ -895,7 +1076,195 @@
   }
   const slugify=v=>safeLower(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'')||('item-'+Date.now());
   const uuid=()=>crypto&&crypto.randomUUID?crypto.randomUUID():'u'+Date.now()+Math.random().toString(16).slice(2);
-  const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),configPreset:'balanced',modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
+  function getPresetMeta(id){return CONFIG_PRESETS[id]||CONFIG_PRESETS.custom;}
+  function findPresetMatch(snapshot){
+    if(!snapshot)return null;
+    const normalized={
+      theme:safeStr(snapshot.theme).trim()||'neo',
+      autosave:!!snapshot.autosave,
+      selfrepair:!!snapshot.selfrepair,
+      toasts:snapshot.toasts!==false,
+      respectSystemMotion:snapshot.respectSystemMotion===undefined?true:!!snapshot.respectSystemMotion,
+      reduceMotion:snapshot.reduceMotion===undefined?systemReduceDefault:!!snapshot.reduceMotion,
+      respectSystemContrast:snapshot.respectSystemContrast===undefined?true:!!snapshot.respectSystemContrast,
+      highContrast:snapshot.highContrast===undefined?systemContrastDefault:!!snapshot.highContrast,
+      fontScale:allowedFontScales.has(Math.round(Number(snapshot.fontScale)||0))?Math.round(Number(snapshot.fontScale)||0):systemFontDefault()
+    };
+    for(const id of CONFIG_PRESET_SEQUENCE){
+      const preset=CONFIG_PRESETS[id];
+      const settings=preset.settings||{};
+      let matches=true;
+      for(const key of Object.keys(settings)){
+        if(normalized[key]!==settings[key]){matches=false;break;}
+      }
+      if(matches){return id;}
+    }
+    return null;
+  }
+  function updateThemeButtons(activeTheme){
+    const theme=activeTheme||state.theme;
+    configThemeButtons.forEach(btn=>{btn.setAttribute('aria-pressed',btn.dataset.theme===theme?'true':'false');});
+  }
+  function updateFontButtons(activeFont){
+    const font=allowedFontScales.has(Number(activeFont))?Number(activeFont):systemFontDefault();
+    configFontButtons.forEach(btn=>{btn.setAttribute('aria-pressed',Number(btn.dataset.font)===font?'true':'false');});
+  }
+  function updateConfigPresetHint(forceId){
+    const presetId=forceId||state.configPreset||'custom';
+    const meta=getPresetMeta(presetId);
+    if(configPresetHint){configPresetHint.textContent=meta.description;}
+    if(configPresetList){
+      $$('#configPresetList button[data-preset]').forEach(btn=>{btn.setAttribute('aria-pressed',btn.dataset.preset===presetId?'true':'false');});
+    }
+  }
+  function buildConfigSummaryItems(){
+    const presetMeta=getPresetMeta(state.configPreset);
+    const themeLabel=THEME_LABELS[state.theme]||safeStr(state.theme||'Neo');
+    const fontSize=allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault();
+    const autosaveText=state.autosave?'Autospeichern an (speichert automatisch)':'Autospeichern aus (manuell speichern)';
+    const selfrepairText=state.selfrepair?'Self-Repair an (Tool heilt Fehler)':'Self-Repair aus (manuell prüfen)';
+    const toastText=state.toasts!==false?'Hinweis-Popups an':'Hinweis-Popups aus';
+    const motionText=state.respectSystemMotion?'Animationen folgen dem System':(state.reduceMotion?'Animationen reduziert':'Animationen normal');
+    const contrastText=state.respectSystemContrast?'Kontrast folgt dem System':(state.highContrast?'Hoher Kontrast aktiv':'Normaler Kontrast');
+    return[
+      `Paket: ${presetMeta.label}`,
+      `Farbschema: ${themeLabel}`,
+      `Schriftgröße ${fontSize}\u202fpx`,
+      autosaveText,
+      selfrepairText,
+      toastText,
+      motionText,
+      contrastText
+    ];
+  }
+  function updateConfigSummary(){
+    const items=buildConfigSummaryItems();
+    if(configSummary){configSummary.textContent=items.join(' • ');}
+    if(configSummaryList){
+      configSummaryList.innerHTML='';
+      const frag=document.createDocumentFragment();
+      items.forEach(item=>{const li=document.createElement('li');li.textContent=item;frag.appendChild(li);});
+      configSummaryList.appendChild(frag);
+    }
+  }
+  function syncConfigOverlay(){
+    if(configAutosave) configAutosave.checked=!!state.autosave;
+    if(configSelfrepair) configSelfrepair.checked=!!state.selfrepair;
+    if(configToasts) configToasts.checked=state.toasts!==false;
+    if(configSystemMotion) configSystemMotion.checked=!!state.respectSystemMotion;
+    if(configReduceMotion){
+      const value=state.respectSystemMotion?readSystemMotion():!!state.reduceMotion;
+      configReduceMotion.checked=value;
+      configReduceMotion.disabled=!!state.respectSystemMotion;
+      configReduceMotion.setAttribute('aria-disabled',state.respectSystemMotion?'true':'false');
+    }
+    if(configSystemContrast) configSystemContrast.checked=!!state.respectSystemContrast;
+    if(configHighContrast){
+      const value=state.respectSystemContrast?readSystemContrast():!!state.highContrast;
+      configHighContrast.checked=value;
+      configHighContrast.disabled=!!state.respectSystemContrast;
+      configHighContrast.setAttribute('aria-disabled',state.respectSystemContrast?'true':'false');
+    }
+    updateThemeButtons(state.theme);
+    updateFontButtons(state.fontScale);
+    updateConfigPresetHint();
+  }
+  function isConfigOpen(){return !!(configOverlay&&!configOverlay.hasAttribute('hidden'));}
+  function openConfigAssistant(presetId){
+    if(!configOverlay||!configDialog)return;
+    if(presetId&&CONFIG_PRESETS[presetId]){state.configPreset=presetId;}
+    syncConfigOverlay();
+    updateConfigSummary();
+    configOverlay.removeAttribute('hidden');
+    document.body.classList.add('config-open');
+    lastConfigFocus=document.activeElement;
+    setTimeout(()=>{try{configDialog.focus({preventScroll:true});}catch{/* ignore */}},0);
+  }
+  function closeConfigAssistant(){
+    if(!configOverlay)return;
+    configOverlay.setAttribute('hidden','');
+    document.body.classList.remove('config-open');
+    if(lastConfigFocus&&typeof lastConfigFocus.focus==='function'){
+      setTimeout(()=>{try{lastConfigFocus.focus({preventScroll:true});}catch{/* ignore */}},0);
+    }
+  }
+  function updateConfigPresetState(opts={}){
+    if(isApplyingPreset)return;
+    const prev=state.configPreset||'custom';
+    const detected=findPresetMatch(state)||'custom';
+    state.configPreset=detected;
+    if(prev!==detected&&!opts.skipLog){
+      if(detected==='custom'){addLog('info','Konfiguration angepasst.');}
+      else{const meta=getPresetMeta(detected);addLog('ok','Preset erkannt: '+meta.label);}
+    }
+    updateConfigPresetHint(detected);
+  }
+  function handleSettingChanged(){
+    updateConfigPresetState();
+    syncConfigOverlay();
+    updateConfigSummary();
+  }
+  function activateConfigPreset(id,{announceSelection=true}={}){
+    if(!CONFIG_PRESETS[id]||id==='custom'){
+      throw new Error('Unbekanntes Preset: '+id);
+    }
+    const preset=CONFIG_PRESETS[id];
+    const settings=preset.settings||{};
+    isApplyingPreset=true;
+    try{
+      const themeSel=$('#themeSel');
+      if(themeSel&&settings.theme){
+        if(themeSel.value!==settings.theme){
+          themeSel.value=settings.theme;
+          themeSel.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      }else if(settings.theme){
+        state.theme=settings.theme;
+        renderTheme();
+      }
+      const applyCheckbox=(selector,value)=>{
+        const el=$(selector);
+        if(!el)return;
+        const desired=!!value;
+        if(el.checked!==desired){
+          el.checked=desired;
+          el.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      };
+      if('autosave' in settings){applyCheckbox('#autosaveChk',settings.autosave);}
+      if('selfrepair' in settings){applyCheckbox('#selfrepairChk',settings.selfrepair);}
+      if('toasts' in settings){applyCheckbox('#toastsChk',settings.toasts);}
+      if('respectSystemMotion' in settings){applyCheckbox('#systemMotionChk',settings.respectSystemMotion);}
+      if('reduceMotion' in settings){
+        if(settings.respectSystemMotion===false){applyCheckbox('#systemMotionChk',false);}
+        applyCheckbox('#reduceMotionChk',settings.reduceMotion);
+      }
+      if('respectSystemContrast' in settings){applyCheckbox('#systemContrastChk',settings.respectSystemContrast);}
+      if('highContrast' in settings){
+        if(settings.respectSystemContrast===false){applyCheckbox('#systemContrastChk',false);}
+        applyCheckbox('#highContrastChk',settings.highContrast);
+      }
+      if('fontScale' in settings&&fontScaleSel){
+        const desired=String(settings.fontScale);
+        if(fontScaleSel.value!==desired){
+          fontScaleSel.value=desired;
+          fontScaleSel.dispatchEvent(new Event('change',{bubbles:true}));
+        }
+      }
+    }finally{
+      isApplyingPreset=false;
+    }
+    state.configPreset=id;
+    updateConfigPresetHint(id);
+    syncConfigOverlay();
+    updateConfigSummary();
+    if(announceSelection){
+      addLog('ok','Preset „'+preset.label+'" aktiviert.');
+      announceProcess('Preset „'+preset.label+'" aktiv.','ok');
+    }
+    return preset;
+  }
   let clockTimer=null;
   const moduleRegistry=new Map();
   let helpTopics=[];
@@ -965,6 +1334,10 @@
           const size=Number(manifest.settings.fontScale);
           if(!allowedFontScales.has(size)){errors.push('manifest.settings.fontScale muss 14, 16, 18 oder 20 sein.');}
         }
+        if(hasOwn(manifest.settings,'configPreset')){
+          const presetKey=safeLower(manifest.settings.configPreset);
+          if(!CONFIG_PRESETS[presetKey]){errors.push('manifest.settings.configPreset ist unbekannt.');}
+        }
       }
     }
     const statePart=obj&&obj.state;
@@ -980,7 +1353,8 @@
         statePart.reduceMotion===undefined||typeof statePart.reduceMotion==='boolean'?null:'state.reduceMotion muss ein Wahr/Falsch-Wert sein.',
         statePart.respectSystemContrast===undefined||typeof statePart.respectSystemContrast==='boolean'?null:'state.respectSystemContrast muss ein Wahr/Falsch-Wert sein.',
         statePart.highContrast===undefined||typeof statePart.highContrast==='boolean'?null:'state.highContrast muss ein Wahr/Falsch-Wert sein.',
-        statePart.fontScale===undefined||allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?null:'state.fontScale muss 14, 16, 18 oder 20 sein.'
+        statePart.fontScale===undefined||allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?null:'state.fontScale muss 14, 16, 18 oder 20 sein.',
+        statePart.configPreset===undefined||CONFIG_PRESETS[safeLower(statePart.configPreset)]?null:'state.configPreset ist unbekannt.'
       ].filter(Boolean);
       errors.push(...stateChecks);
       if(!hasOwn(statePart,'modules')){errors.push('state.modules fehlt.');}
@@ -1246,6 +1620,8 @@
       return{id,name,description,version,author,moduleId,moduleName,sections,links};
     });
     ensureModuleRegistryMatchesState(state.activeModule||null);
+    const matchedPreset=findPresetMatch(state)||'custom';
+    state.configPreset=matchedPreset;
     if(fixes>0){
       addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
     }else{
@@ -1881,7 +2257,7 @@
       plugins:state.plugins.map(p=>({id:p.id,name:p.name,version:p.version||'n/a',moduleId:p.moduleId})),
       archives:{genres:state.genres.length,moods:state.moods.length,categories:Object.keys(state.categories).length},
       playlist:state.playlist.length,
-      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false,respectSystemMotion:!!state.respectSystemMotion,reduceMotion:isReduceMotionActive(),respectSystemContrast:!!state.respectSystemContrast,highContrast:isHighContrastActive(),fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault()}
+      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false,respectSystemMotion:!!state.respectSystemMotion,reduceMotion:isReduceMotionActive(),respectSystemContrast:!!state.respectSystemContrast,highContrast:isHighContrastActive(),fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom')}
     };
   }
   function buildBackup(){
@@ -1905,7 +2281,8 @@
         plugins:state.plugins,
         activeModule:state.activeModule,
         log:state.log.slice(-50),
-        logFilter:state.logFilter||'all'
+        logFilter:state.logFilter||'all',
+        configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom')
       }
     };
   }
@@ -1939,7 +2316,7 @@
       });
       return out;
     };
-    return{
+    const sanitized={
       theme:safeStr(statePart.theme).trim()||'neo',
       autosave:!!statePart.autosave,
       selfrepair:!!statePart.selfrepair,
@@ -1959,6 +2336,10 @@
       log:Array.isArray(statePart.log)?statePart.log:[],
       logFilter:['all','info','ok','warn','error'].includes(statePart.logFilter)?statePart.logFilter:'all'
     };
+    const rawPreset=safeLower(statePart.configPreset);
+    const detectedPreset=CONFIG_PRESETS[rawPreset]?rawPreset:(findPresetMatch(sanitized)||'custom');
+    sanitized.configPreset=detectedPreset;
+    return sanitized;
   }
   function pluginToSerializable(plugin){
     if(!plugin)return{};
@@ -2009,6 +2390,7 @@
         state.activeModule=valid.activeModule;
         state.log=valid.log;
         state.logFilter=valid.logFilter;
+        state.configPreset=valid.configPreset;
         selfRepair();
         ensureAllPlugins();
         renderAll();
@@ -2038,19 +2420,36 @@
   function bindEvents(){
     if(helpCloseBtn){helpCloseBtn.addEventListener('click',closeHelp);}
     if(helpOverlay){helpOverlay.addEventListener('click',e=>{if(e.target===helpOverlay)closeHelp();});}
+    if(configCloseBtn){configCloseBtn.addEventListener('click',closeConfigAssistant);}
+    if(configOverlay){configOverlay.addEventListener('click',e=>{if(e.target===configOverlay)closeConfigAssistant();});}
+    if(configApplyBtn){configApplyBtn.addEventListener('click',closeConfigAssistant);}
+    if(configResetBtn){configResetBtn.addEventListener('click',()=>activateConfigPreset('balanced'));}
+    const configBtn=$('#configBtn');
+    if(configBtn){configBtn.addEventListener('click',()=>openConfigAssistant());}
+    if(configPresetList){configPresetList.addEventListener('click',e=>{const btn=e.target.closest('button[data-preset]');if(!btn)return;activateConfigPreset(btn.dataset.preset);});}
+    configThemeButtons.forEach(btn=>btn.addEventListener('click',()=>{const value=btn.dataset.theme;if(!value)return;const themeSel=$('#themeSel');if(themeSel){themeSel.value=value;themeSel.dispatchEvent(new Event('change',{bubbles:true}));}}));
+    configFontButtons.forEach(btn=>btn.addEventListener('click',()=>{const value=btn.dataset.font;if(!value)return;if(fontScaleSel){fontScaleSel.value=value;fontScaleSel.dispatchEvent(new Event('change',{bubbles:true}));}}));
+    const relayCheckbox=(control,selector)=>{if(!control)return;control.addEventListener('change',()=>{const target=$(selector);if(!target)return;if(target.checked!==control.checked){target.checked=control.checked;}target.dispatchEvent(new Event('change',{bubbles:true}));});};
+    relayCheckbox(configAutosave,'#autosaveChk');
+    relayCheckbox(configSelfrepair,'#selfrepairChk');
+    relayCheckbox(configToasts,'#toastsChk');
+    relayCheckbox(configSystemMotion,'#systemMotionChk');
+    relayCheckbox(configReduceMotion,'#reduceMotionChk');
+    relayCheckbox(configSystemContrast,'#systemContrastChk');
+    relayCheckbox(configHighContrast,'#highContrastChk');
     if(helpCopyBtn){helpCopyBtn.addEventListener('click',copyHelpNotes);}
     if(helpDownloadBtn){helpDownloadBtn.addEventListener('click',downloadHelpNotes);}
-    $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme)});
+    $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme);handleSettingChanged();});
     $('#toggleLeft').addEventListener('click',()=>{document.body.classList.toggle('collapsed-left')});
     $('#toggleRight').addEventListener('click',()=>{document.body.classList.toggle('collapsed-right')});
-    $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist()});
-    $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist()});
-    $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist()});
-    if(systemMotionChk){systemMotionChk.addEventListener('change',()=>{state.respectSystemMotion=systemMotionChk.checked;if(state.respectSystemMotion){addLog('info','System-Animationen aktiv.');}else{addLog('info','Eigene Animationseinstellung aktiv.');}applyMotionPreference();renderDisplaySettings();persist();});}
-    if(reduceMotionChk){reduceMotionChk.addEventListener('change',()=>{state.reduceMotion=!!reduceMotionChk.checked;addLog('ok',state.reduceMotion?'Animationen reduziert.':'Animationen normal.');applyMotionPreference();renderDisplaySettings();persist();});}
-    if(systemContrastChk){systemContrastChk.addEventListener('change',()=>{state.respectSystemContrast=systemContrastChk.checked;if(state.respectSystemContrast){addLog('info','System-Kontrast aktiv.');}else{addLog('info','Eigene Kontrasteinstellung aktiv.');}applyContrastPreference();renderDisplaySettings();persist();});}
-    if(highContrastChk){highContrastChk.addEventListener('change',()=>{state.highContrast=!!highContrastChk.checked;addLog('ok',state.highContrast?'Hoher Kontrast aktiv.':'Normaler Kontrast aktiv.');applyContrastPreference();renderDisplaySettings();persist();});}
-    if(fontScaleSel){fontScaleSel.addEventListener('change',()=>{const parsed=Math.round(Number(fontScaleSel.value)||systemFontDefault());state.fontScale=allowedFontScales.has(parsed)?parsed:systemFontDefault();addLog('ok','Schriftgröße auf '+state.fontScale+' px gesetzt.');applyFontScale();renderDisplaySettings();persist();});}
+    $('#autosaveChk').addEventListener('change',()=>{state.autosave=$('#autosaveChk').checked;persist();handleSettingChanged();});
+    $('#selfrepairChk').addEventListener('change',()=>{state.selfrepair=$('#selfrepairChk').checked;persist();handleSettingChanged();});
+    $('#toastsChk').addEventListener('change',()=>{state.toasts=$('#toastsChk').checked;persist();handleSettingChanged();});
+    if(systemMotionChk){systemMotionChk.addEventListener('change',()=>{state.respectSystemMotion=systemMotionChk.checked;if(state.respectSystemMotion){addLog('info','System-Animationen aktiv.');}else{addLog('info','Eigene Animationseinstellung aktiv.');}applyMotionPreference();renderDisplaySettings();persist();handleSettingChanged();});}
+    if(reduceMotionChk){reduceMotionChk.addEventListener('change',()=>{state.reduceMotion=!!reduceMotionChk.checked;addLog('ok',state.reduceMotion?'Animationen reduziert.':'Animationen normal.');applyMotionPreference();renderDisplaySettings();persist();handleSettingChanged();});}
+    if(systemContrastChk){systemContrastChk.addEventListener('change',()=>{state.respectSystemContrast=systemContrastChk.checked;if(state.respectSystemContrast){addLog('info','System-Kontrast aktiv.');}else{addLog('info','Eigene Kontrasteinstellung aktiv.');}applyContrastPreference();renderDisplaySettings();persist();handleSettingChanged();});}
+    if(highContrastChk){highContrastChk.addEventListener('change',()=>{state.highContrast=!!highContrastChk.checked;addLog('ok',state.highContrast?'Hoher Kontrast aktiv.':'Normaler Kontrast aktiv.');applyContrastPreference();renderDisplaySettings();persist();handleSettingChanged();});}
+    if(fontScaleSel){fontScaleSel.addEventListener('change',()=>{const parsed=Math.round(Number(fontScaleSel.value)||systemFontDefault());state.fontScale=allowedFontScales.has(parsed)?parsed:systemFontDefault();addLog('ok','Schriftgröße auf '+state.fontScale+' px gesetzt.');applyFontScale();renderDisplaySettings();persist();handleSettingChanged();});}
     $('#exportAllBtn').addEventListener('click',exportAll);
     $('#manifestBtn').addEventListener('click',downloadManifest);
     $('#importAllFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f)});
@@ -2078,6 +2477,11 @@
         return;
       }
       if(key==='escape'){
+        if(isConfigOpen()){
+          e.preventDefault();
+          closeConfigAssistant();
+          return;
+        }
         if(isHelpOpen()){
           e.preventDefault();
           closeHelp();
@@ -2140,9 +2544,11 @@
     renderLog();
     const filterSel=$('#logFilterSel');
     if(filterSel)filterSel.value=state.logFilter||'all';
+    updateConfigPresetState({skipLog:true});
+    updateConfigSummary();
   }
   function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

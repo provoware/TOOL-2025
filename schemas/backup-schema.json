@@ -62,7 +62,11 @@
             "reduceMotion": { "type": "boolean" },
             "respectSystemContrast": { "type": "boolean" },
             "highContrast": { "type": "boolean" },
-            "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] }
+            "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
+            "configPreset": {
+              "type": "string",
+              "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
+            }
           }
         }
       }
@@ -95,6 +99,10 @@
         "respectSystemContrast": { "type": "boolean" },
         "highContrast": { "type": "boolean" },
         "fontScale": { "type": "integer", "enum": [14, 16, 18, 20] },
+        "configPreset": {
+          "type": "string",
+          "enum": ["balanced", "accessibility", "focus", "performance", "custom"]
+        },
         "modules": {
           "type": "array",
           "items": {

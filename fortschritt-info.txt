@@ -1,3 +1,3 @@
-Release-Fortschritt: 49 %
+Release-Fortschritt: 52 %
 Stand: 2025-09-21
-Einschätzung: Logging/Statusfeedback sind konsistent, das neue Hilfe-Center (F1) macht Shortcuts und Abläufe laienverständlich; Architektur-, Performance- und Release-Pakete bleiben weiterhin offen.
+Einschätzung: Logging/Statusfeedback und der Konfigurations-Assistent decken jetzt laienfreundliche Presets ab; Architektur-, Performance- und Release-Pakete bleiben weiterhin offen.

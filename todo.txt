@@ -45,6 +45,8 @@
 - [ ] Hilfe-Center um Fokus-Trap und geführte Onboarding-Tour erweitern
 - [ ] Onboarding-Assistent mit Schritt-für-Schritt-Erklärungen, Beispieldaten und Feedback-Schleifen implementieren
 - [ ] Kontextuelle Hilfetexte und Tooltips standardisieren (Microcopy-Styleguide)
+- [x] Konfigurations-Assistent mit Presets, Klartext-Zusammenfassung und Button-Steuerung integrieren
+- [ ] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen
 
 ## Performance & Robustheit
 - [ ] Rechenintensive Aufgaben (JSON-Validierung, Datei-Scans, Wellenformen) in Web-Worker auslagern
