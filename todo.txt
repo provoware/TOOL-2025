@@ -41,7 +41,8 @@
 ## UX & Microcopy
 - [ ] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern
 - [ ] Farbsemantik vereinheitlichen (Grün=Erfolg, Blau=Info, Orange=Aktion, Rot=Fehler) und pro Modul nur einen Akzent nutzen (Log-Level-Farben umgesetzt, Rest der UI offen)
-- [ ] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten
+- [x] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten (Hilfe-Center umgesetzt)
+- [ ] Hilfe-Center um Fokus-Trap und geführte Onboarding-Tour erweitern
 - [ ] Onboarding-Assistent mit Schritt-für-Schritt-Erklärungen, Beispieldaten und Feedback-Schleifen implementieren
 - [ ] Kontextuelle Hilfetexte und Tooltips standardisieren (Microcopy-Styleguide)
 

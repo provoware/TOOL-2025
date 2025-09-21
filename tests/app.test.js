@@ -213,3 +213,19 @@ test('assertBackupSchema erkennt fehlende Modul-Liste', () => {
   delete backup.state.modules;
   assert.throws(() => api.actions.assertBackupSchema(backup), /state\.modules/);
 });
+
+test('help center liefert Themenliste und Plaintext', async () => {
+  assert.equal(api.actions.isHelpOpen(), false);
+  api.actions.openHelp('audio');
+  await flush();
+  assert.equal(api.actions.isHelpOpen(), true);
+  const topics = api.actions.getHelpTopics();
+  assert.ok(topics.includes('quickstart'));
+  assert.ok(topics.includes('audio'));
+  const plain = api.actions.buildHelpPlainText();
+  assert.match(plain, /Hilfe-Center/);
+  assert.match(plain, /Schnell loslegen/);
+  api.actions.closeHelp();
+  await flush();
+  assert.equal(api.actions.isHelpOpen(), false);
+});

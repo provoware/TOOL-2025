@@ -7,7 +7,7 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
 - **Typ:** Single-File-Webanwendung (`index.html`) mit integriertem CSS/JavaScript.
 - **Persistenz:** Browser `localStorage` mit Versionstempel (`state.version`).
 - **Domänen:** Modul- und Archivverwaltung, Audio-Playlist, Plugin-Manager, Logging, Manifest-Export, Backup-Prüfung.
-- **Anzeige & Feedback:** Systempräferenz-Optionen (Motion/Kontrast), Live-Status (`aria-live`), prozessspezifische Statusausgabe für Backup/Import, skalierbare Schriftgrößen (14–20 px Presets) und farbcodierte Log-/Status-Icons für `info`/`ok`/`warn`/`error`.
+- **Anzeige & Feedback:** Systempräferenz-Optionen (Motion/Kontrast), Live-Status (`aria-live`), prozessspezifische Statusausgabe für Backup/Import, skalierbare Schriftgrößen (14–20 px Presets), farbcodierte Log-/Status-Icons für `info`/`ok`/`warn`/`error` und ein laienfreundliches Hilfe-Center (F1) mit Shortcut-Spickzettel.
 
 ## 3. Architektur-Zielbild
 1. **Layering:**
@@ -24,7 +24,7 @@ Dieses Handbuch richtet sich an Entwicklerinnen und Entwickler, die das ModulToo
 - `window.ModulToolTestAPI`: Brücke für automatisierte Tests (Playlist-/Plugin-Helfer, Backup-Validierung, Timersteuerung).
 - Self-Repair: Korrigiert IDs, Module, Plugins, Log-Filter und stellt Registry-Synchronität wieder her.
 - Plugin-Sandbox: Inhalte werden sanitisiert, in Sandbox-Iframes gerendert und erhalten Theme-Snapshots.
-- Live-Status & Display-Settings: `announce()` aktualisiert eine `aria-live`-Region, `announceProcess()` liefert Laufzeit-Feedback für Import/Backup/Selbsttest, Display-Präferenzen respektieren `prefers-*` und lassen sich per UI steuern.
+- Live-Status & Display-Settings: `announce()` aktualisiert eine `aria-live`-Region, `announceProcess()` liefert Laufzeit-Feedback für Import/Backup/Selbsttest, Display-Präferenzen respektieren `prefers-*` und lassen sich per UI steuern; das Hilfe-Center (F1) bietet leicht verständliche Schrittlisten, Fokussteuerung und Kopier-/Download-Funktionen.
 - Fokusführung: Einheitliche `:focus-visible`-Rahmen für Buttons, Eingaben, Links und Dropzone unterstützen Tastaturnutzung; `Escape` holt ausgeblendete Seitenleisten zurück.
 
 ## 5. Lokale Entwicklungsumgebung einrichten

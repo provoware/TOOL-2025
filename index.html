@@ -92,6 +92,27 @@
   .listbox{max-height:140px;overflow:auto;background:var(--panel-2);border:1px solid var(--border);border-radius:var(--radius);padding:8px}
   .listbox li{list-style:none;border-bottom:1px dashed var(--border);padding:4px 0}
   .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+  .help-overlay{position:fixed;inset:0;background:rgba(15,17,21,.78);display:flex;align-items:center;justify-content:center;padding:24px;z-index:120;backdrop-filter:blur(2px)}
+  .help-overlay[hidden]{display:none}
+  body.help-open{overflow:hidden}
+  .help-dialog{width:min(760px,100%);max-height:90vh;overflow:auto;background:var(--panel);border:2px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;display:flex;flex-direction:column;gap:16px}
+  .help-header{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .help-header .title{margin:0}
+  .help-intro{margin:0;font-size:.95rem;color:var(--muted)}
+  .help-stats{font-size:.85rem;color:var(--muted)}
+  .help-topic{border:1px solid var(--border);border-radius:12px;background:var(--panel-2);padding:14px;display:flex;flex-direction:column;gap:10px}
+  .help-topic h3{margin:0;font-size:1.1rem}
+  .help-steps{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+  .help-steps li{line-height:1.5}
+  .help-steps li p{margin:4px 0 0 0;color:var(--muted);font-size:.9rem}
+  .help-shortcuts{display:flex;flex-wrap:wrap;gap:6px}
+  .help-badge{display:inline-flex;align-items:center;gap:6px;background:var(--badge);border:1px solid var(--border);border-radius:999px;padding:4px 8px;font-size:.85rem}
+  .help-badge strong{font-weight:700}
+  .help-actions{display:flex;flex-direction:column;gap:6px}
+  .help-action{display:flex;flex-direction:column;gap:4px}
+  .help-action .muted{font-size:.85rem}
+  .help-tips{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:4px;font-size:.9rem;color:var(--muted)}
+  .help-footer{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap}
   [data-motion="reduced"] *,[data-motion="reduced"] *::before,[data-motion="reduced"] *::after{animation-duration:.01ms !important;animation-iteration-count:1 !important;transition-duration:.01ms !important;scroll-behavior:auto !important}
   [data-contrast="high"] .panel,[data-contrast="high"] .btn{border-width:2px}
   [data-contrast="high"] .panel{box-shadow:0 0 0 2px var(--accent)}
@@ -297,6 +318,26 @@
     </div>
   </footer>
 </div>
+<div id="helpOverlay" class="help-overlay" hidden>
+  <div id="helpDialog" class="help-dialog" role="dialog" aria-modal="true" aria-labelledby="helpTitle" tabindex="-1">
+    <div class="help-header">
+      <h2 class="title" id="helpTitle">Hilfe-Center für Einsteiger</h2>
+      <button type="button" class="btn inline" id="helpCloseBtn" aria-label="Hilfe schließen (Esc)">Schließen ✖</button>
+    </div>
+    <p class="help-intro">Kurze Schritte ohne Fachsprache. Begriffe werden in Klammern erklärt.</p>
+    <div class="help-shortcuts" aria-label="Wichtige Tastenkürzel">
+      <span class="help-badge"><strong>F1</strong> Hilfe öffnen</span>
+      <span class="help-badge"><strong>Strg + K</strong> Suche (Suchfeld) öffnen</span>
+      <span class="help-badge"><strong>Strg + S</strong> Speichern (Sicherung) starten</span>
+    </div>
+    <p class="help-stats" id="helpStats">Aktueller Stand: –</p>
+    <div id="helpTopicList" class="col" role="list" aria-live="polite"></div>
+    <div class="help-footer">
+      <button type="button" class="btn inline" id="helpCopyBtn">Spickzettel kopieren</button>
+      <button type="button" class="btn inline" id="helpDownloadBtn">Spickzettel speichern</button>
+    </div>
+  </div>
+</div>
 <script>
 (function(){
   'use strict';
@@ -314,6 +355,13 @@
   const liveText=$('#liveStatusText');
   const processLive=$('#processStatusLive');
   const processText=$('#processStatusText');
+  const helpOverlay=$('#helpOverlay');
+  const helpDialog=$('#helpDialog');
+  const helpTopicList=$('#helpTopicList');
+  const helpCopyBtn=$('#helpCopyBtn');
+  const helpDownloadBtn=$('#helpDownloadBtn');
+  const helpCloseBtn=$('#helpCloseBtn');
+  const helpStats=$('#helpStats');
   const systemMotionChk=$('#systemMotionChk');
   const reduceMotionChk=$('#reduceMotionChk');
   const systemContrastChk=$('#systemContrastChk');
@@ -389,6 +437,312 @@
       processText.dataset.type=statusType;
       processText.textContent='Prozessstatus: '+text;
     }
+  }
+  function highlightElement(el){
+    if(!el||!el.classList)return;
+    el.classList.add('focus-ring');
+    setTimeout(()=>el.classList.remove('focus-ring'),1500);
+  }
+  function focusAndAnnounce(selector,message){
+    const target=selector?document.querySelector(selector):null;
+    if(!target)return false;
+    highlightElement(target);
+    if(typeof target.focus==='function'){
+      try{target.focus({preventScroll:true});}catch{}
+    }
+    if(message) announceProcess(message,'info');
+    return true;
+  }
+  function isHelpOpen(){return !!(helpOverlay&&!helpOverlay.hasAttribute('hidden'));}
+  function updateHelpStats(){
+    if(!helpStats)return;
+    const stats=`Aktueller Stand: ${state.modules.length} Module, ${state.plugins.length} Plugins, ${state.playlist.length} Titel, ${state.genres.length} Genres, ${state.moods.length} Moods.`;
+    helpStats.textContent=stats;
+  }
+  function buildHelpPlainText(){
+    const lines=['ModulTool – Hilfe-Center',`Aktueller Stand: ${state.modules.length} Module, ${state.plugins.length} Plugins, ${state.playlist.length} Titel, ${state.genres.length} Genres, ${state.moods.length} Moods.`, ''];
+    helpTopics.forEach(topic=>{
+      lines.push(topic.title);
+      lines.push(topic.description);
+      if(Array.isArray(topic.steps)&&topic.steps.length){
+        topic.steps.forEach((step,idx)=>{
+          const hint=step.hint?` (${step.hint})`:'';
+          lines.push(` ${idx+1}. ${step.text}${hint}`);
+        });
+      }
+      if(Array.isArray(topic.tips)&&topic.tips.length){
+        lines.push(' Tipps:');
+        topic.tips.forEach(tip=>lines.push('  - '+tip));
+      }
+      if(Array.isArray(topic.actions)&&topic.actions.length){
+        lines.push(' Aktionen:');
+        topic.actions.forEach(action=>lines.push('  - '+action.label+(action.description?': '+action.description:'')));
+      }
+      lines.push('');
+    });
+    return lines.join('\n');
+  }
+  function openHelp(topicId){
+    if(!helpOverlay||!helpDialog)return;
+    const alreadyOpen=isHelpOpen();
+    if(!alreadyOpen){
+      lastHelpFocus=document.activeElement;
+      helpOverlay.removeAttribute('hidden');
+      helpDialog.setAttribute('aria-hidden','false');
+      document.body.classList.add('help-open');
+      requestAnimationFrame(()=>{try{helpDialog.focus({preventScroll:true});}catch{}});
+      updateHelpStats();
+      announceProcess('Hilfe geöffnet. Folge den einfachen Schritt-für-Schritt-Erklärungen.','info');
+      addLog('info','Hilfe geöffnet.');
+    }
+    if(topicId&&helpTopicList){
+      const safeId=typeof CSS!=='undefined'&&CSS.escape?CSS.escape(topicId):String(topicId).replace(/"/g,'\\"');
+      const selector=`[data-topic-id="${safeId}"]`;
+      const card=helpTopicList.querySelector(selector);
+      if(card){
+        if(typeof card.scrollIntoView==='function'){
+          card.scrollIntoView({block:'start',behavior:isReduceMotionActive()?'auto':'smooth'});
+        }
+        const heading=card.querySelector('h3');
+        if(heading){
+          heading.setAttribute('tabindex','-1');
+          try{heading.focus({preventScroll:true});}catch{}
+          setTimeout(()=>heading.removeAttribute('tabindex'),250);
+        }
+      }
+    }
+  }
+  function closeHelp(){
+    if(!isHelpOpen())return;
+    helpOverlay.setAttribute('hidden','');
+    helpDialog.setAttribute('aria-hidden','true');
+    document.body.classList.remove('help-open');
+    announceProcess('Hilfe geschlossen.','info');
+    addLog('info','Hilfe geschlossen.');
+    const focusTarget=lastHelpFocus;
+    lastHelpFocus=null;
+    if(focusTarget&&typeof focusTarget.focus==='function'){
+      try{focusTarget.focus({preventScroll:true});}catch{}
+    }
+  }
+  function renderHelpTopics(){
+    if(!helpTopicList)return;
+    helpTopicList.innerHTML='';
+    const frag=document.createDocumentFragment();
+    helpTopics.forEach(topic=>{
+      const card=document.createElement('article');
+      card.className='help-topic';
+      card.setAttribute('role','listitem');
+      card.dataset.topicId=topic.id;
+      const heading=document.createElement('h3');
+      heading.textContent=topic.title;
+      card.appendChild(heading);
+      const desc=document.createElement('p');
+      desc.className='muted';
+      desc.textContent=topic.description;
+      card.appendChild(desc);
+      if(Array.isArray(topic.steps)&&topic.steps.length){
+        const list=document.createElement('ol');
+        list.className='help-steps';
+        topic.steps.forEach(step=>{
+          const li=document.createElement('li');
+          li.textContent=step.text;
+          if(step.hint){
+            const hint=document.createElement('p');
+            hint.textContent=step.hint;
+            li.appendChild(hint);
+          }
+          list.appendChild(li);
+        });
+        card.appendChild(list);
+      }
+      if(Array.isArray(topic.shortcuts)&&topic.shortcuts.length){
+        const shortWrap=document.createElement('div');
+        shortWrap.className='help-shortcuts';
+        topic.shortcuts.forEach(shortcut=>{
+          const badge=document.createElement('span');
+          badge.className='help-badge';
+          const strong=document.createElement('strong');
+          strong.textContent=shortcut.combo;
+          badge.appendChild(strong);
+          badge.appendChild(document.createTextNode(' '+shortcut.note));
+          shortWrap.appendChild(badge);
+        });
+        card.appendChild(shortWrap);
+      }
+      if(Array.isArray(topic.actions)&&topic.actions.length){
+        const actionsWrap=document.createElement('div');
+        actionsWrap.className='help-actions';
+        topic.actions.forEach(action=>{
+          const row=document.createElement('div');
+          row.className='help-action';
+          const btn=document.createElement('button');
+          btn.type='button';
+          btn.className='btn inline';
+          btn.textContent=action.label;
+          btn.addEventListener('click',()=>{
+            let result=true;
+            try{
+              if(typeof action.run==='function'){
+                result=action.run();
+              }
+            }catch(err){
+              result=false;
+              const msg=err&&err.message?err.message:String(err);
+              addLog('warn','Hilfe-Aktion fehlgeschlagen: '+msg);
+              announceProcess('Hilfe-Aktion fehlgeschlagen. Sieh ins Log.','warn');
+            }
+            if(action.closeAfter&&result!==false){
+              closeHelp();
+            }
+          });
+          row.appendChild(btn);
+          if(action.description){
+            const hint=document.createElement('span');
+            hint.className='muted';
+            hint.textContent=action.description;
+            row.appendChild(hint);
+          }
+          actionsWrap.appendChild(row);
+        });
+        card.appendChild(actionsWrap);
+      }
+      if(Array.isArray(topic.tips)&&topic.tips.length){
+        const tipsList=document.createElement('ul');
+        tipsList.className='help-tips';
+        topic.tips.forEach(tip=>{
+          const li=document.createElement('li');
+          li.textContent=tip;
+          tipsList.appendChild(li);
+        });
+        card.appendChild(tipsList);
+      }
+      frag.appendChild(card);
+    });
+    helpTopicList.appendChild(frag);
+  }
+  function copyHelpNotes(){
+    const text=buildHelpPlainText();
+    const fallback=()=>{
+      const temp=document.createElement('textarea');
+      temp.value=text;
+      temp.setAttribute('aria-hidden','true');
+      temp.style.position='fixed';
+      temp.style.opacity='0';
+      document.body.appendChild(temp);
+      temp.select();
+      try{
+        document.execCommand('copy');
+        toast('Spickzettel kopiert.');
+        addLog('ok','Hilfe-Spickzettel kopiert.');
+        announceProcess('Spickzettel kopiert.','ok');
+      }catch(err){
+        addLog('warn','Kopieren nicht möglich: '+(err&&err.message?err.message:String(err)));
+        announceProcess('Kopieren nicht möglich. Bitte Text manuell markieren.','warn');
+      }finally{
+        temp.remove();
+      }
+    };
+    if(navigator.clipboard&&window.isSecureContext){
+      navigator.clipboard.writeText(text).then(()=>{
+        toast('Spickzettel kopiert.');
+        addLog('ok','Hilfe-Spickzettel kopiert.');
+        announceProcess('Spickzettel kopiert.','ok');
+      }).catch(()=>fallback());
+    }else{
+      fallback();
+    }
+  }
+  function downloadHelpNotes(){
+    const text=buildHelpPlainText();
+    download('modultool-hilfe.txt',text);
+    addLog('ok','Hilfe-Spickzettel gespeichert.');
+    announceProcess('Hilfe als Text gespeichert.','ok');
+  }
+  function createHelpTopics(){
+    return[
+      {
+        id:'quickstart',
+        title:'Schnell loslegen',
+        description:'Drei einfache Schritte reichen, um dein erstes Modul anzuzeigen.',
+        steps:[
+          {text:'Blende die linke Seitenleiste ein, falls sie fehlt. Klicke dazu auf „⟷ Links“.',hint:'So siehst du alle vorhandenen Module.'},
+          {text:'Trage einen Namen in „Neues Modul“ ein und bestätige mit Enter oder dem Button „Hinzufügen“.',hint:'Das Modul erscheint sofort in der Liste.'},
+          {text:'Klicke den neuen Listeneintrag an, damit der Arbeitsbereich in der Mitte geladen wird.'}
+        ],
+        actions:[
+          {label:'Feld „Neues Modul“ anzeigen',description:'Blendet die linke Leiste ein und setzt den Cursor in das Eingabefeld.',run:()=>{document.body.classList.remove('collapsed-left');return focusAndAnnounce('#newModuleName','Feld „Neues Modul“ aktiv.');}},
+          {label:'Suche öffnen',description:'Aktiviert das Suchfeld (entspricht Strg+K).',run:()=>{document.body.classList.remove('collapsed-left');return focusAndAnnounce('#quickSearch','Suchfeld geöffnet.');}},
+          {label:'Start-Hinweise anzeigen',description:'Öffnet das Start-Modul mit einer kompakten Übersicht.',run:()=>{openModule(startId);announceProcess('Start-Hinweise angezeigt.','info');return true;},closeAfter:true}
+        ],
+        tips:[
+          'Autospeichern läuft automatisch. Entferne bei Bedarf den Haken „Autospeichern“. ',
+          'Nutze kurze Modulnamen. So findest du Inhalte später schneller über die Suche.'
+        ]
+      },
+      {
+        id:'modulePlugins',
+        title:'Module erweitern & Plugins nutzen',
+        description:'So verbindest du Module mit Plugins (Zusatzfunktionen).',
+        steps:[
+          {text:'Öffne einen Moduleintrag, damit er im Arbeitsbereich erscheint.',hint:'Jedes Modul kann eigene Inhalte oder Plugins aufnehmen.'},
+          {text:'Verwende das Modul „Plugin-Manager“, um eine Plugin-Datei (JSON = Textdatei für Daten) zu importieren.',hint:'Das Tool prüft die Datei und zeigt sichere Inhalte in einer Sandbox (geschütztes Fenster) an.'},
+          {text:'Nach dem Import findest du das Plugin als eigenes Modul in der Liste und kannst es jederzeit entfernen.'}
+        ],
+        actions:[
+          {label:'Plugin-Manager öffnen',description:'Springt zum Modul für Import, Export und Entfernen.',run:()=>{openModule(pluginOverviewId);announceProcess('Plugin-Manager geöffnet.','info');return true;},closeAfter:true},
+          {label:'Plugin-Liste leeren',description:'Entfernt alle geladenen Plugins (Reset).',run:()=>{clearPlugins();announceProcess('Alle Plugins entfernt.','warn');addLog('warn','Hilfe: Alle Plugins entfernt.');return true;}},
+          {label:'Selbsttest starten',description:'Prüft Tastaturkürzel, Backup und Plugins automatisch.',run:()=>{closeHelp();runSelfTests();return true;},closeAfter:false}
+        ],
+        tips:[
+          'Importiere Plugins nur aus vertrauenswürdigen Quellen. Das Log meldet Erfolg oder Fehler.',
+          'Mit dem Button „Manifest“ erhältst du eine Übersicht aller Module und Plugins als Textdatei.'
+        ]
+      },
+      {
+        id:'audio',
+        title:'Audio & Playlist bedienen',
+        description:'Steuere Musik komplett per Maus oder Tastatur.',
+        steps:[
+          {text:'Ziehe Audiodateien per Drag & Drop in die Dropzone oder klicke darauf und wähle Dateien aus.',hint:'Die Dropzone liegt im rechten Bereich. Du kannst auch die Tastatur verwenden (Enter oder Leertaste).'},
+          {text:'Markiere einen Titel in der Liste und drücke Enter. Mit Alt + Pfeilen sortierst du die Reihenfolge.',hint:'Entf löscht einen Eintrag, ohne den Rest zu verändern.'},
+          {text:'Nutze „Export“, um die Playlist als Datei zu sichern, oder „Import“, um eine gespeicherte Liste zu laden.'}
+        ],
+        actions:[
+          {label:'Audiofläche hervorheben',description:'Blendet die rechte Leiste ein und markiert die Dropzone.',run:()=>{document.body.classList.remove('collapsed-right');return focusAndAnnounce('#dropzone','Audio-Dropzone bereit.');}},
+          {label:'Playlist importieren',description:'Öffnet den Dateidialog zum Laden einer gespeicherten Playlist (JSON).',run:()=>{document.body.classList.remove('collapsed-right');const btn=$('#impPlBtn');if(btn){btn.click();announceProcess('Wähle nun deine Playlist-Datei aus.','info');return true;}announceProcess('Import-Button nicht gefunden.','warn');return false;},closeAfter:true},
+          {label:'Playlist exportieren',description:'Speichert die aktuelle Playlist als Datei.',run:()=>{exportPlaylist();announceProcess('Playlist exportiert.','ok');return true;},closeAfter:false}
+        ],
+        shortcuts:[
+          {combo:'Enter',note:'Titel starten'},
+          {combo:'Alt + Pfeil↑/↓',note:'Titel verschieben'},
+          {combo:'Entf',note:'Titel löschen'}
+        ],
+        tips:[
+          'Die Statuszeile unter dem Player zeigt Interpret und Titel an.',
+          'Mit „⏮“ und „⏭“ springst du zum vorherigen oder nächsten Titel.'
+        ]
+      },
+      {
+        id:'safety',
+        title:'Sichern & Probleme lösen',
+        description:'So behältst du jederzeit eine funktionierende Sicherung (Backup = Sicherheitskopie).',
+        steps:[
+          {text:'Klicke auf „Export“, um eine komplette Sicherung (JSON) zu speichern.',hint:'Die Datei enthält Module, Playlist, Plugins und Einstellungen.'},
+          {text:'Öffne das Modul „Backup-Prüfung“, prüfe eine Datei und lies das Ergebnis im Statusfeld.',hint:'Fehler werden erklärt und können anschließend korrigiert werden.'},
+          {text:'Aktiviere und starte „Self-Repair“, falls etwas nicht stimmt. Das Tool korrigiert Duplikate und IDs.'}
+        ],
+        actions:[
+          {label:'Backup exportieren',description:'Erstellt sofort eine Sicherungsdatei.',run:()=>{exportAll();return true;},closeAfter:false},
+          {label:'Backup-Prüfung öffnen',description:'Springt direkt in das Prüfmodul.',run:()=>{openModule(backupCheckId);announceProcess('Backup-Prüfung geöffnet.','info');return true;},closeAfter:true},
+          {label:'Self-Repair jetzt ausführen',description:'Bereinigt Daten sofort und meldet die Anzahl der Korrekturen.',run:()=>{const fixes=selfRepair();renderAll();persist();announceProcess(`Self-Repair abgeschlossen (${fixes} Korrekturen).`,fixes>0?'ok':'info');addLog('info','Hilfe: Self-Repair ausgelöst.');return true;},closeAfter:false}
+        ],
+        tips:[
+          'Self-Repair meldet jede Änderung im Log. So erkennst du, was angepasst wurde.',
+          'Bewahre Sicherungsdateien an einem sicheren Ort auf (z. B. externes Laufwerk).' 
+        ]
+      }
+    ];
   }
   const allowedFontScales=new Set([14,16,18,20]);
   function readSystemMotion(){
@@ -544,6 +898,8 @@
   const state={version:'1.1.5',theme:'neo',autosave:true,selfrepair:true,toasts:true,respectSystemMotion:true,respectSystemContrast:true,reduceMotion:systemReduceDefault,highContrast:systemContrastDefault,fontScale:systemFontDefault(),modules:[],activeModule:null,categories:{},genres:[],moods:[],playlist:[],log:[],logFilter:'all',plugins:[],_currentIndex:null};
   let clockTimer=null;
   const moduleRegistry=new Map();
+  let helpTopics=[];
+  let lastHelpFocus=null;
   const isPlainObject=value=>value&&typeof value==='object'&&!Array.isArray(value);
   const hasOwn=(obj,key)=>Object.prototype.hasOwnProperty.call(obj,key);
   const ensureArray=(value,path,errors)=>{if(!Array.isArray(value)){errors.push(path+' muss ein Array sein.');return [];}return value;};
@@ -890,9 +1246,24 @@
       return{id,name,description,version,author,moduleId,moduleName,sections,links};
     });
     ensureModuleRegistryMatchesState(state.activeModule||null);
-    if(fixes>0)addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
+    if(fixes>0){
+      addLog('warn','Self-Repair: '+fixes+' Korrekturen angewendet.');
+    }else{
+      addLog('info','Self-Repair: keine Änderungen nötig.');
+    }
+    return fixes;
   }
-  function renderStats(){$('#stat-modules').textContent=state.modules.length;$('#stat-cats').textContent=Object.keys(state.categories).length;$('#stat-genres').textContent=state.genres.length;$('#stat-moods').textContent=state.moods.length;$('#stat-tracks').textContent=state.playlist.length;$('#countGenres').textContent=state.genres.length;$('#countMoods').textContent=state.moods.length;$('#countCats').textContent=Object.keys(state.categories).length}
+  function renderStats(){
+    $('#stat-modules').textContent=state.modules.length;
+    $('#stat-cats').textContent=Object.keys(state.categories).length;
+    $('#stat-genres').textContent=state.genres.length;
+    $('#stat-moods').textContent=state.moods.length;
+    $('#stat-tracks').textContent=state.playlist.length;
+    $('#countGenres').textContent=state.genres.length;
+    $('#countMoods').textContent=state.moods.length;
+    $('#countCats').textContent=Object.keys(state.categories).length;
+    updateHelpStats();
+  }
   function renderTheme(){
     if(docEl){docEl.setAttribute('data-theme',state.theme);}
     const themeSelect=$('#themeSel');
@@ -1430,6 +1801,9 @@
   const pluginOverviewId=registerModule('Plugin-Manager',renderPluginOverview);
   registerModule('Notiz-Editor',(el)=>{const ta=document.createElement('textarea');ta.style.width='100%';ta.style.height='50vh';ta.placeholder='Deine Notizen…';ta.value=localStorage.getItem('modultool_notes')||'';ta.addEventListener('input',()=>localStorage.setItem('modultool_notes',ta.value));el.appendChild(ta)});
   const backupCheckId=registerModule('Backup-Prüfung',renderBackupInspector);
+  helpTopics=createHelpTopics();
+  renderHelpTopics();
+  updateHelpStats();
   const splitInput=str=>safeStr(str).split(',').map(s=>s.trim()).filter(Boolean);
   function addToArchive(targetArr,items){const before=targetArr.length;items.forEach(x=>{if(!targetArr.includes(x))targetArr.push(x)});targetArr.sort((a,b)=>a.localeCompare(b));return targetArr.length-before}
   function addGenres(){const items=splitInput($('#genreInput').value);if(items.length===0)return toast('Keine Genres erkannt.');const added=addToArchive(state.genres,items);const cat=$('#catSel').value;if(cat&&state.categories[cat]){addToArchive(state.categories[cat].genres,items)}$('#genreInput').value='';renderArchives();renderStats();persist();addLog(added>0?'ok':'warn',added>0?'Genres hinzugefügt: +'+added:'Keine neuen Genres (Duplikate)')}
@@ -1662,6 +2036,10 @@
     addLog(fail===0?'ok':'error','Selbsttests abgeschlossen: '+pass+' ok, '+fail+' fail');
     announceProcess('Selbsttests abgeschlossen: '+pass+' ok, '+fail+' fail',fail===0?'ok':'error',fail===0?'polite':'assertive');}
   function bindEvents(){
+    if(helpCloseBtn){helpCloseBtn.addEventListener('click',closeHelp);}
+    if(helpOverlay){helpOverlay.addEventListener('click',e=>{if(e.target===helpOverlay)closeHelp();});}
+    if(helpCopyBtn){helpCopyBtn.addEventListener('click',copyHelpNotes);}
+    if(helpDownloadBtn){helpDownloadBtn.addEventListener('click',downloadHelpNotes);}
     $('#themeSel').addEventListener('change',e=>{state.theme=e.target.value;renderTheme();persist();addLog('ok','Theme: '+state.theme)});
     $('#toggleLeft').addEventListener('click',()=>{document.body.classList.toggle('collapsed-left')});
     $('#toggleRight').addEventListener('click',()=>{document.body.classList.toggle('collapsed-right')});
@@ -1678,10 +2056,44 @@
     $('#importAllFile').addEventListener('change',e=>{const f=e.target.files[0];if(f)importAll(f)});
     $('#clearLogBtn').addEventListener('click',()=>{state.log=[];renderLog();persist()});
     $('#downloadLogBtn').addEventListener('click',()=>download('log.txt',state.log.map(l=>`[${l.time}] ${l.type}: ${l.msg}`).join('\n')));
-    $('#aboutBtn').addEventListener('click',()=>alert('ModulTool – Singlefile v'+state.version+'\nOffline • Robust • Barrierefrei'));
+    $('#aboutBtn').addEventListener('click',()=>openHelp('quickstart'));
     $('#selfTestBtn').addEventListener('click',runSelfTests);
     $('#logFilterSel').addEventListener('change',e=>{state.logFilter=e.target.value;renderLog();persist()});
-    document.addEventListener('keydown',e=>{const key=safeLower(e&&e.key);if(e.ctrlKey&&key==='k'){e.preventDefault();$('#quickSearch').focus()}if(e.ctrlKey&&key==='s'){e.preventDefault();save();toast('Gespeichert.')}if(e.key==='F1'||key==='f1'){e.preventDefault();openModule(startId)}if(key==='escape'){let handled=false;if(document.body.classList.contains('collapsed-left')){document.body.classList.remove('collapsed-left');handled=true;}if(document.body.classList.contains('collapsed-right')){document.body.classList.remove('collapsed-right');handled=true;}if(handled){announceProcess('Ansicht zurückgesetzt.','info');const canvas=$('#canvas');if(canvas){try{canvas.focus({preventScroll:true});}catch(ex){/* ignore */}}e.preventDefault();}}});
+    document.addEventListener('keydown',e=>{
+      const key=safeLower(e&&e.key);
+      if(e.ctrlKey&&key==='k'){
+        e.preventDefault();
+        $('#quickSearch').focus();
+        return;
+      }
+      if(e.ctrlKey&&key==='s'){
+        e.preventDefault();
+        save();
+        toast('Gespeichert.');
+        return;
+      }
+      if(key==='f1'){
+        e.preventDefault();
+        openHelp('quickstart');
+        return;
+      }
+      if(key==='escape'){
+        if(isHelpOpen()){
+          e.preventDefault();
+          closeHelp();
+          return;
+        }
+        let handled=false;
+        if(document.body.classList.contains('collapsed-left')){document.body.classList.remove('collapsed-left');handled=true;}
+        if(document.body.classList.contains('collapsed-right')){document.body.classList.remove('collapsed-right');handled=true;}
+        if(handled){
+          announceProcess('Ansicht zurückgesetzt.','info');
+          const canvas=$('#canvas');
+          if(canvas){try{canvas.focus({preventScroll:true});}catch(ex){/* ignore */}}
+          e.preventDefault();
+        }
+      }
+    });
     $('#quickSearch').addEventListener('input',()=>{const q=safeLower($('#quickSearch').value);$$('#modulesList .btn').forEach(btn=>{btn.style.display=safeLower(btn.textContent).includes(q)?'flex':'none'})});
     $('#addModuleBtn').addEventListener('click',onAddModule);
     $('#newModuleName').addEventListener('keydown',e=>{if(e.key==='Enter')onAddModule()});
@@ -1730,7 +2142,7 @@
     if(filterSel)filterSel.value=state.logFilter||'all';
   }
   function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);},openModule},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

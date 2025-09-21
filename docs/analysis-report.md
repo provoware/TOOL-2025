@@ -3,7 +3,7 @@
 ## 1. Executive Summary
 - **Produktstatus:** Funktionsreiches Offline-Dashboard mit Modul-, Archiv- und Playlistverwaltung in einer monolithischen HTML-Datei.
 - **Reifegrad nach Domänen:** Architektur 2/5, Daten & Persistenz 2/5, Sicherheit 3/5, Barrierefreiheit 3/5, UX 3/5, Performance 2/5, Audio 3/5, Tests 3/5, Release & Governance 1/5.
-- **Kernfortschritte:** Strenger Backup-Import mit JSON-Schema, gehärtete Plugin-Pipeline (Sanitizing + Sandbox-Iframes), verbesserte Tastatursteuerung, Live-Status (`aria-live`) und Systempräferenz-Handling (Motion/Kontrast) inklusive skalierbarer Typografie sowie Test-API für automatisierte Prüfungen und ein prozessspezifisches Status-Monitoring (Backup/Import) mit sichtbaren Fokus-Rahmen auf allen Interaktionselementen.
+- **Kernfortschritte:** Strenger Backup-Import mit JSON-Schema, gehärtete Plugin-Pipeline (Sanitizing + Sandbox-Iframes), verbesserte Tastatursteuerung, Live-Status (`aria-live`) und Systempräferenz-Handling (Motion/Kontrast) inklusive skalierbarer Typografie sowie Test-API für automatisierte Prüfungen und ein prozessspezifisches Status-Monitoring (Backup/Import) mit sichtbaren Fokus-Rahmen auf allen Interaktionselementen sowie einem laienfreundlichen Hilfe-Center (F1) mit Schritt-für-Schritt-Anleitungen und kopierbarem Spickzettel.
 - **Hauptdefizite:** Fehlende Layer-Struktur, kein zentrales Eventing, keine Undo/Redo-Mechanik, eingeschränkte Build-/Release-Prozesse und unvollständige Sicherheits- sowie A11y-Checks.
 - **Priorisierte Sofortmaßnahmen:** (1) Architekturtrennung mit Store/Service-Layern + Event-Bus, (2) Transaktionskern mit stabilen IDs und atomaren Writes, (3) A11y-Advanced inkl. System-Preferences und Live-Regionen, (4) Worker-Offloading & Performance-Budgets, (5) Signierte, geprüfte Import-/Export-Kette.
 
@@ -36,14 +36,14 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - **Empfehlungen:** DOMPurify-Äquivalent offline kompilieren, Validierungspipeline (Header-Sniffing, Dateiendung) implementieren, Berechtigungskonzept (Schreibschutz, Papierkorb mit TTL) etablieren, signierte Releases und Integritätsanzeige bereitstellen.
 
 ## 6. Barrierefreiheit & Inclusive Design
-- **Positive Aspekte:** Mehrere High-Contrast-Themes, Tastaturzugriff auf Playlist und Dropzone (Enter/Space, Alt+Pfeile, Entf), neue `:focus-visible`-Rahmen für Buttons/Eingaben/Links, Unterstützung von `prefers-reduced-motion`/`prefers-contrast`, Live-Statusbanner (`aria-live`) sowie Prozess-Live-Region für Backup-Import/-Prüfung und skalierbare Schriftgrößen (14–20 px Presets).
+- **Positive Aspekte:** Mehrere High-Contrast-Themes, Tastaturzugriff auf Playlist und Dropzone (Enter/Space, Alt+Pfeile, Entf), neue `:focus-visible`-Rahmen für Buttons/Eingaben/Links, Unterstützung von `prefers-reduced-motion`/`prefers-contrast`, Live-Statusbanner (`aria-live`) sowie Prozess-Live-Region für Backup-Import/-Prüfung, skalierbare Schriftgrößen (14–20 px Presets) und ein modales Hilfe-Center mit Tastatur- und Screenreader-Unterstützung.
 - **Defizite:** Kein globales Fokus-Management, Escape-Logik greift nur für Seitenleisten (Dialoge benötigen weiterhin Fokusfallen & Exit), Prozessregion deckt aktuell Backup/Import ab (weitere Langläufer wie Selbsttests sollten folgen), Farbkontraste werden noch nicht automatisiert verifiziert.
 - **Professionelle Zielsetzung:** A11y-Audit (WCAG 2.2 AA), Fokusfallen beseitigen, Dialoge mit Escape/Focus-Trap ergänzen, Live-Regionen für Langläuferprozesse ausbauen, automatisierte A11y-Regressionen und dokumentierte Tastaturkürzel.
 
 ## 7. Nutzererlebnis & Microcopy
-- **Stärken:** Umfangreiche Tooltips, Logbuch mit farbcodierten Level-Icons, Manifest-Export, klare Buttons für Kernaktionen.
-- **Lücken:** Leere Zustände zeigen keine Anleitungen, Farbsemantik nicht konsequent (mehrere Akzentfarben), kein Shortcut-Overlay, Self-Repair kommuniziert Entscheidungen nur via Log.
-- **Empfehlungen:** Empty States mit CTA, konsistentes Farbset (Grün Erfolg, Blau Info, Orange Aktion, Rot Fehler), Microcopy-Standards (Verb + Nutzen), Onboarding-Assistent, Shortcut-Overlay (`?`-Dialog) und Feedback-Schleifen mit Nutzerbewertungen.
+- **Stärken:** Umfangreiche Tooltips, laienfreundliches Hilfe-Center mit Shortcut-Spickzettel, Logbuch mit farbcodierten Level-Icons, Manifest-Export und klare Buttons für Kernaktionen.
+- **Lücken:** Leere Zustände zeigen keine Anleitungen, Farbsemantik bleibt uneinheitlich (mehrere Akzentfarben), Self-Repair kommuniziert Entscheidungen nur via Log und ein geführter Onboarding-Assistent fehlt weiterhin.
+- **Empfehlungen:** Empty States mit CTA, konsistentes Farbset (Grün Erfolg, Blau Info, Orange Aktion, Rot Fehler), Microcopy-Standards (Verb + Nutzen), Onboarding-Assistent mit geführten Touren und Feedback-Schleifen mit Nutzerbewertungen.
 
 ## 8. Performance & Robustheit
 - **Status quo:** Rendering erfolgt synchron, Parsing/Validierung auf dem Main-Thread, keinerlei Debounce/Throttle, keine Messpunkte.
@@ -90,6 +90,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - Dokumentation (Analyse, Entwicklerhandbuch, ToDo) aktualisiert und strukturierte Follow-ups eingetragen.
 - Systempräferenz-Optionen (Motion/Kontrast), Live-Statusbanner und skalierbare Typografie im Dashboard ergänzt.
 - Prozess-Live-Region für Import/Backup mit Screenreader-Feedback eingeführt und Fokus-Styling (`:focus-visible`) vereinheitlicht.
+- Laienfreundliches Hilfe-Center (F1) mit Schritt-für-Schritt-Erklärungen, Shortcut-Spickzettel sowie Kopier-/Download-Funktion ergänzt.
 
 ## 15. Nächste Schritte (Top 5)
 1. **Architektur neu schneiden:** UI in modulare Komponenten überführen, Event-Bus + Statecharts einbauen, Services isolieren.
