@@ -29,16 +29,16 @@
 - [ ] Lokales Rechte-/Berechtigungsmodell mit Schreibschutz-Flag, Bestätigungen und Papierkorb (TTL) einführen
 - [ ] Trusted Types, CSP-Reporting und Reporting-API integrieren, um Inline-Skripte dauerhaft zu blocken
 - [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen
-- [ ] `guardAction` auf alle kritischen Datenpfade (Import, Export, Module, Playlist) ausweiten und Fehlerkategorien für Auswertungen erfassen (Exporte + Plugin/Playlist-Importe erledigt; Modul-Operationen & Backup-Dialog offen)
+- [ ] `guardAction` auf alle kritischen Datenpfade (Import, Export, Module, Playlist) ausweiten und Fehlerkategorien für Auswertungen erfassen (Exporte + Plugin/Playlist-Importe + Modul-Anlage erledigt; Modulbearbeitung & Backup-Dialog offen)
 - [ ] Plugin-Import um Signatur-/Prüfsummen-Checks und laienfreundliche Lösungsvorschläge im Fehlerfall erweitern
 
 ## Barrierefreiheit (A11y) – Advanced
 - [x] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten (Statusbanner & Checkboxen aktiv)
 - [x] Fokus-Outline-Design für Buttons, Eingaben, Links und Dropzone vereinheitlichen (sichtbare `:focus-visible`-Rahmen)
-- [ ] Fokusfallen & Escape-Handling für Dialoge ergänzen (Focus-Trap + globale Exit-Strategie)
+- [x] Fokusfallen & Escape-Handling für Hilfe- und Konfigurationsdialog ergänzt (Focus-Trap + globale Exit-Strategie) – weitere Overlays markieren
 - [x] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren (globaler Status aktualisiert Log-Feedback)
 - [x] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren (Theme-Variable & UI-Select)
-- [ ] Escape-Mechanismus für alle Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit)
+- [ ] Escape-Mechanismus für verbleibende Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit) – Hilfe/Konfiguration erledigt, restliche Overlays offen
 - [ ] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern
 - [x] Prozess-spezifische Live-Regionen für Backup-Prüfung, Importlauf und Selbsttest ergänzen (detaillierte Statusmeldungen)
 - [ ] Prozess-Live-Region auf weitere Langläufer (Worker, Audioanalyse) ausweiten und Prioritäten dokumentieren
@@ -127,6 +127,7 @@
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
 - [x] System-Preferences & Live-Status implementiert (Motion/Kontrast, Schriftgrößen, aria-live)
 - [x] Log-Level-Design vereinheitlicht (Icons, Farbcodierung, Info-Filter)
+- [x] Hilfe- und Konfigurationsdialoge mit Fokusfallen abgesichert und Modul-Anlage über `guardAction` + Duplikatschutz laienfreundlich gemacht
 - [x] Sichtbarkeits-Assistent für Bereiche & Fenster (Mini-Vorschau, Klartextstatus, Schnellbuttons) ergänzt
 - [x] Layout-Presets inklusive Backup-/Manifest-Unterstützung und Statusmeldungen implementiert (Buttons für Ausgewogen, Module/Audio-Fokus, Arbeitsfläche, Stapeln)
 - [x] Validierungsreport für Backup/Import eingeführt (sanitizeStateForExport, Report-Anzeige im Prüfmodul, Import-Log-Hinweise)

@@ -666,6 +666,68 @@
   const debugDownloadBtn=$('#debugDownloadBtn');
   let lastConfigFocus=null;
   let isApplyingPreset=false;
+  const FOCUSABLE_SELECTOR='a[href],area[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+  let activeFocusTrap=null;
+  function collectFocusable(container){
+    if(!container)return[];
+    return Array.from(container.querySelectorAll(FOCUSABLE_SELECTOR)).filter(el=>{
+      if(el.hasAttribute('disabled'))return false;
+      if(el.getAttribute('aria-hidden')==='true')return false;
+      if(el.closest('[aria-hidden="true"]'))return false;
+      if(el.closest('[hidden]'))return false;
+      return true;
+    });
+  }
+  function activateFocusTrap(container,{initialFocus}={}){
+    if(!container)return;
+    const focusables=()=>collectFocusable(container);
+    const firstOrContainer=()=>{
+      const items=focusables();
+      return items.length?items[0]:container;
+    };
+    const handleKey=event=>{
+      if(event.key!=='Tab')return;
+      const items=focusables();
+      if(!items.length){event.preventDefault();return;}
+      const first=items[0];
+      const last=items[items.length-1];
+      const active=document.activeElement;
+      if(event.shiftKey){
+        if(active===first||!container.contains(active)){
+          event.preventDefault();
+          try{last.focus({preventScroll:true});}catch{/* ignore */}
+        }
+      }else if(active===last){
+        event.preventDefault();
+        try{first.focus({preventScroll:true});}catch{/* ignore */}
+      }
+    };
+    const enforceFocus=event=>{
+      if(!container.contains(event.target)){
+        const target=firstOrContainer();
+        if(target&&typeof target.focus==='function'){
+          event.stopPropagation();
+          try{target.focus({preventScroll:true});}catch{/* ignore */}
+        }
+      }
+    };
+    deactivateFocusTrap();
+    container.addEventListener('keydown',handleKey);
+    document.addEventListener('focusin',enforceFocus,true);
+    activeFocusTrap={container,handleKey,enforceFocus};
+    const focusTarget=initialFocus&&typeof initialFocus.focus==='function'?initialFocus:firstOrContainer();
+    if(focusTarget&&typeof focusTarget.focus==='function'){
+      setTimeout(()=>{try{focusTarget.focus({preventScroll:true});}catch{/* ignore */}},0);
+    }
+  }
+  function deactivateFocusTrap(container){
+    if(!activeFocusTrap)return;
+    if(container&&activeFocusTrap.container!==container)return;
+    const {container:trapContainer,handleKey,enforceFocus}=activeFocusTrap;
+    if(trapContainer){trapContainer.removeEventListener('keydown',handleKey);}
+    document.removeEventListener('focusin',enforceFocus,true);
+    activeFocusTrap=null;
+  }
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
   const toBoolean=(value,fallback)=>{
     if(typeof value==='boolean') return value;
@@ -734,6 +796,9 @@
     'manifest-export':'Tipp: Das Manifest (`modultool-manifest.json`) enthält deine Einstellungen. Für komplette Sicherungen nutze zusätzlich den Backup-Export.',
     'playlist-export':'Tipp: Die Playlist-Datei (`playlist.json`) speichert Titel, Künstler und Quellen. Die Audiodateien bleiben in deinem Musikordner.',
     'playlist-import':'Tipp: Importiere nur Playlist-Dateien, die du vorher über „Playlist exportieren“ erstellt hast. Dann stimmt das Format sicher.',
+    'module-name-empty':'Tipp: Vergib dem Modul gleich einen sprechenden Namen, z. B. „Livestream-Setup“. So findest du es später schneller.',
+    'module-duplicate':'Tipp: Verwende eindeutige Modulnamen. Hänge zur Not eine Zahl an, etwa „Podcast 2“. Dann bleiben die Listen übersichtlich.',
+    'module-add':'Tipp: Neu angelegte Module erscheinen links in der Liste. Klicke sie dort sofort an, um Inhalte einzufügen.',
     'enable-prevent-mistakes':'Schalte unten die Option „Datei-Prüfung aktiv“ ein. Dann kontrolliert das Tool jede Datei automatisch bevor sie geladen wird.'
   });
   const globalGuardDisposers=[];
@@ -1204,7 +1269,8 @@
       helpOverlay.removeAttribute('hidden');
       helpDialog.setAttribute('aria-hidden','false');
       document.body.classList.add('help-open');
-      requestAnimationFrame(()=>{try{helpDialog.focus({preventScroll:true});}catch(error){void error;}});
+      const initialTarget=helpCloseBtn||helpDialog.querySelector('[data-topic-id] button, button, a, input, select, textarea');
+      activateFocusTrap(helpDialog,{initialFocus:initialTarget});
       updateHelpStats();
       announceProcess('Hilfe geöffnet. Folge den einfachen Schritt-für-Schritt-Erklärungen.','info');
       addLog('info','Hilfe geöffnet.');
@@ -1230,6 +1296,7 @@
   }
   function closeHelp(){
     if(!isHelpOpen())return;
+    deactivateFocusTrap(helpDialog);
     helpOverlay.setAttribute('hidden','');
     helpDialog.setAttribute('aria-hidden','true');
     document.body.classList.remove('help-open');
@@ -1840,10 +1907,12 @@
     configOverlay.removeAttribute('hidden');
     document.body.classList.add('config-open');
     lastConfigFocus=document.activeElement;
-    setTimeout(()=>{try{configDialog.focus({preventScroll:true});}catch{/* ignore */}},0);
+    const initialTarget=configDialog.querySelector('button, input, select, textarea')||configDialog;
+    activateFocusTrap(configDialog,{initialFocus:initialTarget});
   }
   function closeConfigAssistant(){
     if(!configOverlay)return;
+    deactivateFocusTrap(configDialog);
     configOverlay.setAttribute('hidden','');
     document.body.classList.remove('config-open');
     if(lastConfigFocus&&typeof lastConfigFocus.focus==='function'){
@@ -3531,7 +3600,57 @@
     pl.addEventListener('drop',e=>{e.preventDefault();const to=e.target.closest('.item');if(!to)return;const from=Number(e.dataTransfer.getData('text/plain'));const toIdx=Number(to.dataset.index);if(Number.isNaN(from)||Number.isNaN(toIdx))return;reorderPlaylist(from,toIdx);});
     pl.addEventListener('keydown',e=>{const item=e.target.closest('.item');if(!item)return;const idx=Number(item.dataset.index);if(Number.isNaN(idx))return;const key=e.key;if((key==='Enter'||key===' '||key==='Spacebar')&&!e.altKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();playIndex(idx);}else if((key==='Delete'||key==='Backspace')&&!e.altKey&&!e.ctrlKey&&!e.metaKey){e.preventDefault();removeTrackAt(idx);}else if((key==='ArrowUp'||key==='ArrowDown')&&e.altKey){e.preventDefault();const target=key==='ArrowUp'?idx-1:idx+1;reorderPlaylist(idx,target);}});
   }
-  function onAddModule(){const typed=safeStr($('#newModuleName').value).trim();const name=typed||`Modul ${state.modules.length+1}`;const id=registerModule(name,(el)=>{el.innerHTML=`<h2>${name}</h2><p>Neues Modul. Baue hier deine Funktionen ein.</p>`});$('#newModuleName').value='';renderModules();persist();openModule(id)}
+  function generateDefaultModuleName(){
+    const prefix='Modul ';
+    let counter=state.modules.length+1||1;
+    let candidate=`${prefix}${counter}`;
+    while(state.modules.some(mod=>safeLower(mod.name)===safeLower(candidate))){
+      counter+=1;
+      candidate=`${prefix}${counter}`;
+    }
+    return candidate;
+  }
+  function createUserModule(name,{renderer,announce=true}={}){
+    const raw=safeStr(name).trim();
+    const usedFallback=!raw;
+    let finalName=raw||generateDefaultModuleName();
+    if(!raw){
+      offerPreventiveHint('module-name-empty');
+    }
+    if(state.modules.some(mod=>safeLower(mod.name)===safeLower(finalName))){
+      const message=`Modulname „${finalName}“ ist bereits vergeben. Bitte anderen Namen wählen.`;
+      toast(message);
+      addLog('warn',message);
+      captureFeedback(message,'warn',{source:'modules'});
+      offerPreventiveHint('module-duplicate');
+      announceProcess(message,'warn','assertive');
+      return{id:null,name:finalName,duplicate:true,usedFallback};
+    }
+    const renderFn=typeof renderer==='function'?renderer:(el=>{el.innerHTML=`<h2>${escapeHtml(finalName)}</h2><p>Neues Modul. Baue hier deine Inhalte ein.</p>`;});
+    const id=guardAction('Modul anlegen',()=>{
+      const createdId=registerModule(finalName,renderFn);
+      captureFeedback(`Modul „${finalName}“ angelegt. Du findest es links in der Liste.`, 'ok', {source:'modules'});
+      return createdId;
+    },{hint:'module-add'});
+    if(id){
+      if(announce){
+        announceProcess(`Modul „${finalName}“ angelegt.`, 'ok');
+      }
+    }
+    return{id:id||null,name:finalName,duplicate:false,usedFallback};
+  }
+  function onAddModule(){
+    const input=$('#newModuleName');
+    const typed=input?safeStr(input.value).trim():'';
+    const result=createUserModule(typed,{announce:true});
+    if(!input)return;
+    if(result&&result.id){
+      input.value='';
+      openModule(result.id);
+    }else{
+      requestAnimationFrame(()=>{try{input.focus({preventScroll:true});input.select();}catch{/* ignore */}});
+    }
+  }
   function renderAll(){
     ensureAllPlugins();
     ensureModuleRegistryMatchesState(startId);
@@ -3550,7 +3669,7 @@
     updateConfigSummary();
   }
   function init(){load();if(state.selfrepair)selfRepair();if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}if(state.respectSystemContrast){state.highContrast=!!state.highContrast;}applyLayoutPreset(state.layoutPreset||'balanced',{announceSelection:false,persistChange:false});$('#autosaveChk').checked=!!state.autosave;$('#selfrepairChk').checked=!!state.selfrepair;$('#toastsChk').checked=state.toasts!==false;renderAll();bindEvents();bindMediaListeners();openModule(state.activeModule||startId);if(clockTimer)clearInterval(clockTimer);if(!isTestEnv){clockTimer=setInterval(tick,1000);}tick();announceProcess('Bereit für Aktionen.','info');addLog('ok','Bereit.')}
-  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
+  const testApi={state,actions:{ensureModuleRegistryMatchesState,reorderPlaylist,removeTrackAt,renderPlaylist,renderAll,renderStats,renderModules,renderCategories,renderArchives,renderLog,generateManifest,buildBackup,validateBackup,runRandom,playIndex,validatePluginData,registerPlugin,removePlugin,pluginExists,ensurePluginModule,ensureAllPlugins,clearPlugins,assertBackupSchema,activateConfigPreset,applyLayoutPreset,guardAction,createUserModule,moduleRendererExists(id){return moduleRegistry.has(id);},openModule,openHelp,closeHelp,isHelpOpen,buildHelpPlainText,getHelpTopics:()=>helpTopics.map(topic=>topic.id)},init,teardown(){if(clockTimer){clearInterval(clockTimer);clockTimer=null;}}};
   if(typeof window!=='undefined'){window.ModulToolTestAPI=testApi;}
   if(!isTestEnv){init();}
 })();

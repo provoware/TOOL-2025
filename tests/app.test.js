@@ -93,6 +93,29 @@ test('Entfernen löscht Track und setzt aktuellen Index zurück', async () => {
   assert.equal(api.state._currentIndex, null);
 });
 
+test('createUserModule erzeugt eindeutige Namen und verhindert Duplikate', async () => {
+  const initialCount = api.state.modules.length;
+  const first = api.actions.createUserModule('Mein Modul');
+  assert.ok(first.id, 'erstes Modul sollte angelegt werden');
+  assert.equal(api.state.modules.length, initialCount + 1);
+
+  const duplicate = api.actions.createUserModule('Mein Modul');
+  assert.equal(duplicate.id, null, 'Duplikat darf kein Modul anlegen');
+  assert.equal(duplicate.duplicate, true);
+  assert.equal(api.state.modules.length, initialCount + 1, 'Anzahl bleibt nach Duplikat gleich');
+
+  const fallback = api.actions.createUserModule('', { announce: false });
+  assert.ok(fallback.id, 'Fallback-Name sollte Modul anlegen');
+  assert.ok(fallback.usedFallback, 'Fallback-Kennzeichen sollte gesetzt sein');
+  assert.match(fallback.name, /^Modul /);
+  assert.equal(api.state.modules.length, initialCount + 2);
+
+  await flush();
+
+  api.state.modules = api.state.modules.filter((mod) => mod.id !== first.id && mod.id !== fallback.id);
+  api.actions.ensureModuleRegistryMatchesState(api.state.activeModule || null);
+});
+
 test('Backup erfüllt JSON-Schema', () => {
   const schema = JSON.parse(fs.readFileSync(schemaPath, 'utf8'));
   const ajv = new Ajv2020({ allErrors: true, strict: false });
@@ -212,6 +235,46 @@ test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
   assert.equal(sanitized.debugMode, false);
   assert.equal(sanitized.feedbackMode, 'full');
   assert.ok(report.fixes.length >= 1);
+});
+
+test('Hilfe-Dialog hält Fokus im Overlay und lässt nach dem Schließen los', async () => {
+  const { document } = dom.window;
+  const searchField = document.querySelector('#quickSearch');
+  searchField.focus();
+
+  api.actions.openHelp('quickstart');
+  await flush();
+
+  const helpDialog = document.querySelector('#helpDialog');
+  const closeBtn = document.querySelector('#helpCloseBtn');
+  await flush();
+  assert.ok(helpDialog.contains(document.activeElement), 'Fokus sollte im Hilfe-Dialog landen');
+  if (closeBtn) {
+    assert.ok(
+      document.activeElement === closeBtn || document.activeElement === helpDialog,
+      'Schließen-Button oder Dialog erhält den Startfokus'
+    );
+  }
+
+  searchField.focus();
+  searchField.dispatchEvent(new dom.window.FocusEvent('focusin', { bubbles: true, composed: true }));
+  await flush();
+  assert.ok(helpDialog.contains(document.activeElement), 'Fokus sollte im Hilfe-Dialog gehalten werden');
+  assert.notEqual(document.activeElement, searchField);
+  if (closeBtn) {
+    assert.ok(
+      document.activeElement === closeBtn || document.activeElement === helpDialog,
+      'Fokus landet auf Schließen-Button oder Dialog'
+    );
+  }
+
+  api.actions.closeHelp();
+  await flush();
+
+  searchField.focus();
+  searchField.dispatchEvent(new dom.window.FocusEvent('focusin', { bubbles: true, composed: true }));
+  await flush();
+  assert.equal(document.activeElement, searchField, 'Fokus darf nach dem Schließen frei wechseln');
 });
 
 test('Feedback-Panel sammelt Prozessmeldungen und lässt sich leeren', async () => {
