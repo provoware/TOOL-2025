@@ -590,6 +590,14 @@
   let lastConfigFocus=null;
   let isApplyingPreset=false;
   const safeStr=v=>v==null?'':String(v);const safeLower=v=>safeStr(v).toLowerCase();
+  const toBoolean=(value,fallback)=>{
+    if(typeof value==='boolean') return value;
+    const normalized=safeLower(value);
+    if(normalized==='true') return true;
+    if(normalized==='false') return false;
+    if(typeof value==='number') return value!==0;
+    return fallback;
+  };
   const escapeHtml=str=>safeStr(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
   const ALLOWED_TAGS=new Set(['a','abbr','b','blockquote','br','code','em','i','li','ol','p','pre','small','span','strong','u','ul']);
   const ALLOWED_ATTRS={a:['href','title','target','rel'],code:['class'],pre:['class'],span:['class','data-label']};
@@ -2320,7 +2328,7 @@
       }
       try{resultBox.focus({preventScroll:true});}catch(e){/* ignore focus errors */}
     }
-    function formatSummary(validState,manifest){
+    function formatSummary(validState,manifest,report){
       const fallbackStats={
         modules:validState.modules.length,
         plugins:validState.plugins.length,
@@ -2341,7 +2349,7 @@
           categories:manifest.archives.categories??fallbackStats.archives.categories
         }:fallbackStats.archives
       }:fallbackStats;
-      return `
+      const baseSummary=`
         <strong>Zusammenfassung</strong>
         <ul>
           <li>Module: <strong>${stats.modules}</strong></li>
@@ -2351,6 +2359,22 @@
           <li>Kategorien: <strong>${stats.archives.categories}</strong></li>
         </ul>
       `;
+      const collectList=items=>items.map(item=>`<li>${escapeHtml(item)}</li>`).join('');
+      if(!report) return baseSummary;
+      const sections=[];
+      if(report.fixes&&report.fixes.length){
+        sections.push(`<li><strong>Korrekturen</strong><ul>${collectList(report.fixes)}</ul></li>`);
+      }
+      if(report.warnings&&report.warnings.length){
+        sections.push(`<li><strong>Hinweise</strong><ul>${collectList(report.warnings)}</ul></li>`);
+      }
+      if(report.notes&&report.notes.length){
+        sections.push(`<li><strong>Notizen</strong><ul>${collectList(report.notes)}</ul></li>`);
+      }
+      if(sections.length===0){
+        return baseSummary+`<p class="muted">Validierung ohne zusätzliche Hinweise.</p>`;
+      }
+      return `${baseSummary}<div class="muted"><strong>Validierungsprotokoll</strong><ul>${sections.join('')}</ul></div>`;
     }
     function runCheck(source,jsonText){
       const trimmed=safeStr(jsonText).trim();
@@ -2359,9 +2383,9 @@
         announceProcess(`Backup-Prüfung (${source}) läuft…`,'info');
         const parsed=JSON.parse(trimmed);
         assertBackupSchema(parsed);
-        const sanitized=validateBackup(parsed);
+        const {state:sanitized,report}=validateBackup(parsed,{collect:true});
         const manifest=parsed.manifest;
-        showResult('ok',`Backup gültig (${source}).`,formatSummary(sanitized,manifest));
+        showResult('ok',`Backup gültig (${source}).`,formatSummary(sanitized,manifest,report));
         addLog('ok','Backup geprüft: '+source);
         announceProcess(`Backup-Prüfung erfolgreich (${source}).`,'ok');
       }catch(err){
@@ -2481,102 +2505,263 @@
   }
   function exportPlaylist(){const data=JSON.stringify(state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),null,2);download('playlist.json',data);addLog('ok','Playlist manifestiert.')}
   function importPlaylist(){const inp=document.createElement('input');inp.type='file';inp.accept='application/json';inp.addEventListener('change',()=>{const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{state.playlist.forEach(revokeIfBlob);const arr=JSON.parse(r.result||'[]');if(!Array.isArray(arr))throw new Error('Kein Array');state.playlist=arr.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:x.src}));renderPlaylist();renderStats();persist();addLog('ok','Playlist importiert.')}catch(e){addLog('error','Import-Fehler: '+e.message)}};r.readAsText(f)});inp.click()}
-  function generateManifest(){
+  function createValidationReport(){
+    const summary={fixes:[],warnings:[],notes:[]};
+    return{
+      summary,
+      fix(message){if(message)summary.fixes.push(message);},
+      warn(message){if(message)summary.warnings.push(message);},
+      note(message){if(message)summary.notes.push(message);}
+    };
+  }
+  function sanitizeStateForExport(rawState,options={}){
+    const reporter=options.reporter||createValidationReport();
+    const logLimit=typeof options.logLimit==='number'&&options.logLimit>=0?options.logLimit:300;
+    const input=isPlainObject(rawState)?rawState:{};
+    const sanitizeStringArray=arr=>{
+      if(!Array.isArray(arr))return[];
+      const seen=new Set();
+      const result=[];
+      arr.forEach(item=>{
+        const clean=safeStr(item).trim();
+        if(!clean||seen.has(clean))return;
+        seen.add(clean);
+        result.push(clean);
+      });
+      return result;
+    };
+    const sanitized={
+      theme:safeStr(input.theme).trim()||'neo',
+      autosave:toBoolean(input.autosave,true),
+      selfrepair:toBoolean(input.selfrepair,true),
+      toasts:toBoolean(input.toasts,true),
+      respectSystemMotion:toBoolean(input.respectSystemMotion,true),
+      reduceMotion:toBoolean(input.reduceMotion,systemReduceDefault),
+      respectSystemContrast:toBoolean(input.respectSystemContrast,true),
+      highContrast:toBoolean(input.highContrast,systemContrastDefault),
+      fontScale:allowedFontScales.has(Math.round(Number(input.fontScale)||0))?Math.round(Number(input.fontScale)||0):systemFontDefault()
+    };
+    const layoutMeta=getLayoutMeta(input.layoutPreset);
+    if(layoutMeta.id!==safeLower(input.layoutPreset)){
+      reporter.fix('Layout-Voreinstellung wurde auf einen gültigen Wert korrigiert.');
+    }
+    sanitized.layoutPreset=layoutMeta.id;
+    const modules=[];
+    const moduleIds=new Set();
+    const rawModules=Array.isArray(input.modules)?input.modules.filter(Boolean):[];
+    rawModules.forEach((mod,idx)=>{
+      let name=safeStr(mod&&mod.name).trim();
+      if(!name){
+        name=`Import Modul ${idx+1}`;
+        reporter.fix(`Modul ${idx+1} war unbenannt und erhielt „${name}“.`);
+      }
+      let desiredId=safeStr(mod&&mod.id).trim();
+      if(desiredId) desiredId=slugify(desiredId);
+      if(!desiredId){
+        desiredId=slugify(name)||`import-${uuid().slice(-6)}`;
+        reporter.fix(`Modul „${name}“ erhielt eine neue ID.`);
+      }
+      let finalId=desiredId;
+      let suffix=2;
+      while(moduleIds.has(finalId)){
+        finalId=slugify(`${name}-${suffix++}`)||`import-${uuid().slice(-6)}`;
+      }
+      if(finalId!==desiredId){
+        reporter.fix(`Modul-ID ${desiredId||'leer'} wurde zu ${finalId} geändert (Duplikat entfernt).`);
+      }
+      moduleIds.add(finalId);
+      modules.push({id:finalId,name});
+    });
+    sanitized.modules=modules;
+    const categories={};
+    if(isPlainObject(input.categories)){
+      Object.keys(input.categories).forEach(key=>{
+        const cleanKey=safeStr(key).trim();
+        if(!cleanKey){
+          reporter.fix('Kategorie ohne Namen wurde entfernt.');
+          return;
+        }
+        const entry=input.categories[key]&&typeof input.categories[key]==='object'?input.categories[key]:{};
+        const genres=sanitizeStringArray(entry.genres).sort((a,b)=>a.localeCompare(b));
+        const moods=sanitizeStringArray(entry.moods).sort((a,b)=>a.localeCompare(b));
+        categories[cleanKey]={genres,moods};
+      });
+    }else if(input.categories){
+      reporter.fix('Kategorien hatten ein ungültiges Format und wurden neu aufgebaut.');
+    }
+    sanitized.categories=categories;
+    sanitized.genres=sanitizeStringArray(input.genres).sort((a,b)=>a.localeCompare(b));
+    sanitized.moods=sanitizeStringArray(input.moods).sort((a,b)=>a.localeCompare(b));
+    const playlist=[];
+    const seenTracks=new Set();
+    if(Array.isArray(input.playlist)){
+      input.playlist.forEach((track,idx)=>{
+        if(!isPlainObject(track)){
+          reporter.fix(`Playlist-Eintrag ${idx+1} wurde verworfen (kein Objekt).`);
+          return;
+        }
+        const src=safeStr(track.src).trim();
+        if(!src){
+          reporter.fix(`Playlist-Eintrag ${idx+1} ohne Quelle wurde entfernt.`);
+          return;
+        }
+        let id=safeStr(track.id).trim();
+        if(!id||seenTracks.has(id)){
+          const oldId=id;
+          id=uuid();
+          if(oldId){
+            reporter.fix(`Playlist-ID ${oldId} war doppelt und wurde ersetzt.`);
+          }else{
+            reporter.fix(`Playlist-Eintrag ${idx+1} erhielt eine ID.`);
+          }
+        }
+        seenTracks.add(id);
+        playlist.push({id,title:safeStr(track.title).trim()||`Titel ${playlist.length+1}`,artist:safeStr(track.artist).trim()||'',src});
+      });
+    }else if(input.playlist){
+      reporter.fix('Playlist lag in einem ungültigen Format vor und wurde geleert.');
+    }
+    sanitized.playlist=playlist;
+    const plugins=[];
+    const pluginIds=new Set();
+    if(Array.isArray(input.plugins)){
+      input.plugins.forEach((plugin,idx)=>{
+        if(!isPlainObject(plugin)){
+          reporter.fix(`Plugin ${idx+1} wurde übersprungen (kein Objekt).`);
+          return;
+        }
+        let id=safeStr(plugin.id).trim();
+        if(!id||pluginIds.has(id)){
+          id=uuid();
+          reporter.fix(`Plugin ${safeStr(plugin.name)||`#${idx+1}`} erhielt eine neue ID.`);
+        }
+        pluginIds.add(id);
+        const name=safeStr(plugin.name).trim()||`Plugin ${idx+1}`;
+        const description=safeStr(plugin.description).trim();
+        const version=safeStr(plugin.version).trim();
+        const author=safeStr(plugin.author).trim();
+        let moduleId=safeStr(plugin.moduleId).trim();
+        if(moduleId) moduleId=slugify(moduleId);
+        if(!moduleId){
+          moduleId=slugify(`${name}-${id.slice(-6)}`)||`plugin-${id.slice(-6)}`;
+          reporter.fix(`Plugin „${name}“ erhielt eine neue Modul-ID.`);
+        }
+        const moduleName=safeStr(plugin.moduleName).trim()||`Plugin – ${name}`;
+        if(!moduleIds.has(moduleId)){
+          moduleIds.add(moduleId);
+          modules.push({id:moduleId,name:moduleName});
+          reporter.fix(`Modul „${moduleName}“ wurde für Plugin „${name}“ ergänzt.`);
+        }
+        const sections=Array.isArray(plugin.sections)?plugin.sections.map(sec=>{
+          const title=safeStr(sec&&sec.title).trim();
+          const content=safeStr(sec&&sec.content).trim();
+          if(!title&&!content)return null;
+          return{title:title||'Abschnitt',content};
+        }).filter(Boolean):[];
+        const links=Array.isArray(plugin.links)?plugin.links.map(link=>{
+          const label=safeStr(link&&link.label).trim()||safeStr(link&&link.title).trim();
+          const url=safeStr(link&&link.url).trim();
+          if(!/^https?:/i.test(url)){
+            reporter.warn(`Plugin-Link „${label||url||'unbekannt'}“ wurde entfernt (nur http/https erlaubt).`);
+            return null;
+          }
+          return{label:label||url,url};
+        }).filter(Boolean):[];
+        plugins.push({id,name,description,version,author,moduleId,moduleName,sections,links});
+      });
+    }else if(input.plugins){
+      reporter.fix('Plugin-Liste war ungültig und wurde verworfen.');
+    }
+    sanitized.plugins=plugins;
+    const activeId=safeStr(input.activeModule).trim();
+    sanitized.activeModule=activeId&&moduleIds.has(activeId)?activeId:null;
+    if(activeId&&!moduleIds.has(activeId)){
+      reporter.fix('Aktives Modul war nicht vorhanden und wurde zurückgesetzt.');
+    }
+    const rawLog=Array.isArray(input.log)?input.log.filter(Boolean):[];
+    const logEntries=[];
+    rawLog.forEach((entry,idx)=>{
+      if(!isPlainObject(entry)){
+        reporter.fix(`Logeintrag ${idx+1} war ungültig und wurde entfernt.`);
+        return;
+      }
+      const normalizedType=normalizeLogType(entry.type);
+      if(normalizedType!==safeLower(entry.type)){
+        reporter.fix(`Logeintrag ${idx+1}: Level wurde auf ${normalizedType} korrigiert.`);
+      }
+      const msg=safeStr(entry.msg).trim()||LOG_LEVELS[normalizedType].label;
+      const time=safeStr(entry.time).trim()||'--:--:--';
+      logEntries.push({time,type:normalizedType,msg});
+    });
+    const limitedLog=logLimit>0?logEntries.slice(-logLimit):[];
+    if(logEntries.length>limitedLog.length){
+      reporter.note('Log wurde gekürzt, damit die Datei schlank bleibt.');
+    }
+    sanitized.log=limitedLog;
+    const rawFilter=safeLower(input.logFilter||'');
+    sanitized.logFilter=['all','info','ok','warn','error'].includes(rawFilter)?rawFilter:'all';
+    if(sanitized.logFilter!==rawFilter&&rawFilter){
+      reporter.fix('Logfilter wurde auf „Alle“ zurückgesetzt.');
+    }
+    const presetKey=safeLower(input.configPreset||'');
+    sanitized.configPreset=CONFIG_PRESETS[presetKey]?presetKey:(findPresetMatch(sanitized)||'custom');
+    return{state:sanitized,report:reporter.summary};
+  }
+  function generateManifest(snapshot){
+    const source=snapshot||state;
+    const modules=Array.isArray(source.modules)?source.modules.map(m=>({id:m.id,name:m.name})):[];
+    const plugins=Array.isArray(source.plugins)?source.plugins.map(p=>({id:p.id,name:p.name,version:p.version||'n/a',moduleId:p.moduleId})):[];
+    const archives={
+      genres:Array.isArray(source.genres)?source.genres.length:0,
+      moods:Array.isArray(source.moods)?source.moods.length:0,
+      categories:source.categories&&typeof source.categories==='object'?Object.keys(source.categories).length:0
+    };
+    const playlistCount=Array.isArray(source.playlist)?source.playlist.length:0;
+    const configPreset=source.configPreset&&CONFIG_PRESETS[source.configPreset]?source.configPreset:(findPresetMatch(source)||'custom');
+    const layoutId=getLayoutMeta(source.layoutPreset).id;
+    const reduceMotionActive=snapshot?(source.respectSystemMotion?systemReduceDefault:!!source.reduceMotion):isReduceMotionActive();
+    const highContrastActive=snapshot?(source.respectSystemContrast?systemContrastDefault:!!source.highContrast):isHighContrastActive();
     return{
       generatedAt:new Date().toISOString(),
-      version:state.version,
-      theme:state.theme,
-      modules:state.modules.map(m=>({id:m.id,name:m.name})),
-      plugins:state.plugins.map(p=>({id:p.id,name:p.name,version:p.version||'n/a',moduleId:p.moduleId})),
-      archives:{genres:state.genres.length,moods:state.moods.length,categories:Object.keys(state.categories).length},
-      playlist:state.playlist.length,
-      settings:{autosave:!!state.autosave,selfrepair:!!state.selfrepair,toasts:state.toasts!==false,respectSystemMotion:!!state.respectSystemMotion,reduceMotion:isReduceMotionActive(),respectSystemContrast:!!state.respectSystemContrast,highContrast:isHighContrastActive(),fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom'),layoutPreset:getLayoutMeta(state.layoutPreset).id}
+      version:safeStr(source.version||state.version||'1.0.0'),
+      theme:source.theme,
+      modules,
+      plugins,
+      archives,
+      playlist:playlistCount,
+      settings:{
+        autosave:!!source.autosave,
+        selfrepair:!!source.selfrepair,
+        toasts:source.toasts!==false,
+        respectSystemMotion:!!source.respectSystemMotion,
+        reduceMotion:reduceMotionActive,
+        respectSystemContrast:!!source.respectSystemContrast,
+        highContrast:highContrastActive,
+        fontScale:allowedFontScales.has(Number(source.fontScale))?Number(source.fontScale):systemFontDefault(),
+        configPreset,
+        layoutPreset:layoutId
+      }
     };
   }
   function buildBackup(){
+    const {state:sanitized}=sanitizeStateForExport(state,{logLimit:50});
     return{
-      manifest:generateManifest(),
-      state:{
-        theme:state.theme,
-        autosave:!!state.autosave,
-        selfrepair:!!state.selfrepair,
-        toasts:state.toasts!==false,
-        respectSystemMotion:!!state.respectSystemMotion,
-        reduceMotion:!!state.reduceMotion,
-        respectSystemContrast:!!state.respectSystemContrast,
-        highContrast:!!state.highContrast,
-        fontScale:allowedFontScales.has(Number(state.fontScale))?Number(state.fontScale):systemFontDefault(),
-        modules:state.modules,
-        categories:state.categories,
-        genres:state.genres,
-        moods:state.moods,
-        playlist:state.playlist.map(({id,title,artist,src})=>({id,title,artist,src})),
-        plugins:state.plugins,
-        activeModule:state.activeModule,
-        log:state.log.slice(-50),
-        logFilter:state.logFilter||'all',
-        configPreset:state.configPreset&&CONFIG_PRESETS[state.configPreset]?state.configPreset:(findPresetMatch(state)||'custom'),
-        layoutPreset:getLayoutMeta(state.layoutPreset).id
-      }
+      manifest:generateManifest(sanitized),
+      state:sanitized
     };
   }
   function downloadManifest(){download('modultool-manifest.json',JSON.stringify(generateManifest(),null,2));addLog('ok','Manifest exportiert.');announceProcess('Manifest exportiert.','ok');}
   function exportAll(){download('modultool_backup.json',JSON.stringify(buildBackup(),null,2));addLog('ok','Backup exportiert (Manifest + Daten).');announceProcess('Backup exportiert (Manifest + Daten).','ok');}
-  function validateBackup(obj){
+  function validateBackup(obj,options){
     if(!obj||typeof obj!=='object')throw new Error('Backup hat kein Objekt');
     const statePart=obj.state;
     if(!statePart||typeof statePart!=='object')throw new Error('State fehlt');
-    const sanitizeStringArray=arr=>Array.isArray(arr)?[...new Set(arr.map(x=>safeStr(x).trim()).filter(Boolean))]:[];
-    const sanitizeModules=arr=>Array.isArray(arr)?arr.filter(Boolean).map((m,idx)=>{
-      const name=safeStr(m&&m.name).trim();
-      const fallback=`Import Modul ${idx+1}`;
-      const finalName=name||fallback;
-      let id=safeStr(m&&m.id).trim();
-      if(id) id=slugify(id);
-      if(!id) id=slugify(finalName);
-      if(!id) id=`import-${uuid().slice(-6)}`;
-      return{id,name:finalName};
-    }):[];
-    const sanitizeCategories=catObj=>{
-      if(!catObj||typeof catObj!=='object')return{};
-      const out={};
-      Object.keys(catObj).forEach(key=>{
-        const cleanKey=safeStr(key).trim();
-        if(!cleanKey)return;
-        const entry=catObj[key]&&typeof catObj[key]==='object'?catObj[key]:{};
-        const genres=sanitizeStringArray(entry.genres).sort((a,b)=>a.localeCompare(b));
-        const moods=sanitizeStringArray(entry.moods).sort((a,b)=>a.localeCompare(b));
-        out[cleanKey]={genres,moods};
-      });
-      return out;
-    };
-    const layoutMeta=getLayoutMeta(statePart.layoutPreset);
-    const sanitized={
-      theme:safeStr(statePart.theme).trim()||'neo',
-      autosave:!!statePart.autosave,
-      selfrepair:!!statePart.selfrepair,
-      toasts:statePart.toasts!==false,
-      respectSystemMotion:statePart.respectSystemMotion===undefined?true:!!statePart.respectSystemMotion,
-      reduceMotion:statePart.reduceMotion===undefined?systemReduceDefault:!!statePart.reduceMotion,
-      respectSystemContrast:statePart.respectSystemContrast===undefined?true:!!statePart.respectSystemContrast,
-      highContrast:statePart.highContrast===undefined?systemContrastDefault:!!statePart.highContrast,
-      fontScale:allowedFontScales.has(Math.round(Number(statePart.fontScale)||0))?Math.round(Number(statePart.fontScale)||0):systemFontDefault(),
-      layoutPreset:layoutMeta.id,
-      modules:sanitizeModules(statePart.modules),
-      categories:sanitizeCategories(statePart.categories),
-      genres:sanitizeStringArray(statePart.genres).sort((a,b)=>a.localeCompare(b)),
-      moods:sanitizeStringArray(statePart.moods).sort((a,b)=>a.localeCompare(b)),
-      playlist:Array.isArray(statePart.playlist)?statePart.playlist.filter(x=>x&&x.src).map(x=>({id:x.id||uuid(),title:safeStr(x.title)||'Unbenannt',artist:safeStr(x.artist)||'',src:safeStr(x.src)})):[],
-      plugins:Array.isArray(statePart.plugins)?statePart.plugins:[],
-      activeModule:statePart.activeModule||null,
-      log:Array.isArray(statePart.log)?statePart.log:[],
-      logFilter:['all','info','ok','warn','error'].includes(statePart.logFilter)?statePart.logFilter:'all'
-    };
-    const rawPreset=safeLower(statePart.configPreset);
-    const detectedPreset=CONFIG_PRESETS[rawPreset]?rawPreset:(findPresetMatch(sanitized)||'custom');
-    sanitized.configPreset=detectedPreset;
-    sanitized.layoutPreset=layoutMeta.id;
-    return sanitized;
+    const reporter=createValidationReport();
+    const result=sanitizeStateForExport(statePart,{reporter});
+    if(options&&options.collect){
+      return{state:result.state,report:reporter.summary};
+    }
+    return result.state;
   }
   function pluginToSerializable(plugin){
     if(!plugin)return{};
@@ -2608,27 +2793,8 @@
         state.playlist.forEach(revokeIfBlob);
         const raw=JSON.parse(r.result||'{}');
         assertBackupSchema(raw);
-        const valid=validateBackup(raw);
-        state.theme=valid.theme;
-        state.autosave=valid.autosave;
-        state.selfrepair=valid.selfrepair;
-        state.toasts=valid.toasts;
-        state.respectSystemMotion=valid.respectSystemMotion;
-        state.reduceMotion=valid.reduceMotion;
-        state.respectSystemContrast=valid.respectSystemContrast;
-        state.highContrast=valid.highContrast;
-        state.fontScale=valid.fontScale;
-        state.modules=valid.modules;
-        state.categories=valid.categories;
-        state.genres=valid.genres;
-        state.moods=valid.moods;
-        state.playlist=valid.playlist;
-        state.plugins=valid.plugins;
-        state.activeModule=valid.activeModule;
-        state.log=valid.log;
-        state.logFilter=valid.logFilter;
-        state.configPreset=valid.configPreset;
-        state.layoutPreset=valid.layoutPreset;
+        const {state:valid,report}=validateBackup(raw,{collect:true});
+        Object.assign(state,valid);
         applyLayoutPreset(state.layoutPreset,{announceSelection:false});
         selfRepair();
         applyLayoutPreset(state.layoutPreset,{announceSelection:false});
@@ -2636,7 +2802,15 @@
         renderAll();
         persist();
         addLog('ok','Gesamtdaten importiert.');
-        announceProcess('Import abgeschlossen.','ok');
+        const corrections=[];
+        if(report){
+          if(report.fixes.length)corrections.push(`${report.fixes.length} Korrektur${report.fixes.length===1?'':'en'}`);
+          if(report.warnings.length)corrections.push(`${report.warnings.length} Hinweis${report.warnings.length===1?'':'e'}`);
+        }
+        if(corrections.length){
+          addLog('warn','Import: '+corrections.join(' & ')+' automatisch umgesetzt.');
+        }
+        announceProcess('Import abgeschlossen'+(corrections.length?` – ${corrections.join(' & ')}`:'.'),'ok');
       }catch(e){
         addLog('error','Import-Fehler: '+e.message);
         announceProcess('Import fehlgeschlagen: '+(e&&e.message?e.message:'Unbekannt'),'error','assertive');

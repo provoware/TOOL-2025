@@ -19,6 +19,7 @@
 - [ ] Transaktions-Log mit Undo/Redo auf Datenebene implementieren (append-only, mit vor/nachher-Werten)
 - [ ] Atomare Schreibstrategie mit Versionstempel und Migrationstracking etablieren (tmp-Datei → Commit)
 - [ ] Konfliktfreie Dateinamen-Strategie (z. B. `_v001`/Zeitstempel) für Exporte und Backups implementieren
+- [ ] Validierungsreport zusätzlich als JSON-Datei exportieren und Undo-Pfade dokumentieren
 
 ## Sicherheit & Sanitizing
 - [ ] Eingaben härten und Sanitizing für HTML/Clipboard-Inhalte mit Whitelisting ergänzen (z. B. DOMPurify-Äquivalent offline)
@@ -121,3 +122,4 @@
 - [x] Log-Level-Design vereinheitlicht (Icons, Farbcodierung, Info-Filter)
 - [x] Sichtbarkeits-Assistent für Bereiche & Fenster (Mini-Vorschau, Klartextstatus, Schnellbuttons) ergänzt
 - [x] Layout-Presets inklusive Backup-/Manifest-Unterstützung und Statusmeldungen implementiert (Buttons für Ausgewogen, Module/Audio-Fokus, Arbeitsfläche, Stapeln)
+- [x] Validierungsreport für Backup/Import eingeführt (sanitizeStateForExport, Report-Anzeige im Prüfmodul, Import-Log-Hinweise)

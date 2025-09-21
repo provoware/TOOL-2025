@@ -105,6 +105,78 @@ test('Backup erfüllt JSON-Schema', () => {
   }
 });
 
+test('validateBackup liefert Bericht und korrigiert doppelte Einträge', () => {
+  const dirtyBackup = {
+    state: {
+      theme: 'neo',
+      autosave: true,
+      selfrepair: true,
+      toasts: true,
+      respectSystemMotion: true,
+      reduceMotion: false,
+      respectSystemContrast: true,
+      highContrast: false,
+      fontScale: 16,
+      configPreset: 'custom',
+      layoutPreset: 'balanced',
+      modules: [
+        { id: 'dup', name: 'Alpha' },
+        { id: 'dup', name: 'Beta' }
+      ],
+      categories: {
+        ' ': { genres: ['Rock', 'Rock'], moods: ['Calm'] },
+        Focus: { genres: ['Deep', 'Deep'], moods: ['Chill', 'Chill'] }
+      },
+      genres: ['Rock', 'Rock', 'Pop'],
+      moods: ['Chill', 'Chill'],
+      playlist: [
+        { id: 'track', title: 'Song A', artist: 'Artist', src: 'track-a.mp3' },
+        { id: 'track', title: 'Song B', artist: 'Artist', src: 'track-b.mp3' }
+      ],
+      plugins: [
+        {
+          id: 'plugin-1',
+          name: 'Plugin One',
+          description: 'desc',
+          version: '1.0.0',
+          author: 'Author',
+          moduleId: 'dup',
+          moduleName: 'Modul Name',
+          sections: [{ title: '', content: 'Info' }],
+          links: [
+            { label: 'Site', url: 'ftp://invalid' },
+            { label: 'Ok', url: 'https://valid.local' }
+          ]
+        }
+      ],
+      activeModule: 'missing',
+      log: [
+        { time: '', type: 'INFO', msg: '' },
+        { time: '12:00:00', type: 'warn', msg: 'Warnung' },
+        null
+      ],
+      logFilter: 'all'
+    }
+  };
+
+  const { state: sanitized, report } = api.actions.validateBackup(dirtyBackup, { collect: true });
+
+  assert.ok(Array.isArray(sanitized.modules));
+  const moduleIds = new Set(sanitized.modules.map((m) => m.id));
+  assert.equal(moduleIds.size, sanitized.modules.length);
+  assert.ok(!Object.prototype.hasOwnProperty.call(sanitized.categories, ''));
+  assert.ok(Array.isArray(sanitized.genres));
+  assert.deepStrictEqual(Array.from(sanitized.genres), ['Pop', 'Rock']);
+  assert.deepStrictEqual(Array.from(sanitized.categories.Focus.genres), ['Deep']);
+  assert.equal(new Set(sanitized.playlist.map((t) => t.id)).size, sanitized.playlist.length);
+  assert.equal(sanitized.plugins.length, 1);
+  assert.equal(sanitized.plugins[0].links.length, 1);
+  assert.match(sanitized.plugins[0].links[0].url, /^https?:/);
+  assert.equal(sanitized.activeModule, null);
+  assert.equal(sanitized.log.length, 2);
+  assert.ok(report.fixes.length >= 1);
+});
+
 test('Layout-Preset steuert Seitenleisten und landet im Backup', async () => {
   api.actions.applyLayoutPreset('audio-only', { announceSelection: false, persistChange: false });
   await flush();

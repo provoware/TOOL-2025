@@ -28,6 +28,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - **Versionierung:** `state.version` existiert, Migrationen werden nicht dokumentiert oder automatisiert.
 - **Persistenzpfad:** `localStorage` + `JSON.stringify`. Kein atomarer Commit, keine Fehlerbehandlung bei Quoten oder beschädigten Backups.
 - **Backup-Qualität:** Neues JSON-Schema deckt Pflichtfelder, Typen und Link-Validierung ab. Ergänzt durch UI-Prüfmodul.
+- **Neu:** Validierungsreport fasst doppelte IDs, Playlist-Konflikte und bereinigte Logeinträge zusammen, zeigt sie laienverständlich im Backup-Prüfmodul an und speichert sie im Import-Log.
 - **Empfohlene Maßnahmen:** Transaktionslog (append-only), Wiederherstellungsplan mit Migrationsliste, atomare Writes über temporäre Schlüssel, Undo/Redo-Stack, Dateinamens-Policy (`name_v001.json`).
 
 ## 5. Sicherheits- und Compliance-Status
@@ -100,6 +101,7 @@ Das ModulTool adressiert Creator und Kuratoren, die offline Inhalte strukturiere
 - Konfigurations-Assistent mit Preset-Buttons, laienverständlichen Beschreibungen, synchronisierten Checkboxen und Klartext-Zusammenfassung implementiert.
 - Layout-Steuerung mit sieben Buttons (Ausgewogen bis Übereinander) inklusive Backup-/Manifest-Unterstützung und Statusmeldungen ergänzt.
 - Sichtbarkeits-Assistent für Bereiche & Fenster (Mini-Preview, Klartextstatus, Schnellbuttons) mit Tests zur laiengerechten Erklärung implementiert.
+- Validierungs- und Import-Workflow erkennt nun doppelte IDs, ungültige Links sowie fehlende Quellen, fasst Korrekturen im Log zusammen und zeigt sie im Backup-Prüfmodul an.
 
 ## 15. Nächste Schritte (Top 5)
 1. **Architektur neu schneiden:** UI in modulare Komponenten überführen, Event-Bus + Statecharts einbauen, Services isolieren.

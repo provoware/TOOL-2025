@@ -98,7 +98,8 @@ TOOL-2025/
 
 ## 11. Datenexport, Manifest & Backup
 - **Manifest:** Zusammenfassung des Zustands (Version, Theme, Statistiken) via Button.
-- **Backup:** Enthält Manifest + bereinigte Daten (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter, Layout-Preset). Import verwendet `assertBackupSchema` + Normalisierung.
+- **Backup:** Enthält Manifest + bereinigte Daten (Module, Kategorien, Genres, Moods, Playlist, Plugins, Logs, Log-Filter, Layout-Preset). Export nutzt `sanitizeStateForExport(state,{logLimit:50})` bevor `generateManifest()` und Datei-Download erfolgen.
+- **Import & Validierung:** `validateBackup(raw,{collect:true})` ruft dieselbe Normalisierung auf, liefert ein Report-Objekt (`fixes`, `warnings`, `notes`) und wird im Backup-Prüfmodul sowie beim Import-Log ausgegeben. `Object.assign(state, validState)` übernimmt die Sanitizergebnisse, danach laufen Self-Repair, Layout-Synchronisierung und Plugin-Registry.
 - **Backup-Prüfmodul:** UI-Modul mit Schema-Validierung, Fehlerlisten, Statistiken und Statusmeldungen über `aria-live`; Ergebnisse werden fokussiert und `announceProcess()` kündigt Start/Erfolg/Fehler an.
 - **Dateinamenspolitik:** Noch offen – empfohlen sind inkrementelle Suffixe (`_v001`) und Signaturen.
 
