@@ -1,5 +1,22 @@
 # TOOL-2025 ToDo
 Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und rechts auf und zuklappbare sidebars und teile alles neu auf. analysiere dafür die perfekteste methode
+
+## Aktueller Fokus (Kurzfristig)
+- [ ] Portable Startpakete samt Signaturkette vorbereiten
+  - [ ] Starter-Skripte für Windows/macOS/Linux ableiten (Node-Packer oder Shell/BAT)
+  - [ ] Prüfsummen (SHA256) und Signaturnachweise im Tool anzeigen
+- [ ] Event-Statecharts für Import/Export und Wiedergabe modellieren
+  - [ ] Zustände und Übergänge im Dokumentationsordner visualisieren
+  - [ ] Ereignis-Logging (EVENT:*) mit klaren Fehlermeldungen verknüpfen
+- [ ] Kontextbezogene Hilfetexte erweitern
+  - [ ] Tooltips und Hilfe-Dialoge pro Modul aktualisieren
+  - [ ] Fokusfallen und Tastaturpfade dokumentieren
+
+## Analyse offener Punkte
+- Portable Startpakete benötigen eine nachvollziehbare Prüfkette, damit Offline-Nutzende den Download vertrauen können.
+- Die Build-/Signaturkette muss in CI integriert werden, um Manipulationen zu verhindern und reproduzierbare Artefakte zu liefern.
+- Event-Statecharts helfen, Race-Conditions in Import/Export und Playback aufzudecken und erleichtern Logging sowie Tests.
+- Kontextbezogene Hilfetexte steigern die Bedienbarkeit für Laien und sorgen für konsistente Microcopy.
 1. **Architektur & Modularisierung**
    1.1 Zerschneidung des Inline-Monolithen (`/index.html`) in klar abgegrenzte Module: `src/app/bootstrap.js`, `src/app/state.js`, `src/app/ui/*.js`, `src/app/services/*.js`.
    1.2 Einführung einer sauberen **Composition-Root** (`src/main.js`), die exakt eine `init()` ausführt und DI-ähnlich Abhängigkeiten injiziert.
@@ -286,6 +303,7 @@ Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und recht
 - [ ] Sichere Importe/Exporte mit Dry-Run, Sanitizing und Signaturen bereitstellen
 
 ## Abgeschlossene Arbeiten
+- [x] Info-Dateien bereinigt und laienfreundlich strukturiert
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [x] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen (Playlist steuerbar, Dropzone klick- und tastaturfähig)
