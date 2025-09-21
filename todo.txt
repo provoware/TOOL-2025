@@ -1,0 +1,110 @@
+# TOOL-2025 ToDo
+
+## Offene Basisarbeiten
+- [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
+- [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
+- [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
+- [ ] Sandbox-Iframes dynamisch in der Höhe anpassen (Resize ohne Same-Origin, z. B. via `postMessage`)
+
+## Vertiefte Architektur & Modularität
+- [ ] Schichtenarchitektur definieren (UI ↔ State ↔ Services) und Übergaben über klar dokumentierte Events entkoppeln
+- [ ] Event-Bus (Pub/Sub) als zentrale Kommunikationsschicht einführen und globale Funktionsaufrufe ablösen
+- [ ] Zustandsmaschinen (Statecharts) für kritische Abläufe wie Import, Drag & Drop und Playback modellieren und testen
+- [ ] Stabilen Plugin-Contract (Mini-SDK mit Lifecycle, Manifest, Datenschema) festschreiben und dokumentieren
+- [ ] Plugin-Capabilities und Berechtigungen aushandeln (Capability-Matrix, Version-Kompatibilität, Fallbacks)
+- [ ] Trusted Types und strikt modularisierte Bundles vorbereiten, um CSP ohne `unsafe-inline` einzuhalten
+
+## Daten, IDs & Persistenz
+- [ ] Stabile IDs (UUIDv4/ULID) für alle Entities einführen und Kollisionstests samt Index-Map aufsetzen
+- [ ] Transaktions-Log mit Undo/Redo auf Datenebene implementieren (append-only, mit vor/nachher-Werten)
+- [ ] Atomare Schreibstrategie mit Versionstempel und Migrationstracking etablieren (tmp-Datei → Commit)
+- [ ] Konfliktfreie Dateinamen-Strategie (z. B. `_v001`/Zeitstempel) für Exporte und Backups implementieren
+
+## Sicherheit & Sanitizing
+- [ ] Eingaben härten und Sanitizing für HTML/Clipboard-Inhalte mit Whitelisting ergänzen (z. B. DOMPurify-Äquivalent offline)
+- [ ] MIME- und Signaturprüfung bei Drag & Drop/Import ergänzen (Header-Sniffing + Endungsabgleich mit Nutzerhinweis)
+- [ ] Lokales Rechte-/Berechtigungsmodell mit Schreibschutz-Flag, Bestätigungen und Papierkorb (TTL) einführen
+- [ ] Trusted Types, CSP-Reporting und Reporting-API integrieren, um Inline-Skripte dauerhaft zu blocken
+- [ ] Threat-Model (STRIDE) ausarbeiten und Sicherheitsmaßnahmen jährlich überprüfen
+
+## Barrierefreiheit (A11y) – Advanced
+- [ ] System-Preferences respektieren (`prefers-reduced-motion`, `prefers-contrast`) und passende UI-Schalter anbieten
+- [ ] Fokus-Outline-Design und Fokusfallen prüfen (sichtbare `:focus-visible`, Escape schließt Dialoge zuverlässig)
+- [ ] Live-Regionen (`aria-live`) für lange Prozesse und Fehlermeldungen etablieren
+- [ ] Skalierbare Schriftgrößen (14/16/18/20 px) und max. Zeilenlänge (≤ 75 Zeichen) konfigurieren
+- [ ] Escape-Mechanismus für alle Dialoge ergänzen und Fokusfallen verhindern (Focus-Trap mit Exit)
+- [ ] Screenreader-Text für Self-Repair, Backup-Prüfung und Logmeldungen verbessern
+
+## UX & Microcopy
+- [ ] Leere Zustände mit erklärenden Texten und „Jetzt hinzufügen“-Aktionen bereitstellen, inkl. Skelett-Loadern
+- [ ] Farbsemantik vereinheitlichen (Grün=Erfolg, Blau=Info, Orange=Aktion, Rot=Fehler) und pro Modul nur einen Akzent nutzen
+- [ ] Tastaturkürzel-Overlay/Spickzettel mit Navigation, Suche, Undo/Redo und Export anbieten
+- [ ] Onboarding-Assistent mit Schritt-für-Schritt-Erklärungen, Beispieldaten und Feedback-Schleifen implementieren
+- [ ] Kontextuelle Hilfetexte und Tooltips standardisieren (Microcopy-Styleguide)
+
+## Performance & Robustheit
+- [ ] Rechenintensive Aufgaben (JSON-Validierung, Datei-Scans, Wellenformen) in Web-Worker auslagern
+- [ ] Performance-Budgets (z. B. TTI < 1,5 s, Interaktionslatenz < 100 ms) definieren und messen
+- [ ] Resize/Scroll/Drag-Events mit Debounce/Throttle absichern (16–32 ms Throttle, 150–250 ms Debounce)
+- [ ] Speicher-Wächter für LocalStorage/Dateigrößen integrieren und Nutzer-Fallbacks anbieten
+- [ ] Performance-Monitoring mit `performance.now()`-Messpunkten und Reporting-Dashboard aufbauen
+- [ ] Worker-Bridge für Sanitizing, Schema-Validierung und Audio-Vorverarbeitung designen
+
+## Audio-Engine
+- [ ] Autoplay-Policies respektieren (erstes Abspielen nur nach Nutzergeste, visuelle Freigabe anzeigen)
+- [ ] Audio-Latenz & Puffer-Management optimieren (lazy AudioContext, Preload, Fehlerpfade)
+- [ ] Marker/Regions mit IDs, Zeitbereichen und Labels persistieren
+- [ ] Audio-Diagnosemodus mit Latenzmessung, Fehlerlogging und Nutzerhinweisen entwickeln
+
+## Tests – Advanced
+- [ ] Property-Based-Tests (z. B. mit fast-check) für State- und Importpfade ergänzen
+- [ ] Visuelle Regressionstests (Pixel-Diff/Screenshot) für kritische Screens etablieren
+- [ ] A11y-Snapshot-Tests (axe-Regeln) automatisieren und in die CI aufnehmen
+- [ ] Performance-Smoke-Test (Key-Flows messen und gegen Budgets prüfen) implementieren
+- [ ] Playwright-End-to-End-Flows für Import/Export, Plugin-Install und Playlist-Steuerung automatisieren
+- [ ] Pa11y/axe A11y-Regressionen in CI einhängen
+- [ ] Performance-Smoke-Test in CI mit Budget-Grenzen (Lighthouse, Web Vitals) verankern
+
+## Build/Release & Offline-Verteilung
+- [ ] Reproduzierbare Builds mit deterministischer Minifizierung und Build-Hash im Footer erzeugen
+- [ ] Release-Pakete lokal signieren (SHA256 + Signaturdatei) und Integritätsanzeige im Tool ergänzen
+- [ ] Mehrformat-Exporte (JSON, TXT, optional PDF) offline generieren
+- [ ] Service Worker + PWA-Manifest für Offline-Distribution vorbereiten
+- [ ] Release-Playbook dokumentieren (Build, Signatur, QA, Auslieferung)
+- [ ] Integritätsanzeige im Tool („Signatur geprüft“) ergänzen
+
+## Dokumentation & Governance
+- [ ] Leichtes Threat-Model (STRIDE-Checkliste) erstellen und Gegenmaßnahmen notieren
+- [ ] Code-Hausordnung/Styleguide (Dateinamen, Funktionen, Kommentare, Fehlercodes) veröffentlichen
+- [ ] Benutzer-Richtlinien zum Offline-Datenschutz (Was wird gespeichert? Wo? Wie löschen?) ausarbeiten
+- [ ] Governance-Checkliste für Reviews (Security, A11y, Performance, Tests, Doku) einführen
+- [ ] Wissensdatenbank mit FAQ, Troubleshooting, Release-Historie aufbauen
+
+## Logging & Monitoring
+- [ ] Log-Level vereinheitlichen (`debug`, `info`, `warn`, `error`) und strukturierte Payloads einführen
+- [ ] Audit-Log für kritische Events (Import, Export, Plugin-Änderungen) erzeugen und exportierbar machen
+- [ ] Telemetrie-Option (opt-in) für anonymisierte Nutzungsstatistiken evaluieren
+
+## Priorisierte Empfehlungen (Pro-Stufe)
+- [ ] Transaktions-Kernel mit Undo/Redo, stabilen IDs, atomaren Writes und Migrationen entwickeln
+- [ ] A11y-Advanced inkl. System-Preferences, starken Fokus-Styling und Live-Regionen fertigstellen
+- [ ] Event-Bus plus Statecharts für Import/Export, DnD und Playback etablieren
+- [ ] Worker-basierte Schwerarbeit und Performance-Budgets umsetzen
+- [ ] Sichere Importe/Exporte mit Dry-Run, Sanitizing und Signaturen bereitstellen
+
+## Abgeschlossene Arbeiten
+- [x] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen (Playlist steuerbar, Dropzone klick- und tastaturfähig)
+- [x] JSON-Validierung für Importfunktionen implementieren (Grundchecks & Playlist-Säuberung aktiv, Schema folgt)
+- [x] Logging verbessern (Filter & Hinweise ergänzt, Level-Standardisierung erweitern)
+- [x] Dokumentation für Anwender und Plugins ergänzen (Manifest/Plugin-Anleitung hinzugefügt)
+- [x] Plugin-Export direkt im Manager ergänzen (bereinigtes JSON)
+- [x] Backup-Import verschärfen (Module/Kategorien deduplizieren & sanitisieren)
+- [x] Persistente Module registrieren (Platzhalter-Renderer nach Self-Repair & Import)
+- [x] Plugin-Tests automatisieren (Unit- und Smoke-Tests für Import/Entfernen)
+- [x] Backup-Schema formalisieren (JSON-Schema definieren & CI-Prüfung)
+- [x] Accessibility-Shortcuts erweitern (Playlist per Tastatur sortieren)
+- [x] Playlist-Shortcuts automatisiert testen (Playwright-Szenarien vorbereiten)
+- [x] Backup-Schema direkt im Tool prüfen (AJV im Browser oder leichtgewichtiges Schema-Checking)
+- [x] Plugin-Module aus HTML-Inhalten gegen Skripte absichern (z. B. Sanitizer oder Render-Sandbox)
+- [x] CSP und Sandbox-Konzept für Plugins definieren (iframe/Web-Worker prüfen)
+- [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
