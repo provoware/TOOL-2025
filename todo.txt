@@ -336,6 +336,8 @@
 - [x] Feedback-Badge mit Zeitstempel, `guardAction`-Helper, Plugin-Vorprüfung und Debug-Download ergänzt; `npm test` läuft jetzt automatisch mit `npm run lint` (pretest)
 - [x] Log-Zusammenfassung liefert Filter-/Anzahl-/Letzte-Meldung-Klartext (sichtbar + Screenreader) und Self-Repair meldet Ergebnisse über das Prozessbanner
 - [x] Event-Bus & State-Digest implementiert (STATE_CHANGED/LOG_ADDED Events, gekürzte Autosave-Snapshots, Screenreader-Live-Status)
+- [x] Start-Routine liefert strukturierte Ereignis-Logs inklusive Datei-Check, Port-Scan und Browser-Feedback (CLI-Workflow aktualisiert)
+- [x] Dashboard-Karten erhielten responsives Grid mit Maximalbreite, Hover-Fokus und feineren Abständen für Seitenleisten und Footer
 - [ ] Inline-Skripte ablösen, damit die CSP ohne `'unsafe-inline'` auskommt (Build-Setup vorbereiten)
 - [ ] Sandbox-Iframes dynamisch in der Höhe anpassen (Resize ohne Same-Origin, z. B. via `postMessage`)
 - [x] Plugin-spezifische Node-Tests ergänzen (Import-Fehler, Entfernen, Registry)
