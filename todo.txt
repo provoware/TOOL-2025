@@ -307,6 +307,9 @@
 - [x] Feedback-Toolbar neu strukturiert (Filter-Panel, Schnellaktionen, Klartext-Zusammenfassung)
 - [x] Legacy-`if(false)`-Fallback endgültig entfernt (nur moderne Skripte aktiv)
 - [x] Info-Dateien bereinigt und laienfreundlich strukturiert
+- [x] Lint-Setup ergänzt (`eslint-plugin-html` installiert, Parser auf Module umgestellt)
+- [x] Start-Routine in modulare StartPipeline mit Reporter-, Browser- und Server-Helfern überführt (Signal-Stop, Auto-Install)
+- [x] Workspace-Dashboard in festes 2:1-Raster überführt (Canvas bleibt groß, Karten rechts gestapelt)
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten
 - [x] Barrierefreiheit prüfen und Tastatur-Alternativen für Drag & Drop schaffen (Playlist steuerbar, Dropzone klick- und tastaturfähig)

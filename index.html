@@ -159,8 +159,15 @@
   .workspace{height:100%;padding:var(--gap);display:flex;flex-direction:column;gap:var(--gap)}
   .workspace-head{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:center;justify-content:space-between}
   .workspace-toggle-bar{display:flex;flex-wrap:wrap;gap:8px}
-  .workspace-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(auto-fit,minmax(280px,1fr));grid-auto-rows:minmax(220px,auto)}
+  .workspace-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(auto-fit,minmax(280px,1fr));grid-auto-rows:minmax(220px,auto);align-items:start}
   @media (max-width:1100px){.workspace-grid{grid-template-columns:repeat(auto-fit,minmax(240px,1fr))}}
+  @media (min-width:1200px){
+    .workspace-grid{grid-template-columns:minmax(0,1.45fr) minmax(0,1fr);grid-template-areas:"canvas modules" "canvas playlist" "canvas activity";grid-auto-rows:minmax(200px,auto)}
+    .workspace-card[data-grid-area="canvas"]{grid-area:canvas;min-height:100%}
+    .workspace-card[data-grid-area="modules"]{grid-area:modules}
+    .workspace-card[data-grid-area="playlist"]{grid-area:playlist}
+    .workspace-card[data-grid-area="activity"]{grid-area:activity}
+  }
   .workspace-card{background:linear-gradient(160deg,var(--panel) 0%,rgba(255,255,255,.02) 100%);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px;display:flex;flex-direction:column;gap:12px;min-height:220px;transition:transform .2s ease,box-shadow .2s ease}
   .workspace-card:focus-within,.workspace-card:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.2)}
   .workspace-card header{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -585,7 +592,7 @@
         </div>
       </div>
       <div class="workspace-grid" id="workspaceGrid">
-        <section class="workspace-card workspace-card--canvas" aria-labelledby="workspaceCanvasTitle">
+        <section class="workspace-card workspace-card--canvas" data-grid-area="canvas" aria-labelledby="workspaceCanvasTitle">
           <header>
             <h3 id="workspaceCanvasTitle">Arbeitsfläche</h3>
             <div class="row" style="gap:6px">
@@ -602,7 +609,7 @@
             <p class="workspace-summary" id="workspaceCanvasHint">Nutze die Buttons, um Module zu öffnen, Audio zu starten oder das komplette Log zu prüfen.</p>
           </div>
         </section>
-        <section class="workspace-card" aria-labelledby="workspaceModulesTitle">
+        <section class="workspace-card" data-grid-area="modules" aria-labelledby="workspaceModulesTitle">
           <header>
             <h3 id="workspaceModulesTitle">Modul-Überblick</h3>
             <span class="workspace-metric" id="workspaceModuleCount">0 Module</span>
@@ -612,7 +619,7 @@
           <p class="workspace-empty" id="workspaceModuleEmpty">Noch keine Module vorhanden. Über das Eingabefeld links kannst du jederzeit ein neues Modul anlegen.</p>
           <button type="button" class="btn inline" id="workspaceOpenModulesBtn">Zur Modulliste springen</button>
         </section>
-        <section class="workspace-card" aria-labelledby="workspacePlaylistTitle">
+        <section class="workspace-card" data-grid-area="playlist" aria-labelledby="workspacePlaylistTitle">
           <header>
             <h3 id="workspacePlaylistTitle">Audio & Playlist</h3>
             <span class="workspace-metric" id="workspacePlaylistCount">0 Titel</span>
@@ -622,7 +629,7 @@
           <p class="workspace-empty" id="workspacePlaylistEmpty">Noch keine Titel geladen. Nutze Import oder Drag & Drop, um Musik hinzuzufügen.</p>
           <button type="button" class="btn inline" id="workspacePlaylistFocusBtn">Zur Playlist springen</button>
         </section>
-        <section class="workspace-card" aria-labelledby="workspaceActivityTitle">
+        <section class="workspace-card" data-grid-area="activity" aria-labelledby="workspaceActivityTitle">
           <header>
             <h3 id="workspaceActivityTitle">Aktionsprotokoll</h3>
             <button type="button" class="btn inline" id="workspaceShowLogBtn">Komplettes Log anzeigen</button>
@@ -1041,7 +1048,6 @@ import { createPersistentSet } from './src/app/persistent-set.js';
   const debugRefreshBtn=$('#debugRefreshBtn');
   const debugCopyBtn=$('#debugCopyBtn');
   const debugDownloadBtn=$('#debugDownloadBtn');
-  const workspaceGrid=$('#workspaceGrid');
   const workspaceModuleCount=$('#workspaceModuleCount');
   const workspaceModuleSummary=$('#workspaceModuleSummary');
   const workspaceModuleList=$('#workspaceModuleList');
@@ -1788,25 +1794,25 @@ import { createPersistentSet } from './src/app/persistent-set.js';
     }
   }
   eventBus.subscribe(EVENT_NAMES.STATE_CHANGED,()=>{renderWorkspaceGrid();});
-  if(typeof renderLog==='function'){
-    const originalRenderLog=renderLog;
-    renderLog=function renderLogWithWorkspace(){
+  if(typeof window!=='undefined'&&typeof window.renderLog==='function'){
+    const originalRenderLog=window.renderLog;
+    window.renderLog=function renderLogWithWorkspace(){
       const result=originalRenderLog.apply(this,arguments);
       renderWorkspaceActivityCard();
       return result;
     };
   }
-  if(typeof renderModules==='function'){
-    const originalRenderModules=renderModules;
-    renderModules=function renderModulesWithWorkspace(){
+  if(typeof window!=='undefined'&&typeof window.renderModules==='function'){
+    const originalRenderModules=window.renderModules;
+    window.renderModules=function renderModulesWithWorkspace(){
       const result=originalRenderModules.apply(this,arguments);
       renderWorkspaceModulesCard();
       return result;
     };
   }
-  if(typeof renderPlaylist==='function'){
-    const originalRenderPlaylist=renderPlaylist;
-    renderPlaylist=function renderPlaylistWithWorkspace(){
+  if(typeof window!=='undefined'&&typeof window.renderPlaylist==='function'){
+    const originalRenderPlaylist=window.renderPlaylist;
+    window.renderPlaylist=function renderPlaylistWithWorkspace(){
       const result=originalRenderPlaylist.apply(this,arguments);
       renderWorkspacePlaylistCard();
       return result;
