@@ -1,3 +1,6 @@
-Release-Fortschritt: 89 %
-Stand: 2025-09-23
-Einschätzung: Das Hilfe-Center enthält jetzt ein Kapitel „Einstellungen sichern & teilen“, das Export- und Import-Schritte erklärt, Buttons direkt ausführt und den neuen Node-Test abdeckt. Analyse- und Entwicklerdoku wurden aktualisiert, das ToDo markiert und die Konfigurationssicherung ist für Laien zentral auffindbar. Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts und kontextbezogene Hilfetexte für weitere Dialoge.
+Release-Fortschritt: 90 %
+Stand: 2025-09-24
+Einschätzung: Die Info-Dateien wurden laienfreundlich überarbeitet.
+Sie zeigen jetzt klar die Start-, Test- und Diagnosepfade mit einheitlichen Ereignis-Logs.
+Die Dokumentation stützt sich direkt auf die bestehenden Startskripte und reduziert Redundanzen.
+Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge.

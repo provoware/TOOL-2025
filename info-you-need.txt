@@ -1,42 +1,48 @@
-# Info you need
+# Wichtige Infos für den Start
 
 ## Voraussetzungen
-- Node.js (>= 20.x) installieren und im Pfad verfügbar machen.
-- npm (wird mit Node ausgeliefert).
+- Node.js (JavaScript-Laufzeitumgebung) ab Version 20 installieren und im System-Pfad belassen.
+- npm (Paketverwaltung für Node.js, wird automatisch mitinstalliert).
 
 ## Projekt vorbereiten
-```bash
-npm install
-```
+1. Wechsle ins Projektverzeichnis.
+2. Installiere die Abhängigkeiten:
+   ```bash
+   npm install
+   ```
 
-## Tool starten (ein Datei-Befehl für Laien)
-```bash
-npm start
-```
-Der Startbefehl richtet automatisch die Standardordner ein, startet den lokalen Server und öffnet deinen Browser mit dem ModulTool.
+## Tool starten
+- Standardweg (empfohlen):
+  ```bash
+  npm start
+  ```
+  Dieser Befehl prüft die Ordnerstruktur, startet den lokalen Server (Entwicklungsserver) und öffnet den Browser automatisch.
+- Direkter Node-Aufruf:
+  ```bash
+  node tools/start-tool.js
+  ```
+  Der Direktaufruf erledigt dieselben Schritte wie `npm start` und eignet sich für Skript- oder Portable-Setups.
 
-Falls du kein npm verwenden möchtest:
-```bash
-node tools/start-tool.js
-```
-Auch dieser Direktaufruf erledigt alles automatisch (Ordnerprüfung, Server, Browser).
+## Tests und Prüfungen
+- Gesamte Testkette (führt vorher automatisch den Code-Qualitätscheck aus):
+  ```bash
+  npm test
+  ```
+- Nur Code-Qualität (Linting = statische Code-Prüfung):
+  ```bash
+  npm run lint
+  ```
+- Kompletter Projektcheck (Alias für `npm test`):
+  ```bash
+  npm run verify
+  ```
 
-## Tests ausführen (führt automatisch `npm run lint` via `pretest` aus)
-```bash
-npm test
-```
-
-## Code-Qualität prüfen
-```bash
-npm run lint
-```
-
-## Alles prüfen (Alias für `npm test`)
-```bash
-npm run verify
-```
-
-## Empfohlene Zusatztools (optional, für spätere Ausbaustufen)
+## Empfohlene Zusatztools (optional)
+Diese Entwicklungswerkzeuge erleichtern spätere Ausbaustufen wie Module, Build oder Formatierung:
 ```bash
 npm install --save-dev vite typescript eslint prettier
 ```
+
+## Fehlerdiagnose & Logs
+- Konsolenmeldungen im Terminal zeigen dir den Fortschritt der Startskripte, inklusive klarer Ereigniskennungen (z. B. `STARTUP:SERVER_READY`).
+- Browser-Entwicklertools (Konsole) dokumentieren Warnungen und Fehler der Oberfläche mit identischen Kennungen.
