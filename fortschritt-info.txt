@@ -1,5 +1,5 @@
-Release-Fortschritt: 94 %
-Stand: 2025-09-27
-Einschätzung: Präventionshinweise sichern sich jetzt automatisch im Browser-Speicher und zeigen im Dashboard den gespeicherten Stand an; das Hilfe-Center erklärt den Mechanismus für Laien verständlich.
+Release-Fortschritt: 95 %
+Stand: 2025-09-22
+Einschätzung: Die Arbeitsfläche liegt jetzt in einem 2x2-Dashboard mit Karten für Canvas, Module, Playlist und Aktionsprotokoll; Seitenleisten lassen sich direkt per Toggle-Bar ein- und ausblenden, inklusive Log-Events und Fokus-Hilfen.
 Das Klick&Start-Tool installiert fehlende Abhängigkeiten selbstständig, bevor der Server startet, und meldet Serverfehler klar; Tests scheitern weiterhin an fehlenden Browser-Helfern.
 Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge; zusätzlich globale Helper für Tests konsolidieren, damit `npm test` und `npm run quality` ohne Referenzfehler laufen.

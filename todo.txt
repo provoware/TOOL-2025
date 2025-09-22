@@ -1,5 +1,5 @@
 # TOOL-2025 ToDo
-Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und rechts auf und zuklappbare sidebars und teile alles neu auf. analysiere dafür die perfekteste methode
+- [x] Hauptfenster in 2x2 Gridfenster mit Header-Dashboard und ein-/ausklappbaren Seitenleisten überarbeitet; neue Karten für Module, Playlist und Protokoll analysiert und umgesetzt
 
 ## Aktueller Fokus (Kurzfristig)
 - [ ] Portable Startpakete samt Signaturkette vorbereiten
@@ -247,6 +247,7 @@ Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und recht
 - [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen
 - [x] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (Manifest & Backup speichern Digest + Verlauf, UI-Historie synchronisiert)
 - [x] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
+- [x] Arbeitsfläche in vier Karten (Canvas, Module, Playlist, Protokoll) mit Toggle-Bar und Schnellaktionen strukturiert; Seitenleisten lassen sich direkt aus dem Dashboard steuern
 
 ## Performance & Robustheit
 - [ ] Rechenintensive Aufgaben (JSON-Validierung, Datei-Scans, Wellenformen) in Web-Worker auslagern

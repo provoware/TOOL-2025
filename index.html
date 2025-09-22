@@ -155,8 +155,34 @@
   .modules{display:flex;flex-direction:column;gap:8px}
   .modules .btn{display:flex;justify-content:space-between;align-items:center}
   .modules .small{font-size:.8rem;color:var(--muted)}
-  .workspace{height:100%;padding:var(--gap)}
-  .workspace .canvas{min-height:calc(70vh);background:var(--panel);border:2px dashed var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s ease,background .2s ease}
+  .workspace{height:100%;padding:var(--gap);display:flex;flex-direction:column;gap:var(--gap)}
+  .workspace-head{display:flex;flex-wrap:wrap;gap:var(--gap);align-items:center;justify-content:space-between}
+  .workspace-toggle-bar{display:flex;flex-wrap:wrap;gap:8px}
+  .workspace-grid{display:grid;gap:var(--gap);grid-template-columns:repeat(2,minmax(260px,1fr));grid-auto-rows:minmax(220px,auto)}
+  @media (max-width:1100px){.workspace-grid{grid-template-columns:minmax(260px,1fr)}}
+  .workspace-card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;display:flex;flex-direction:column;gap:12px;min-height:220px}
+  .workspace-card header{display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .workspace-card h3{margin:0;font-size:1.05rem}
+  .workspace-card--canvas{min-height:300px}
+  .workspace-card--canvas .workspace-canvas{flex:1;display:flex;flex-direction:column;gap:10px}
+  .workspace-metric{font-size:.85rem;color:var(--muted);font-weight:600}
+  .workspace-summary{margin:0;font-size:.9rem;color:var(--muted)}
+  .workspace-empty{margin:0;font-size:.85rem;color:var(--muted)}
+  .workspace-list{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+  .workspace-list--numbered{counter-reset:workspace-counter}
+  .workspace-list--numbered li{counter-increment:workspace-counter}
+  .workspace-list--numbered li::before{content:counter(workspace-counter)'.';font-weight:600;margin-right:6px;color:var(--accent)}
+  .workspace-list button.workspace-link{background:none;border:0;color:inherit;text-align:left;padding:0;font:inherit;cursor:pointer;display:flex;flex-direction:column;gap:2px}
+  .workspace-list button.workspace-link:hover{color:var(--accent)}
+  .workspace-list [data-state="active"]{border-left:4px solid var(--accent-workspace);padding-left:8px}
+  .workspace-activity{margin:0;padding:0;list-style:none;display:flex;flex-direction:column;gap:8px}
+  .workspace-activity li{display:flex;flex-direction:column;gap:4px;border-left:4px solid var(--border);padding-left:10px}
+  .workspace-activity li[data-type="ok"]{border-color:var(--ok)}
+  .workspace-activity li[data-type="warn"]{border-color:var(--warn)}
+  .workspace-activity li[data-type="error"]{border-color:var(--err)}
+  .workspace-activity time{font-size:.75rem;color:var(--muted)}
+  .workspace-activity strong{font-weight:600}
+  .workspace .canvas{min-height:260px;background:var(--panel);border:2px dashed var(--border);border-radius:var(--radius);padding:16px;transition:border-color .2s ease,background .2s ease}
   .workspace .canvas.accent-workspace{border-color:var(--accent-workspace);background:var(--accent-workspace-soft)}
   .empty-state{display:flex;flex-direction:column;gap:6px;border:1px dashed var(--border);border-radius:var(--radius);padding:16px;background:var(--panel-2);color:var(--muted);align-items:flex-start}
   .empty-state strong{font-size:1rem;color:var(--text)}
@@ -529,14 +555,63 @@
   </aside>
   <main role="main" aria-label="Arbeitsfläche">
     <div class="workspace">
-      <div class="area-tag accent-workspace">
-        <span class="area-dot" aria-hidden="true"></span>
-        <span class="area-text"><span>Arbeitsfläche</span><span class="area-sub">Hier erscheinen Inhalte</span></span>
+      <div class="workspace-head">
+        <div class="area-tag accent-workspace">
+          <span class="area-dot" aria-hidden="true"></span>
+          <span class="area-text"><span>Arbeitsfläche</span><span class="area-sub">Hier erscheinen Inhalte</span></span>
+        </div>
+        <div class="workspace-toggle-bar" id="workspaceToggleBar" role="group" aria-label="Bereiche ein- und ausblenden">
+          <button type="button" class="btn inline" data-toggle="left">Linke Leiste umschalten</button>
+          <button type="button" class="btn inline" data-toggle="right">Rechte Leiste umschalten</button>
+          <button type="button" class="btn inline" data-toggle="reset">Alle Bereiche anzeigen</button>
+        </div>
       </div>
-      <div class="canvas accent-workspace" id="canvas" tabindex="0" aria-label="Modulfläche">
-        <h2>Willkommen im ModulTool</h2>
-        <p>Wähle links ein Modul oder erstelle ein neues. Rechte Sidebar: Audioplayer & Playlist. Unten: Genres, Moods, Kategorien & Zufall.</p>
-        <p class="muted">Alles ist offline, robust und speichert lokal (localStorage).</p>
+      <div class="workspace-grid" id="workspaceGrid">
+        <section class="workspace-card workspace-card--canvas" aria-labelledby="workspaceCanvasTitle">
+          <header>
+            <h3 id="workspaceCanvasTitle">Arbeitsfläche</h3>
+            <div class="row" style="gap:6px">
+              <button type="button" class="btn inline" id="workspaceFocusBtn">Arbeitsfläche fokussieren</button>
+              <button type="button" class="btn inline" id="workspaceMaximizeBtn">Arbeitsfläche maximieren</button>
+            </div>
+          </header>
+          <div class="workspace-canvas">
+            <div class="canvas accent-workspace" id="canvas" tabindex="0" aria-label="Modulfläche">
+              <h2>Willkommen im ModulTool</h2>
+              <p>Wähle links ein Modul oder erstelle ein neues. Rechte Sidebar: Audioplayer & Playlist. Unten: Genres, Moods, Kategorien & Zufall.</p>
+              <p class="muted">Alles ist offline, robust und speichert lokal (localStorage).</p>
+            </div>
+            <p class="workspace-summary" id="workspaceCanvasHint">Nutze die Buttons, um Module zu öffnen, Audio zu starten oder das komplette Log zu prüfen.</p>
+          </div>
+        </section>
+        <section class="workspace-card" aria-labelledby="workspaceModulesTitle">
+          <header>
+            <h3 id="workspaceModulesTitle">Modul-Überblick</h3>
+            <span class="workspace-metric" id="workspaceModuleCount">0 Module</span>
+          </header>
+          <p class="workspace-summary" id="workspaceModuleSummary">Lege links ein Modul an oder öffne eines aus der Liste.</p>
+          <ul class="workspace-list" id="workspaceModuleList" aria-label="Aktuelle Module"></ul>
+          <p class="workspace-empty" id="workspaceModuleEmpty">Noch keine Module vorhanden. Über das Eingabefeld links kannst du jederzeit ein neues Modul anlegen.</p>
+          <button type="button" class="btn inline" id="workspaceOpenModulesBtn">Zur Modulliste springen</button>
+        </section>
+        <section class="workspace-card" aria-labelledby="workspacePlaylistTitle">
+          <header>
+            <h3 id="workspacePlaylistTitle">Audio & Playlist</h3>
+            <span class="workspace-metric" id="workspacePlaylistCount">0 Titel</span>
+          </header>
+          <p class="workspace-summary" id="workspacePlaylistSummary">Ziehe Audiodateien rechts in die Dropzone oder importiere eine Playlist.</p>
+          <ol class="workspace-list workspace-list--numbered" id="workspacePlaylistList" aria-label="Nächste Titel"></ol>
+          <p class="workspace-empty" id="workspacePlaylistEmpty">Noch keine Titel geladen. Nutze Import oder Drag & Drop, um Musik hinzuzufügen.</p>
+          <button type="button" class="btn inline" id="workspacePlaylistFocusBtn">Zur Playlist springen</button>
+        </section>
+        <section class="workspace-card" aria-labelledby="workspaceActivityTitle">
+          <header>
+            <h3 id="workspaceActivityTitle">Aktionsprotokoll</h3>
+            <button type="button" class="btn inline" id="workspaceShowLogBtn">Komplettes Log anzeigen</button>
+          </header>
+          <ul class="workspace-activity" id="workspaceActivityList" aria-label="Letzte Aktionen"></ul>
+          <p class="workspace-empty" id="workspaceActivityEmpty">Noch keine Aktionen protokolliert. Sobald du Module, Audio oder Backups nutzt, erscheinen die Schritte hier.</p>
+        </section>
       </div>
     </div>
   </main>
@@ -948,8 +1023,29 @@ import { createPersistentSet } from './src/app/persistent-set.js';
   const debugRefreshBtn=$('#debugRefreshBtn');
   const debugCopyBtn=$('#debugCopyBtn');
   const debugDownloadBtn=$('#debugDownloadBtn');
+  const workspaceGrid=$('#workspaceGrid');
+  const workspaceModuleCount=$('#workspaceModuleCount');
+  const workspaceModuleSummary=$('#workspaceModuleSummary');
+  const workspaceModuleList=$('#workspaceModuleList');
+  const workspaceModuleEmpty=$('#workspaceModuleEmpty');
+  const workspacePlaylistCount=$('#workspacePlaylistCount');
+  const workspacePlaylistSummary=$('#workspacePlaylistSummary');
+  const workspacePlaylistList=$('#workspacePlaylistList');
+  const workspacePlaylistEmpty=$('#workspacePlaylistEmpty');
+  const workspaceActivityList=$('#workspaceActivityList');
+  const workspaceActivityEmpty=$('#workspaceActivityEmpty');
+  const workspaceToggleBar=$('#workspaceToggleBar');
+  const workspaceFocusBtn=$('#workspaceFocusBtn');
+  const workspaceMaximizeBtn=$('#workspaceMaximizeBtn');
+  const workspaceOpenModulesBtn=$('#workspaceOpenModulesBtn');
+  const workspacePlaylistFocusBtn=$('#workspacePlaylistFocusBtn');
+  const workspaceShowLogBtn=$('#workspaceShowLogBtn');
+  const workspaceCanvasHint=$('#workspaceCanvasHint');
   let feedbackControlsBound=false;
   let supportControlsBound=false;
+  let workspaceControlsBound=false;
+  let lastLayoutBeforeLeft=null;
+  let lastLayoutBeforeRight=null;
   let lastConfigFocus=null;
   let isApplyingPreset=false;
   const FOCUSABLE_SELECTOR='a[href],area[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
@@ -1509,6 +1605,195 @@ import { createPersistentSet } from './src/app/persistent-set.js';
     if(feedbackEntries.length>FEEDBACK_LIMIT){feedbackEntries.splice(0,feedbackEntries.length-FEEDBACK_LIMIT);}
     renderFeedback();
   }
+  function renderWorkspaceCanvasCard(){
+    if(!workspaceCanvasHint)return;
+    const modulesCount=Array.isArray(state.modules)?state.modules.length:0;
+    const playlistCount=Array.isArray(state.playlist)?state.playlist.length:0;
+    const logCount=Array.isArray(state.log)?state.log.length:0;
+    const hints=[];
+    if(modulesCount===0){hints.push('Starte mit einem Modul links.');}
+    if(playlistCount===0){hints.push('Ziehe Audio in die Playlist rechts.');}
+    if(logCount===0){hints.push('Aktionen erscheinen im Protokoll unten.');}
+    if(hints.length===0){
+      workspaceCanvasHint.textContent='Alles bereit – sichere regelmäßig ein Backup im Fußbereich.';
+      return;
+    }
+    if(hints.length===1){
+      workspaceCanvasHint.textContent=`Tipp: ${hints[0]}`;
+      return;
+    }
+    const last=hints.pop();
+    workspaceCanvasHint.textContent=`Tipps: ${hints.join(' ')} ${last}`;
+  }
+  function extractFileName(path){
+    const normalized=safeStr(path);
+    if(!normalized)return'';
+    const parts=normalized.split(/[/\\]/);
+    return parts[parts.length-1]||normalized;
+  }
+  function renderWorkspaceModulesCard(){
+    if(!workspaceModuleCount)return;
+    const modules=Array.isArray(state.modules)?state.modules.slice():[];
+    const total=modules.length;
+    workspaceModuleCount.textContent=total===1?'1 Modul':`${total} Module`;
+    workspaceModuleList.innerHTML='';
+    if(total===0){
+      if(workspaceModuleSummary)workspaceModuleSummary.textContent='Lege links ein Modul an oder öffne eines aus der Liste.';
+      if(workspaceModuleEmpty)workspaceModuleEmpty.removeAttribute('hidden');
+      return;
+    }
+    const activeId=state.activeModule;
+    modules.sort((a,b)=>{
+      if(a&&a.id===activeId)return-1;
+      if(b&&b.id===activeId)return 1;
+      const nameA=safeStr(a&&a.name).toLocaleLowerCase('de-DE');
+      const nameB=safeStr(b&&b.name).toLocaleLowerCase('de-DE');
+      return nameA.localeCompare(nameB,'de-DE');
+    });
+    const activeModule=modules.find(mod=>mod&&mod.id===activeId);
+    if(workspaceModuleSummary){
+      if(activeModule){
+        workspaceModuleSummary.textContent=`Aktives Modul: ${safeStr(activeModule.name)||'Unbenanntes Modul'}`;
+      }else{
+        workspaceModuleSummary.textContent='Kein Modul aktiv. Wähle eines aus der Liste.';
+      }
+    }
+    if(workspaceModuleEmpty)workspaceModuleEmpty.setAttribute('hidden','');
+    const frag=document.createDocumentFragment();
+    modules.slice(0,4).forEach(module=>{
+      if(!module)return;
+      const li=document.createElement('li');
+      if(module.id===activeId)li.dataset.state='active';
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='workspace-link';
+      button.dataset.moduleId=module.id;
+      button.dataset.moduleName=module.name||'';
+      const title=document.createElement('strong');
+      title.textContent=module.name||'Unbenanntes Modul';
+      const details=document.createElement('span');
+      details.className='muted';
+      const pluginCount=Array.isArray(state.plugins)?state.plugins.filter(plugin=>plugin&&plugin.moduleId===module.id).length:0;
+      if(pluginCount>0){
+        details.textContent=`ID: ${module.id} • Plugins: ${pluginCount}`;
+      }else{
+        details.textContent=`ID: ${module.id}`;
+      }
+      button.append(title,details);
+      li.appendChild(button);
+      frag.appendChild(li);
+    });
+    workspaceModuleList.appendChild(frag);
+  }
+  function renderWorkspacePlaylistCard(){
+    if(!workspacePlaylistCount)return;
+    const tracks=Array.isArray(state.playlist)?state.playlist.slice():[];
+    const total=tracks.length;
+    workspacePlaylistCount.textContent=total===1?'1 Titel':`${total} Titel`;
+    workspacePlaylistList.innerHTML='';
+    if(total===0){
+      if(workspacePlaylistSummary)workspacePlaylistSummary.textContent='Ziehe Audiodateien rechts in die Dropzone oder importiere eine Playlist.';
+      if(workspacePlaylistEmpty)workspacePlaylistEmpty.removeAttribute('hidden');
+      return;
+    }
+    if(workspacePlaylistEmpty)workspacePlaylistEmpty.setAttribute('hidden','');
+    const currentIndex=Number.isInteger(state._currentIndex)&&state._currentIndex>=0&&state._currentIndex<total?state._currentIndex:0;
+    const activeTrack=tracks[currentIndex]||tracks[0];
+    if(workspacePlaylistSummary){
+      const title=safeStr(activeTrack&&activeTrack.title)||'Unbenannter Titel';
+      const artist=safeStr(activeTrack&&activeTrack.artist)||'Unbekannt';
+      workspacePlaylistSummary.textContent=`Aktuell: ${title} (${artist})`;
+    }
+    const frag=document.createDocumentFragment();
+    tracks.slice(currentIndex,currentIndex+4).forEach((track,idx)=>{
+      if(!track)return;
+      const li=document.createElement('li');
+      if(idx===0)li.dataset.state='active';
+      const button=document.createElement('button');
+      button.type='button';
+      button.className='workspace-link';
+      button.dataset.playIndex=String(currentIndex+idx);
+      const title=document.createElement('strong');
+      title.textContent=safeStr(track.title)||extractFileName(track.src)||'Unbenannter Titel';
+      const details=document.createElement('span');
+      details.className='muted';
+      if(track.artist){
+        details.textContent=`Von ${safeStr(track.artist)}`;
+      }else{
+        details.textContent=`Quelle: ${extractFileName(track.src)}`;
+      }
+      button.append(title,details);
+      li.appendChild(button);
+      frag.appendChild(li);
+    });
+    workspacePlaylistList.appendChild(frag);
+  }
+  function renderWorkspaceActivityCard(){
+    if(!workspaceActivityList)return;
+    const entries=Array.isArray(state.log)?state.log.slice(-4).reverse():[];
+    workspaceActivityList.innerHTML='';
+    if(entries.length===0){
+      if(workspaceActivityEmpty)workspaceActivityEmpty.removeAttribute('hidden');
+      return;
+    }
+    if(workspaceActivityEmpty)workspaceActivityEmpty.setAttribute('hidden','');
+    const frag=document.createDocumentFragment();
+    entries.forEach(entry=>{
+      const type=normalizeLogType(entry&&entry.type);
+      const meta=LOG_LEVELS[type]||LOG_LEVELS.info;
+      const li=document.createElement('li');
+      li.dataset.type=type;
+      const label=document.createElement('span');
+      label.className='muted';
+      label.textContent=`${meta.icon} ${meta.label}`;
+      const summary=document.createElement('strong');
+      summary.textContent=safeStr(entry&&entry.msg)||'Aktion protokolliert.';
+      const time=document.createElement('time');
+      const timeText=safeStr(entry&&entry.time)||new Date().toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+      time.dateTime=safeStr(entry&&entry.time)||new Date().toISOString();
+      time.textContent=timeText;
+      li.append(label,summary,time);
+      frag.appendChild(li);
+    });
+    workspaceActivityList.appendChild(frag);
+  }
+  function renderWorkspaceGrid(){
+    renderWorkspaceCanvasCard();
+    renderWorkspaceModulesCard();
+    renderWorkspacePlaylistCard();
+    renderWorkspaceActivityCard();
+    if(workspaceToggleBar&&typeof document!=='undefined'&&document.body){
+      const leftBtn=workspaceToggleBar.querySelector('button[data-toggle="left"]');
+      const rightBtn=workspaceToggleBar.querySelector('button[data-toggle="right"]');
+      if(leftBtn){leftBtn.setAttribute('aria-pressed',document.body.classList.contains('collapsed-left')?'true':'false');}
+      if(rightBtn){rightBtn.setAttribute('aria-pressed',document.body.classList.contains('collapsed-right')?'true':'false');}
+    }
+  }
+  eventBus.subscribe(EVENT_NAMES.STATE_CHANGED,()=>{renderWorkspaceGrid();});
+  if(typeof renderLog==='function'){
+    const originalRenderLog=renderLog;
+    renderLog=function renderLogWithWorkspace(){
+      const result=originalRenderLog.apply(this,arguments);
+      renderWorkspaceActivityCard();
+      return result;
+    };
+  }
+  if(typeof renderModules==='function'){
+    const originalRenderModules=renderModules;
+    renderModules=function renderModulesWithWorkspace(){
+      const result=originalRenderModules.apply(this,arguments);
+      renderWorkspaceModulesCard();
+      return result;
+    };
+  }
+  if(typeof renderPlaylist==='function'){
+    const originalRenderPlaylist=renderPlaylist;
+    renderPlaylist=function renderPlaylistWithWorkspace(){
+      const result=originalRenderPlaylist.apply(this,arguments);
+      renderWorkspacePlaylistCard();
+      return result;
+    };
+  }
   function updatePreventiveHintSummary(){
     if(!storedHintCounter)return;
     const stored=shownFeedbackHints.toArray?shownFeedbackHints.toArray().length:0;
@@ -1760,6 +2045,120 @@ import { createPersistentSet } from './src/app/persistent-set.js';
     if(layoutShowAllBtn){
       layoutShowAllBtn.addEventListener('click',()=>{
         applyLayoutPreset('balanced',{announceSelection:true});
+      });
+    }
+  }
+  function handleWorkspaceToggle(action){
+    if(!action)return;
+    const currentLayout=state.layoutPreset||'balanced';
+    if(action==='left'){
+      const collapsed=document&&document.body&&document.body.classList.contains('collapsed-left');
+      let targetLayout;
+      if(collapsed){
+        targetLayout=lastLayoutBeforeLeft||currentLayout||'balanced';
+      }else{
+        lastLayoutBeforeLeft=currentLayout;
+        targetLayout='audio-only';
+      }
+      const meta=applyLayoutPreset(targetLayout,{announceSelection:true});
+      addLog('info',`EVENT:WORKSPACE_TOGGLE_LEFT – Layout ${meta.label}.`);
+      return;
+    }
+    if(action==='right'){
+      const collapsed=document&&document.body&&document.body.classList.contains('collapsed-right');
+      let targetLayout;
+      if(collapsed){
+        targetLayout=lastLayoutBeforeRight||currentLayout||'balanced';
+      }else{
+        lastLayoutBeforeRight=currentLayout;
+        targetLayout='module-only';
+      }
+      const meta=applyLayoutPreset(targetLayout,{announceSelection:true});
+      addLog('info',`EVENT:WORKSPACE_TOGGLE_RIGHT – Layout ${meta.label}.`);
+      return;
+    }
+    if(action==='reset'){
+      lastLayoutBeforeLeft=null;
+      lastLayoutBeforeRight=null;
+      const meta=applyLayoutPreset('balanced',{announceSelection:true});
+      addLog('info',`EVENT:WORKSPACE_TOGGLE_RESET – Layout ${meta.label}.`);
+    }
+  }
+  function bindWorkspaceControls(){
+    if(workspaceControlsBound)return;
+    workspaceControlsBound=true;
+    if(workspaceToggleBar){
+      workspaceToggleBar.addEventListener('click',event=>{
+        const button=event.target&&event.target.closest('button[data-toggle]');
+        if(!button)return;
+        event.preventDefault();
+        handleWorkspaceToggle(button.dataset.toggle);
+      });
+    }
+    if(workspaceFocusBtn){
+      workspaceFocusBtn.addEventListener('click',()=>{
+        const success=focusAndAnnounce('#canvas','Arbeitsfläche fokussiert.');
+        addLog(success?'info':'warn',success?'EVENT:WORKSPACE_CANVAS_FOCUS – Arbeitsfläche fokussiert.':'EVENT:WORKSPACE_CANVAS_FOCUS – Arbeitsfläche nicht gefunden.');
+        if(!success)toast('Arbeitsfläche konnte nicht fokussiert werden.');
+      });
+    }
+    if(workspaceMaximizeBtn){
+      workspaceMaximizeBtn.addEventListener('click',()=>{
+        const meta=applyLayoutPreset('workspace',{announceSelection:true});
+        addLog('ok',`EVENT:WORKSPACE_MAXIMIZE – Layout ${meta.label}.`);
+      });
+    }
+    if(workspaceOpenModulesBtn){
+      workspaceOpenModulesBtn.addEventListener('click',()=>{
+        const focused=focusAndAnnounce('#newModuleName','Modul anlegen oder wählen.');
+        if(!focused){
+          focusAndAnnounce('#modulesList','Modulbereich fokussiert.');
+        }
+        addLog(focused?'info':'warn','EVENT:WORKSPACE_GOTO_MODULES – Modulliste fokussiert.');
+      });
+    }
+    if(workspacePlaylistFocusBtn){
+      workspacePlaylistFocusBtn.addEventListener('click',()=>{
+        const focused=focusAndAnnounce('#dropzone','Playlist-Bereich aktiv.');
+        if(!focused){
+          focusAndAnnounce('#playlist','Playlist aktiv.');
+        }
+        addLog(focused?'info':'warn','EVENT:WORKSPACE_GOTO_PLAYLIST – Playlist fokussiert.');
+      });
+    }
+    if(workspaceShowLogBtn){
+      workspaceShowLogBtn.addEventListener('click',()=>{
+        const focused=focusAndAnnounce('#loglist','Log geöffnet.');
+        if(!focused){
+          focusAndAnnounce('#logSummaryText','Logstatus fokussiert.');
+        }
+        addLog(focused?'info':'warn','EVENT:WORKSPACE_OPEN_LOG – Logbereich geöffnet.');
+      });
+    }
+    if(workspaceModuleList){
+      workspaceModuleList.addEventListener('click',event=>{
+        const target=event.target&&event.target.closest('button[data-module-id]');
+        if(!target)return;
+        event.preventDefault();
+        const moduleId=target.dataset.moduleId;
+        if(!moduleId)return;
+        openModule(moduleId);
+        const name=safeStr(target.dataset.moduleName||moduleId);
+        addLog('ok',`EVENT:WORKSPACE_MODULE_OPEN – Modul ${name} geöffnet.`);
+        announceProcess(`Modul ${name} geöffnet.`,'ok');
+      });
+    }
+    if(workspacePlaylistList){
+      workspacePlaylistList.addEventListener('click',event=>{
+        const target=event.target&&event.target.closest('button[data-play-index]');
+        if(!target)return;
+        event.preventDefault();
+        const index=Number(target.dataset.playIndex);
+        if(Number.isFinite(index)){
+          playIndex(index);
+          addLog('info',`EVENT:WORKSPACE_PLAYLIST_PLAY – Titel ${index+1} gestartet.`);
+          announceProcess('Titel gestartet.','ok');
+        }
       });
     }
   }
@@ -3660,6 +4059,7 @@ import { createPersistentSet } from './src/app/persistent-set.js';
     renderPlaylist();
     renderStats();
     renderLog();
+    renderWorkspaceGrid();
     const filterSel=$('#logFilterSel');
     if(filterSel)filterSel.value=state.logFilter||'all';
     updateConfigPresetState({skipLog:true});
@@ -3678,6 +4078,7 @@ import { createPersistentSet } from './src/app/persistent-set.js';
     $('#toastsChk').checked=state.toasts!==false;
     renderAll();
     bindEvents();
+    bindWorkspaceControls();
     bindMediaListeners();
     openModule(state.activeModule||startId);
     if(clockTimer)clearInterval(clockTimer);
