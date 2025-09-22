@@ -1,6 +1,5 @@
-Release-Fortschritt: 90 %
-Stand: 2025-09-24
-Einschätzung: Die Info-Dateien wurden laienfreundlich überarbeitet.
-Sie zeigen jetzt klar die Start-, Test- und Diagnosepfade mit einheitlichen Ereignis-Logs.
-Die Dokumentation stützt sich direkt auf die bestehenden Startskripte und reduziert Redundanzen.
-Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge.
+Release-Fortschritt: 97 %
+Stand: 2025-09-23
+Einschätzung: Das Workspace-Dashboard ordnet Canvas, Module, Playlist und Log jetzt in einem festen 2-zu-1-Raster an, sodass der Arbeitsbereich auf großen Displays durchgehend sichtbar bleibt und die Karten rechts in einer sauberen Spalte gestapelt sind.
+Das Klick&Start-Tool nutzt eine modulare StartPipeline mit Reporter-, Browser- und Server-Helfern; alle Schritte liefern klar getrennte EVENT/OK/WARN/ERROR-Meldungen und stoppen den Server kontrolliert bei Signalen.
+Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge; außerdem globale Helper für Tests konsolidieren, damit `npm test` und `npm run quality` ohne Referenzfehler laufen.
