@@ -440,6 +440,7 @@
             <li class="feedback-empty">Noch keine Hinweise. Aktionen erscheinen hier automatisch.</li>
           </ul>
           <p id="feedbackFilterSummary" class="feedback-summary" aria-live="polite"></p>
+          <p id="feedbackHintStatus" class="feedback-summary" data-state="default" aria-live="polite">Gespeicherte Tipps: werden beim ersten Hinweis festgehalten.</p>
         </div>
         <div id="debugPanel" class="debug-panel" hidden>
           <div class="debug-title">
@@ -753,7 +754,8 @@
     </div>
   </div>
 </div>
-<script>
+<script type="module">
+import { createPersistentSet } from './src/app/persistent-set.js';
 (function(){
   'use strict';
   /* global addLog, persist, toast, download, openModule, startId, pluginOverviewId, clearPlugins, runSelfTests, exportPlaylist, exportAll, selfRepair, renderTheme, ensureAllPlugins, ensureModuleRegistryMatchesState, reorderPlaylist, removeTrackAt, renderPlaylist, renderStats, renderModules, renderCategories, renderArchives, renderLog, load, bindEvents, tick, createUserModule, generateManifest, buildBackup, validateBackup, runRandom, playIndex, validatePluginData, registerPlugin, removePlugin, removeModule, pluginExists, ensurePluginModule, createPersistableState, applyLoadedState, backupCheckId */
@@ -1101,7 +1103,8 @@
   const DEFAULT_MAX_JSON_SIZE=5*1024*1024;
   const DEFAULT_MAX_AUDIO_SIZE=25*1024*1024;
   const feedbackEntries=[];
-  const shownFeedbackHints=new Set();
+  const shownFeedbackHints=createPersistentSet('modultool-feedback-hints',{maxEntries:96});
+  const storedHintCounter=$('#feedbackHintStatus');
   const PREVENTIVE_HINTS=Object.freeze({
     'plugin-import':'Tipp: Nutze Plugin-Dateien, die du vorher im ModulTool exportiert hast (JSON-Datei). Dann passen Name, Version und Inhalte garantiert zusammen.',
     'plugin-export':'Tipp: Die exportierte Plugin-Datei landet im Download-Ordner. Teile sie nur mit Personen, denen du vertraust.',
@@ -1478,6 +1481,7 @@
       feedbackList.appendChild(li);
       updateFeedbackBadge(stats);
       updateFeedbackFilterSummary(stats);
+      updatePreventiveHintSummary();
       return;
     }
     const frag=document.createDocumentFragment();
@@ -1494,6 +1498,7 @@
     feedbackList.appendChild(frag);
     updateFeedbackBadge(stats);
     updateFeedbackFilterSummary(stats);
+    updatePreventiveHintSummary();
   }
   function captureFeedback(message,type='info',options={}){
     const text=safeStr(message).trim();
@@ -1504,12 +1509,28 @@
     if(feedbackEntries.length>FEEDBACK_LIMIT){feedbackEntries.splice(0,feedbackEntries.length-FEEDBACK_LIMIT);}
     renderFeedback();
   }
+  function updatePreventiveHintSummary(){
+    if(!storedHintCounter)return;
+    const stored=shownFeedbackHints.toArray?shownFeedbackHints.toArray().length:0;
+    if(stored<=0){
+      storedHintCounter.dataset.state='default';
+      storedHintCounter.textContent='Gespeicherte Tipps: werden beim ersten Hinweis festgehalten.';
+      return;
+    }
+    storedHintCounter.dataset.state='active';
+    const label=stored===1?'1 Tipp ist bereits gespeichert und erscheint nicht doppelt.':`${stored} Tipps sind gespeichert und erscheinen nicht doppelt.`;
+    storedHintCounter.textContent=label;
+  }
   function offerPreventiveHint(key){
     const id=safeStr(key).trim();
-    if(!id||shownFeedbackHints.has(id))return;
+    if(!id) return;
+    if(shownFeedbackHints.has(id)){
+      updatePreventiveHintSummary();
+      return;
+    }
     const hint=PREVENTIVE_HINTS[id];
     if(!hint)return;
-    shownFeedbackHints.add(id);
+    if(shownFeedbackHints.add(id)){updatePreventiveHintSummary();}
     captureFeedback(hint,'info',{source:'hint'});
   }
   function clearFeedback(){
@@ -2344,7 +2365,21 @@
         ],
         tips:[
           'Self-Repair meldet jede Änderung im Log. So erkennst du, was angepasst wurde.',
-          'Bewahre Sicherungsdateien an einem sicheren Ort auf (z. B. externes Laufwerk).' 
+          'Bewahre Sicherungsdateien an einem sicheren Ort auf (z. B. externes Laufwerk).'
+        ]
+      },
+      {
+        id:'safetyHints',
+        title:'Präventionshinweise bleiben gespeichert',
+        description:'Das Tool merkt sich Tipps, damit sie nur einmal auftauchen.',
+        steps:[
+          {text:'Starte eine Aktion wie Export, Import oder Self-Repair. Danach erscheint automatisch ein Tipp (Hinweis) mit Hintergrund-Info.',hint:'Diese Tipps erklären Fachbegriffe (z. B. JSON = Textdatei) ohne zusätzliche Klicks.'},
+          {text:'Sobald der Tipp eingeblendet wurde, speichert das Tool ihn lokal (Speicher im Browser namens LocalStorage).',hint:'Dadurch erscheinen wiederkehrende Hinweise nicht mehrfach.'},
+          {text:'Im Abschnitt „Aktuelle Hinweise“ steht die Anzahl der bereits gemerkten Tipps. So weißt du, dass die Erinnerung funktioniert.',hint:'Die Zeile heißt „Gespeicherte Tipps“.'}
+        ],
+        tips:[
+          'Die Speicherung passiert nur auf deinem Gerät. Löschst du Browserdaten, beginnen die Hinweise wieder bei Null.',
+          'Wenn du Hinweise trotzdem erneut lesen möchtest, kannst du im Browser den Seitenspeicher (LocalStorage) leeren.'
         ]
       }
     ];
@@ -3632,6 +3667,7 @@
   }
   function init(){
     const dependencyReport=autoResolveDependencies();
+    updatePreventiveHintSummary();
     load();
     if(state.selfrepair)selfRepair();
     if(state.respectSystemMotion){state.reduceMotion=!!state.reduceMotion;}

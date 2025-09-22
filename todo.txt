@@ -246,7 +246,7 @@ Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und recht
 - [x] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
 - [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen
 - [x] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (Manifest & Backup speichern Digest + Verlauf, UI-Historie synchronisiert)
-- [ ] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
+- [x] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
 
 ## Performance & Robustheit
 - [ ] Rechenintensive Aufgaben (JSON-Validierung, Datei-Scans, Wellenformen) in Web-Worker auslagern

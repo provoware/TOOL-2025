@@ -1,5 +1,5 @@
-Release-Fortschritt: 93 %
-Stand: 2025-09-26
-Einschätzung: Die Feedback-Toolbar bündelt Filter jetzt in einem Feldset mit Schnellaktionen und farblich abgesetzter Zusammenfassung; Debug-Buttons und Exportfilter wurden funktionsfähig verdrahtet.
-Der veraltete `if(false)`-Fallback ist entfernt, wodurch nur die moderne Skriptbasis aktiv bleibt; Tests melden weiterhin fehlende Modul-Helfer (`ensureModuleRegistryMatchesState` u. a.) und blockieren den Durchlauf.
+Release-Fortschritt: 94 %
+Stand: 2025-09-27
+Einschätzung: Präventionshinweise sichern sich jetzt automatisch im Browser-Speicher und zeigen im Dashboard den gespeicherten Stand an; das Hilfe-Center erklärt den Mechanismus für Laien verständlich.
+Das Klick&Start-Tool installiert fehlende Abhängigkeiten selbstständig, bevor der Server startet, und meldet Serverfehler klar; Tests scheitern weiterhin an fehlenden Browser-Helfern.
 Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge; zusätzlich globale Helper für Tests konsolidieren, damit `npm test` und `npm run quality` ohne Referenzfehler laufen.
