@@ -243,7 +243,7 @@ Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und recht
 - [x] Konfigurations-Assistent mit Presets, Klartext-Zusammenfassung und Button-Steuerung integrieren
 - [x] Konfigurationsprofile (Preset-Export/-Import) und Fokusfalle für den Konfigurations-Dialog ergänzen (Export/Import aktiv, Fokusfalle umgesetzt)
 - [ ] Layout-Anpassung per Drag/Resize ermöglichen (Seitenleistenbreite stufenlos, Speicher je Preset) und mobile Breakpoints dokumentieren
-- [ ] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
+- [x] Feedback-Panel um Filter nach Typ/Quelle sowie Export (JSON/TXT) erweitern und Badge-Statistiken persistent speichern
 - [x] State-Digest als visuelles Dashboard (Mini-Statistik + Screenreader-Beschreibung) ergänzen
 - [x] State-Digest-Dashboard in Backups/Manifest aufnehmen und Verlaufs-Historie dokumentieren (Manifest & Backup speichern Digest + Verlauf, UI-Historie synchronisiert)
 - [ ] Präventionshinweise (Feedback-Hints) persistent machen und im Hilfe-Center dokumentieren
@@ -303,6 +303,8 @@ Hauptfenster in 2x2 Gridfenster aufteile mit Headerdashboard und links und recht
 - [ ] Sichere Importe/Exporte mit Dry-Run, Sanitizing und Signaturen bereitstellen
 
 ## Abgeschlossene Arbeiten
+- [x] Feedback-Toolbar neu strukturiert (Filter-Panel, Schnellaktionen, Klartext-Zusammenfassung)
+- [x] Legacy-`if(false)`-Fallback endgültig entfernt (nur moderne Skripte aktiv)
 - [x] Info-Dateien bereinigt und laienfreundlich strukturiert
 - [ ] Projektstruktur in Unterordner (public/src/tests) aufbrechen
 - [ ] Build- & Toolchain (Vite, TypeScript, ESLint, Jest) einrichten

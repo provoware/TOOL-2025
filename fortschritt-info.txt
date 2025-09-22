@@ -1,6 +1,5 @@
-Release-Fortschritt: 90 %
-Stand: 2025-09-24
-Einschätzung: Die Info-Dateien wurden laienfreundlich überarbeitet.
-Sie zeigen jetzt klar die Start-, Test- und Diagnosepfade mit einheitlichen Ereignis-Logs.
-Die Dokumentation stützt sich direkt auf die bestehenden Startskripte und reduziert Redundanzen.
-Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge.
+Release-Fortschritt: 93 %
+Stand: 2025-09-26
+Einschätzung: Die Feedback-Toolbar bündelt Filter jetzt in einem Feldset mit Schnellaktionen und farblich abgesetzter Zusammenfassung; Debug-Buttons und Exportfilter wurden funktionsfähig verdrahtet.
+Der veraltete `if(false)`-Fallback ist entfernt, wodurch nur die moderne Skriptbasis aktiv bleibt; Tests melden weiterhin fehlende Modul-Helfer (`ensureModuleRegistryMatchesState` u. a.) und blockieren den Durchlauf.
+Nächste Schritte: portable Startpakete, Build-/Signaturkette, Event-Statecharts sowie kontextbezogene Hilfetexte für weitere Dialoge; zusätzlich globale Helper für Tests konsolidieren, damit `npm test` und `npm run quality` ohne Referenzfehler laufen.
